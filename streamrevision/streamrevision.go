@@ -1,0 +1,19 @@
+package streamrevision
+
+// StreamRevision ...
+type StreamRevision uint64
+
+const (
+	// StreamRevisionNoStream ...
+	StreamRevisionNoStream StreamRevision = iota
+	// StreamRevisionAny ...
+	StreamRevisionAny
+	// StreamRevisionStreamExists ...
+	StreamRevisionStreamExists
+)
+
+// StreamRevisionStart ...
+const StreamRevisionStart = 0
+
+// StreamRevisionEnd ...
+const StreamRevisionEnd = -1
