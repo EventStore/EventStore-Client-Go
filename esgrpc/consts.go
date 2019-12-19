@@ -1,0 +1,13 @@
+package esgrpc
+
+// ExpectedVersion ...
+type ExpectedVersion int
+
+const (
+	// ExpectedVersionNoStream ...
+	ExpectedVersionNoStream ExpectedVersion = iota
+	// ExpectedVersionAny ...
+	ExpectedVersionAny
+	// ExpectedVersionStreamExists ...
+	ExpectedVersionStreamExists
+)
