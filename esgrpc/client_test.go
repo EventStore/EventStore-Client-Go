@@ -43,7 +43,7 @@ func TestAppendToStream_SingleEvent(t *testing.T) {
 	}
 
 	streamID, _ := uuid.NewV4()
-	_, err := client.AppendToStream(streamID.String(), esgrpc.ExpectedVersionAny, messages)
+	_, err := client.AppendToStream(streamID.String(), esgrpc.StreamRevisionAny, messages)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)

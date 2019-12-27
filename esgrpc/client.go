@@ -85,7 +85,7 @@ func (client *Client) Close() error {
 }
 
 // AppendToStream ...
-func (client *Client) AppendToStream(streamID string, expectedVersion ExpectedVersion, messages []Message) (*api.AppendResp, error) {
+func (client *Client) AppendToStream(streamID string, streamRevision StreamRevision, messages []Message) (*api.AppendResp, error) {
 	streamsClient := api.NewStreamsClient(client.Connection)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
@@ -108,16 +108,16 @@ func (client *Client) AppendToStream(streamID string, expectedVersion ExpectedVe
 		},
 	}
 
-	switch expectedVersion {
-	case ExpectedVersionAny:
+	switch streamRevision {
+	case StreamRevisionAny:
 		header.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_Any{
 			Any: &api.AppendReq_Empty{},
 		}
-	case ExpectedVersionNoStream:
+	case StreamRevisionNoStream:
 		header.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_NoStream{
 			NoStream: &api.AppendReq_Empty{},
 		}
-	case ExpectedVersionStreamExists:
+	case StreamRevisionStreamExists:
 		header.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_StreamExists{
 			StreamExists: &api.AppendReq_Empty{},
 		}
