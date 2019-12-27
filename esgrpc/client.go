@@ -91,9 +91,9 @@ func (client *Client) AppendToStream(streamID string, streamRevision StreamRevis
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
 
-	streamClient, err := streamsClient.Append(ctx)
+	appendOperation, err := streamsClient.Append(ctx)
 	if err != nil {
-		log.Printf("Could not get streams client: %v", err)
+		log.Printf("Could not construct append operation: %v", err)
 		return nil, err
 	}
 
@@ -123,7 +123,7 @@ func (client *Client) AppendToStream(streamID string, streamRevision StreamRevis
 		}
 	}
 
-	if err := streamClient.Send(header); err != nil {
+	if err := appendOperation.Send(header); err != nil {
 		log.Printf("Could not send append request header %+v", err)
 		return nil, err
 	}
@@ -150,11 +150,11 @@ func (client *Client) AppendToStream(streamID string, streamRevision StreamRevis
 			},
 		}
 
-		if err = streamClient.Send(appendRequest); err != nil {
+		if err = appendOperation.Send(appendRequest); err != nil {
 			log.Printf("Could not send append request: %v", err)
 			return nil, err
 		}
 	}
 
-	return streamClient.CloseAndRecv()
+	return appendOperation.CloseAndRecv()
 }
