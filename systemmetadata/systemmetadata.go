@@ -4,7 +4,7 @@ package systemmetadata
 const SystemMetadataKeysType = "type"
 
 // SystemMetadataKeysIsJSON ...
-const SystemMetadataKeysIsJSON = "is-json"
+const SystemMetadataKeysContentType = "content-type"
 
 // SystemMetadataKeysCreated ...
 const SystemMetadataKeysCreated = "created"

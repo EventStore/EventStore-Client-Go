@@ -1,16 +1,17 @@
 package messages
 
 import (
-	position "github.com/eventstore/EventStore-Client-Go/position"
-	uuid "github.com/gofrs/uuid"
 	"time"
+
+	position "github.com/EventStore/EventStore-Client-Go/position"
+	uuid "github.com/gofrs/uuid"
 )
 
 // RecordedEvent ...
 type RecordedEvent struct {
 	EventID        uuid.UUID
 	EventType      string
-	IsJSON         bool
+	ContentType    string
 	StreamID       string
 	StreamRevision uint64
 	Position       position.Position

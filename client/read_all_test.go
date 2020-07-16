@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	direction "github.com/eventstore/EventStore-Client-Go/direction"
-	position "github.com/eventstore/EventStore-Client-Go/position"
+	direction "github.com/EventStore/EventStore-Client-Go/direction"
+	position "github.com/EventStore/EventStore-Client-Go/position"
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +39,7 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:14:13.990951Z")
 		assert.Equal(t, expectedCreated, events[0].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 167, Prepare: 167}, events[0].Position)
-		assert.Equal(t, true, events[0].IsJSON)
+		assert.Equal(t, "application/json", events[0].ContentType)
 
 		expectedEventID, _ = uuid.FromString("4936a85f-e6cb-4a72-9007-ceed0c8a56e7")
 		assert.Equal(t, expectedEventID, events[9].EventID)
@@ -49,7 +49,7 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ = time.Parse(time.RFC3339, "2020-01-12T18:14:14.108422Z")
 		assert.Equal(t, expectedCreated, events[9].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 1788, Prepare: 1788}, events[9].Position)
-		assert.Equal(t, true, events[9].IsJSON)
+		assert.Equal(t, "application/json", events[9].ContentType)
 	})
 
 	t.Run("TestReadAllEventsForwardsFromNonZeroPosition", func(t *testing.T) {
@@ -76,7 +76,7 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:14:14.108422Z")
 		assert.Equal(t, expectedCreated, events[0].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 1788, Prepare: 1788}, events[0].Position)
-		assert.Equal(t, true, events[0].IsJSON)
+		assert.Equal(t, "application/json", events[0].ContentType)
 
 		expectedEventID, _ = uuid.FromString("c4bde754-dc19-4835-9005-1e82002ecc10")
 		assert.Equal(t, expectedEventID, events[9].EventID)
@@ -86,7 +86,7 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ = time.Parse(time.RFC3339, "2020-01-12T18:14:14.158068Z")
 		assert.Equal(t, expectedCreated, events[9].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 3256, Prepare: 3256}, events[9].Position)
-		assert.Equal(t, false, events[9].IsJSON)
+		assert.Equal(t, "application/octet-stream", events[9].ContentType)
 	})
 
 	t.Run("TestReadAllEventsBackwardsFromZeroPosition", func(t *testing.T) {
@@ -113,7 +113,7 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:20:14.583749Z")
 		assert.Equal(t, expectedCreated, events[0].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 20492574, Prepare: 20492574}, events[0].Position)
-		assert.Equal(t, true, events[0].IsJSON)
+		assert.Equal(t, "application/json", events[0].ContentType)
 	})
 
 	t.Run("TestReadAllEventsBackwardsFromNonZeroPosition", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:14:14.158068Z")
 		assert.Equal(t, expectedCreated, events[0].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 3256, Prepare: 3256}, events[0].Position)
-		assert.Equal(t, false, events[0].IsJSON)
+		assert.Equal(t, "application/octet-stream", events[0].ContentType)
 
 		expectedEventID, _ = uuid.FromString("4936a85f-e6cb-4a72-9007-ceed0c8a56e7")
 		assert.Equal(t, expectedEventID, events[9].EventID)
@@ -151,6 +151,6 @@ func TestReads(t *testing.T) {
 		expectedCreated, _ = time.Parse(time.RFC3339, "2020-01-12T18:14:14.108422Z")
 		assert.Equal(t, expectedCreated, events[9].CreatedDate)
 		assert.Equal(t, position.Position{Commit: 1788, Prepare: 1788}, events[9].Position)
-		assert.Equal(t, true, events[9].IsJSON)
+		assert.Equal(t, "application/json", events[9].ContentType)
 	})
 }

@@ -8,7 +8,7 @@ import (
 type ProposedEvent struct {
 	EventID      uuid.UUID
 	EventType    string
-	IsJSON       bool
+	ContentType  string
 	Data         []byte
 	UserMetadata []byte
 }

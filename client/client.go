@@ -8,14 +8,14 @@ import (
 	"io"
 	"log"
 
-	direction "github.com/eventstore/EventStore-Client-Go/direction"
-	errors "github.com/eventstore/EventStore-Client-Go/errors"
-	protoutils "github.com/eventstore/EventStore-Client-Go/internal/protoutils"
-	messages "github.com/eventstore/EventStore-Client-Go/messages"
-	position "github.com/eventstore/EventStore-Client-Go/position"
-	api "github.com/eventstore/EventStore-Client-Go/protos"
-	stream_revision "github.com/eventstore/EventStore-Client-Go/streamrevision"
-	system_metadata "github.com/eventstore/EventStore-Client-Go/systemmetadata"
+	direction "github.com/EventStore/EventStore-Client-Go/direction"
+	errors "github.com/EventStore/EventStore-Client-Go/errors"
+	protoutils "github.com/EventStore/EventStore-Client-Go/internal/protoutils"
+	messages "github.com/EventStore/EventStore-Client-Go/messages"
+	position "github.com/EventStore/EventStore-Client-Go/position"
+	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
+	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -132,9 +132,12 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 		if status.Code() == codes.PermissionDenied { //PermissionDenied -> ErrPemissionDenied
 			return nil, fmt.Errorf("%w", errors.ErrPermissionDenied)
 		}
+		if status.Code() == codes.Unauthenticated { //PermissionDenied -> ErrUnauthenticated
+			return nil, fmt.Errorf("%w", errors.ErrUnauthenticated)
+		}
 		return nil, err
 	}
-	return WriteResultFromAppendResp(response), nil
+	return WriteResultFromAppendResp(response)
 }
 
 // ReadStreamEvents ...
@@ -145,14 +148,14 @@ func (client *Client) ReadStreamEvents(context context.Context, direction direct
 				Count: count,
 			},
 			FilterOption: &api.ReadReq_Options_NoFilter{
-				NoFilter: &api.ReadReq_Empty{},
+				NoFilter: nil,
 			},
 			ReadDirection: protoutils.ToReadDirectionFromDirection(direction),
 			ResolveLinks:  resolveLinks,
 			StreamOption:  protoutils.ToReadStreamOptionsFromStreamAndStreamRevision(streamID, streamRevision),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
 				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: &api.ReadReq_Empty{},
+					String_: nil,
 				},
 			},
 		},
@@ -168,14 +171,14 @@ func (client *Client) ReadAllEvents(context context.Context, direction direction
 				Count: count,
 			},
 			FilterOption: &api.ReadReq_Options_NoFilter{
-				NoFilter: &api.ReadReq_Empty{},
+				NoFilter: nil,
 			},
 			ReadDirection: protoutils.ToReadDirectionFromDirection(direction),
 			ResolveLinks:  resolveLinks,
 			StreamOption:  protoutils.ToAllReadOptionsFromPosition(position),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
 				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: &api.ReadReq_Empty{},
+					String_: nil,
 				},
 			},
 		},
@@ -201,23 +204,41 @@ func readInternal(context context.Context, connection *grpc.ClientConn, readRequ
 		if err != nil {
 			log.Fatalf("Failed to perform read. Reason: %v", err)
 		}
-		readEvent := readResult.Event
-		recordedEvent := readEvent.GetEvent()
+		switch readResult.Content.(type) {
+		case *api.ReadResp_Checkpoint_:
+			{
 
-		events = append(events, messages.RecordedEvent{
-			EventID:        protoutils.EventIDFromProto(recordedEvent),
-			EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
-			IsJSON:         protoutils.IsJSONFromProto(recordedEvent),
-			StreamID:       recordedEvent.GetStreamName(),
-			StreamRevision: recordedEvent.GetStreamRevision(),
-			CreatedDate:    protoutils.CreatedFromProto(recordedEvent),
-			Position:       protoutils.PositionFromProto(recordedEvent),
-			Data:           recordedEvent.GetData(),
-			SystemMetadata: recordedEvent.GetMetadata(),
-			UserMetadata:   recordedEvent.GetCustomMetadata(),
-		})
-		if uint64(len(events)) >= limit {
-			break
+			}
+		case *api.ReadResp_Confirmation:
+			{
+
+			}
+		case *api.ReadResp_Event:
+			{
+				event := readResult.GetEvent()
+				recordedEvent := event.GetEvent()
+				streamIdentifier := recordedEvent.GetStreamIdentifier()
+
+				events = append(events, messages.RecordedEvent{
+					EventID:        protoutils.EventIDFromProto(recordedEvent),
+					EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
+					ContentType:    protoutils.GetContentTypeFromProto(recordedEvent),
+					StreamID:       string(streamIdentifier.StreamName),
+					StreamRevision: recordedEvent.GetStreamRevision(),
+					CreatedDate:    protoutils.CreatedFromProto(recordedEvent),
+					Position:       protoutils.PositionFromProto(recordedEvent),
+					Data:           recordedEvent.GetData(),
+					SystemMetadata: recordedEvent.GetMetadata(),
+					UserMetadata:   recordedEvent.GetCustomMetadata(),
+				})
+				if uint64(len(events)) >= limit {
+					break
+				}
+			}
+		case *api.ReadResp_StreamNotFound_:
+			{
+
+			}
 		}
 	}
 	return events, nil

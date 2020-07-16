@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/eventstore/EventStore-Client-Go/client"
-	direction "github.com/eventstore/EventStore-Client-Go/direction"
-	client_errors "github.com/eventstore/EventStore-Client-Go/errors"
-	messages "github.com/eventstore/EventStore-Client-Go/messages"
-	stream_revision "github.com/eventstore/EventStore-Client-Go/streamrevision"
+	"github.com/EventStore/EventStore-Client-Go/client"
+	direction "github.com/EventStore/EventStore-Client-Go/direction"
+	client_errors "github.com/EventStore/EventStore-Client-Go/errors"
+	messages "github.com/EventStore/EventStore-Client-Go/messages"
+	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +19,7 @@ func createTestEvent() messages.ProposedEvent {
 	return messages.ProposedEvent{
 		EventID:      uuid.Must(uuid.NewV4()),
 		EventType:    "TestEvent",
-		IsJSON:       false,
+		ContentType:  "application/octet-stream",
 		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
@@ -34,7 +34,7 @@ func TestAppends(t *testing.T) {
 		testEvent := messages.ProposedEvent{
 			EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
 			EventType:    "TestEvent",
-			IsJSON:       false,
+			ContentType:  "application/octet-stream",
 			UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
 			Data:         []byte{0xb, 0xe, 0xe, 0xf},
 		}
@@ -109,8 +109,8 @@ func TestAppends(t *testing.T) {
 		defer cancel()
 		_, err = client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionAny, events)
 
-		if !errors.Is(err, client_errors.ErrPermissionDenied) {
-			t.Fatalf("Expected PermissionDenied, got %+v", err)
+		if !errors.Is(err, client_errors.ErrUnauthenticated) {
+			t.Fatalf("Expected Unauthenticated, got %+v", err)
 		}
 	})
 }

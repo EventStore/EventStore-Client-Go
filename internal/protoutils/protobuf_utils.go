@@ -5,12 +5,13 @@ import (
 	"strconv"
 	"time"
 
-	direction "github.com/eventstore/EventStore-Client-Go/direction"
-	messages "github.com/eventstore/EventStore-Client-Go/messages"
-	position "github.com/eventstore/EventStore-Client-Go/position"
-	api "github.com/eventstore/EventStore-Client-Go/protos"
-	stream_revision "github.com/eventstore/EventStore-Client-Go/streamrevision"
-	system_metadata "github.com/eventstore/EventStore-Client-Go/systemmetadata"
+	direction "github.com/EventStore/EventStore-Client-Go/direction"
+	messages "github.com/EventStore/EventStore-Client-Go/messages"
+	position "github.com/EventStore/EventStore-Client-Go/position"
+	shared "github.com/EventStore/EventStore-Client-Go/protos"
+	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
+	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"github.com/gofrs/uuid"
 )
 
@@ -21,19 +22,21 @@ func ToAppendHeaderFromStreamIDAndStreamRevision(streamID string, streamRevision
 			Options: &api.AppendReq_Options{},
 		},
 	}
-	appendReq.GetOptions().StreamName = streamID
+	appendReq.GetOptions().StreamIdentifier = &shared.StreamIdentifier{
+		StreamName: []byte(streamID),
+	}
 	switch streamRevision {
 	case stream_revision.StreamRevisionAny:
 		appendReq.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_Any{
-			Any: &api.AppendReq_Empty{},
+			Any: &shared.Empty{},
 		}
 	case stream_revision.StreamRevisionNoStream:
 		appendReq.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_NoStream{
-			NoStream: &api.AppendReq_Empty{},
+			NoStream: &shared.Empty{},
 		}
 	case stream_revision.StreamRevisionStreamExists:
 		appendReq.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_StreamExists{
-			StreamExists: &api.AppendReq_Empty{},
+			StreamExists: &shared.Empty{},
 		}
 	default:
 		appendReq.GetOptions().ExpectedStreamRevision = &api.AppendReq_Options_Revision{
@@ -46,15 +49,11 @@ func ToAppendHeaderFromStreamIDAndStreamRevision(streamID string, streamRevision
 //ToProposedMessage ...
 func ToProposedMessage(event messages.ProposedEvent) *api.AppendReq_ProposedMessage {
 	metadata := map[string]string{}
-	if event.IsJSON {
-		metadata[system_metadata.SystemMetadataKeysIsJSON] = "true"
-	} else {
-		metadata[system_metadata.SystemMetadataKeysIsJSON] = "false"
-	}
+	metadata[system_metadata.SystemMetadataKeysContentType] = event.ContentType
 	metadata[system_metadata.SystemMetadataKeysType] = event.EventType
 	return &api.AppendReq_ProposedMessage{
-		Id: &api.UUID{
-			Value: &api.UUID_String_{
+		Id: &shared.UUID{
+			Value: &shared.UUID_String_{
 				String_: event.EventID.String(),
 			},
 		},
@@ -94,7 +93,9 @@ func ToAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Optio
 func ToReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevision uint64) *api.ReadReq_Options_Stream {
 	return &api.ReadReq_Options_Stream{
 		Stream: &api.ReadReq_Options_StreamOptions{
-			StreamName: streamID,
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: []byte(streamID),
+			},
 			RevisionOption: &api.ReadReq_Options_StreamOptions_Revision{
 				Revision: uint64(streamRevision),
 			},
@@ -125,10 +126,6 @@ func PositionFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) posi
 }
 
 //IsJSONFromProto ...
-func IsJSONFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) bool {
-	isJSON, err := strconv.ParseBool(recordedEvent.Metadata[system_metadata.SystemMetadataKeysIsJSON])
-	if err != nil {
-		log.Fatalf("Failed to parse isJSON as bool from %+v", recordedEvent.Metadata[system_metadata.SystemMetadataKeysIsJSON])
-	}
-	return isJSON
+func GetContentTypeFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) string {
+	return recordedEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
 }

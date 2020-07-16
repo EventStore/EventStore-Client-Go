@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/eventstore/EventStore-Client-Go/client"
+	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/ory/dockertest"
 )
 
 const EVENTSTORE_DOCKER_REPOSITORY = "docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata"
-const EVENTSTORE_DOCKER_TAG = "6.0.0-preview1.0.1890-buster-slim"
+const EVENTSTORE_DOCKER_TAG = "20.6.0-buster-slim"
 const EVENTSTORE_DOCKER_PORT = "2113"
 
 // Container ...
