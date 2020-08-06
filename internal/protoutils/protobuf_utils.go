@@ -8,7 +8,7 @@ import (
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
 	position "github.com/EventStore/EventStore-Client-Go/position"
-	shared "github.com/EventStore/EventStore-Client-Go/protos"
+	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"

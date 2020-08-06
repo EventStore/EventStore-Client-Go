@@ -12,8 +12,12 @@ const (
 	StreamRevisionStreamExists
 )
 
+func NewStreamRevision(value uint64) StreamRevision {
+	return StreamRevision(value)
+}
+
 // StreamRevisionStart ...
-const StreamRevisionStart = 0
+const StreamRevisionStart uint64 = 0
 
 // StreamRevisionEnd ...
-const StreamRevisionEnd = -1
+const StreamRevisionEnd uint64 = ^uint64(0)

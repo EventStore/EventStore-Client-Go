@@ -6,13 +6,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log"
 
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	protoutils "github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
 	position "github.com/EventStore/EventStore-Client-Go/position"
+	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
@@ -81,8 +81,7 @@ func (client *Client) Connect() error {
 		password: client.Config.Password,
 	}))
 	if err != nil {
-		log.Printf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
-		return err
+		return fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
 	}
 	client.Connection = conn
 	return nil
@@ -99,15 +98,13 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 
 	appendOperation, err := streamsClient.Append(context)
 	if err != nil {
-		log.Printf("Could not construct append operation. Reason: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Could not construct append operation. Reason: %v", err)
 	}
 
 	header := protoutils.ToAppendHeaderFromStreamIDAndStreamRevision(streamID, streamRevision)
 
 	if err := appendOperation.Send(header); err != nil {
-		log.Printf("Could not send append request header. Reason: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Could not send append request header. Reason: %v", err)
 	}
 
 	for _, event := range events {
@@ -118,8 +115,7 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 		}
 
 		if err = appendOperation.Send(appendRequest); err != nil {
-			log.Printf("Could not send append request. Reason: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("Could not send append request. Reason: %v", err)
 		}
 	}
 
@@ -138,6 +134,47 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 		return nil, err
 	}
 	return WriteResultFromAppendResp(response)
+}
+
+// SoftDeleteStream ...
+func (client *Client) SoftDeleteStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision) (*DeleteResult, error) {
+	streamsClient := api.NewStreamsClient(client.Connection)
+
+	deleteReq := &api.DeleteReq{
+		Options: &api.DeleteReq_Options{
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: []byte(streamID),
+			},
+		},
+	}
+	switch streamRevision {
+	case stream_revision.StreamRevisionAny:
+		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_Any{
+			Any: &shared.Empty{},
+		}
+	case stream_revision.StreamRevisionNoStream:
+		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_NoStream{
+			NoStream: &shared.Empty{},
+		}
+	case stream_revision.StreamRevisionStreamExists:
+		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_StreamExists{
+			StreamExists: &shared.Empty{},
+		}
+	default:
+		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_Revision{
+			Revision: uint64(streamRevision),
+		}
+	}
+	deleteResponse, err := streamsClient.Delete(context, deleteReq)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform delete, details: %v", err)
+	}
+
+	return &DeleteResult{
+		CommitPosition:  deleteResponse.GetPosition().CommitPosition,
+		PreparePosition: deleteResponse.GetPosition().PreparePosition,
+	}, nil
 }
 
 // ReadStreamEvents ...
@@ -192,7 +229,7 @@ func readInternal(context context.Context, connection *grpc.ClientConn, readRequ
 	result, err := streamsClient.Read(context, readRequest)
 
 	if err != nil {
-		log.Fatalf("Failed to construct read client. Reason: %v", err)
+		return []messages.RecordedEvent{}, fmt.Errorf("Failed to construct read client. Reason: %v", err)
 	}
 
 	events := []messages.RecordedEvent{}
@@ -202,7 +239,7 @@ func readInternal(context context.Context, connection *grpc.ClientConn, readRequ
 			break
 		}
 		if err != nil {
-			log.Fatalf("Failed to perform read. Reason: %v", err)
+			return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
 		}
 		switch readResult.Content.(type) {
 		case *api.ReadResp_Checkpoint_:
@@ -224,7 +261,7 @@ func readInternal(context context.Context, connection *grpc.ClientConn, readRequ
 					EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
 					ContentType:    protoutils.GetContentTypeFromProto(recordedEvent),
 					StreamID:       string(streamIdentifier.StreamName),
-					StreamRevision: recordedEvent.GetStreamRevision(),
+					EventNumber:    recordedEvent.GetStreamRevision(),
 					CreatedDate:    protoutils.CreatedFromProto(recordedEvent),
 					Position:       protoutils.PositionFromProto(recordedEvent),
 					Data:           recordedEvent.GetData(),

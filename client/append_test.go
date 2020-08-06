@@ -70,7 +70,6 @@ func TestAppends(t *testing.T) {
 		defer client.Close()
 		events := []messages.ProposedEvent{
 			createTestEvent(),
-			createTestEvent(),
 		}
 
 		streamID, _ := uuid.NewV4()

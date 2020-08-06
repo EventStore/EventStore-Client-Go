@@ -13,7 +13,7 @@ type RecordedEvent struct {
 	EventType      string
 	ContentType    string
 	StreamID       string
-	StreamRevision uint64
+	EventNumber    uint64
 	Position       position.Position
 	CreatedDate    time.Time
 	Data           []byte

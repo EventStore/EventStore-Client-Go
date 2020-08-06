@@ -3,7 +3,7 @@ package event_store.client.streams;
 option java_package = "com.eventstore.dbclient.proto.streams";
 option go_package = "github.com/EventStore/EventStore-Client-Go/protos/streams";
 
-import "protos/shared.proto";
+import "shared.proto";
 
 service Streams {
 	rpc Read (ReadReq) returns (stream ReadResp);
