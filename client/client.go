@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	errors "github.com/EventStore/EventStore-Client-Go/errors"
@@ -39,25 +40,6 @@ func (basicAuth) RequireTransportSecurity() bool {
 	return false
 }
 
-// Configuration ...
-type Configuration struct {
-	Address                     string
-	Username                    string
-	Password                    string
-	SkipCertificateVerification bool
-	Connected                   bool
-}
-
-// NewConfiguration ...
-func NewConfiguration() *Configuration {
-	return &Configuration{
-		Address:                     "localhost:2113",
-		Username:                    "admin",
-		Password:                    "changeit",
-		SkipCertificateVerification: false,
-	}
-}
-
 // Client ...
 type Client struct {
 	Config     *Configuration
@@ -73,6 +55,31 @@ func NewClient(configuration *Configuration) (*Client, error) {
 
 // Connect ...
 func (client *Client) Connect() error {
+	if len(client.Config.GossipSeeds) > 0 {
+		discoverer := NewGossipEndpointDiscoverer()
+
+		seeds := make([]*url.URL, 0)
+		for _, seed := range client.Config.GossipSeeds {
+			seedUrl, err := url.Parse(seed)
+			if err != nil {
+				return fmt.Errorf("The gossip seed (seed) is invalid and is required to be in the format of {scheme}://{host}:{port}, details: %s", err.Error())
+			}
+			seeds = append(seeds, seedUrl)
+		}
+		discoverer.GossipSeeds = seeds
+		discoverer.NodePreference = client.Config.NodePreference
+		discoverer.SkipCertificateValidation = client.Config.SkipCertificateVerification
+
+		preferedNode, err := discoverer.Discover()
+		if err != nil {
+			return fmt.Errorf("Failed to connect due to discovery failure, details: %s", err.Error())
+		}
+		preferedNodeAddress := fmt.Sprintf("%s:%d", preferedNode.HttpEndPointIP, preferedNode.HttpEndPointPort)
+		if err != nil {
+			return fmt.Errorf("Failed to transform prefered node (%+v) into address returned from discovery: details: %+v", preferedNode, err)
+		}
+		client.Config.Address = preferedNodeAddress
+	}
 	config := &tls.Config{
 		InsecureSkipVerify: client.Config.SkipCertificateVerification,
 	}
