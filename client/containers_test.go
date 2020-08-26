@@ -80,10 +80,8 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 
 func CreateTestClient(container *Container, t *testing.T) *client.Client {
 	config := client.NewConfiguration()
-	config.Address = container.Endpoint
-	config.Username = "admin"
-	config.Password = "changeit"
 	config.SkipCertificateVerification = true
+	config.Address = container.Endpoint
 
 	client, err := client.NewClient(config)
 	if err != nil {
@@ -93,5 +91,6 @@ func CreateTestClient(container *Container, t *testing.T) *client.Client {
 	if err != nil {
 		t.Fatalf("Unexpected failure connecting: %s", err.Error())
 	}
+
 	return client
 }
