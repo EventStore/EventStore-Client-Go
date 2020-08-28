@@ -1,10 +1,12 @@
 package protoutils
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
 	position "github.com/EventStore/EventStore-Client-Go/position"
@@ -15,7 +17,7 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-//ToAppendHeaderFromStreamIDAndStreamRevision ...
+// ToAppendHeaderFromStreamIDAndStreamRevision ...
 func ToAppendHeaderFromStreamIDAndStreamRevision(streamID string, streamRevision stream_revision.StreamRevision) *api.AppendReq {
 	appendReq := &api.AppendReq{
 		Content: &api.AppendReq_Options_{
@@ -46,7 +48,7 @@ func ToAppendHeaderFromStreamIDAndStreamRevision(streamID string, streamRevision
 	return appendReq
 }
 
-//ToProposedMessage ...
+// ToProposedMessage ...
 func ToProposedMessage(event messages.ProposedEvent) *api.AppendReq_ProposedMessage {
 	metadata := map[string]string{}
 	metadata[system_metadata.SystemMetadataKeysContentType] = event.ContentType
@@ -63,7 +65,7 @@ func ToProposedMessage(event messages.ProposedEvent) *api.AppendReq_ProposedMess
 	}
 }
 
-//ToReadDirectionFromDirection ...
+// ToReadDirectionFromDirection ...
 func ToReadDirectionFromDirection(dir direction.Direction) api.ReadReq_Options_ReadDirection {
 	var readDirection api.ReadReq_Options_ReadDirection
 	switch dir {
@@ -75,7 +77,7 @@ func ToReadDirectionFromDirection(dir direction.Direction) api.ReadReq_Options_R
 	return readDirection
 }
 
-//ToAllReadOptionsFromPosition ...
+// ToAllReadOptionsFromPosition ...
 func ToAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Options_All {
 	return &api.ReadReq_Options_All{
 		All: &api.ReadReq_Options_AllOptions{
@@ -103,14 +105,14 @@ func ToReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevis
 	}
 }
 
-//EventIDFromProto ...
+// EventIDFromProto ...
 func EventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
 	id := recordedEvent.GetId()
 	idString := id.GetString_()
 	return uuid.FromStringOrNil(idString)
 }
 
-//CreatedFromProto ...
+// CreatedFromProto ...
 func CreatedFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) time.Time {
 	timeSinceEpoch, err := strconv.ParseInt(recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated], 10, 64)
 	if err != nil {
@@ -120,12 +122,54 @@ func CreatedFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) time.
 	return time.Unix(0, timeSinceEpoch*100).UTC()
 }
 
-//PositionFromProto ...
+// PositionFromProto ...
 func PositionFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) position.Position {
-	return position.Position{Commit: int64(recordedEvent.GetCommitPosition()), Prepare: int64(recordedEvent.GetPreparePosition())}
+	return position.Position{Commit: recordedEvent.GetCommitPosition(), Prepare: recordedEvent.GetPreparePosition()}
 }
 
-//IsJSONFromProto ...
+// GetContentTypeFromProto ...
 func GetContentTypeFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) string {
 	return recordedEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
+}
+
+func ToFilterOptions(options filtering.SubscriptionFilterOptions) (*api.ReadReq_Options_FilterOptions, error) {
+	if len(options.SubscriptionFilter.Prefixes) == 0 && len(options.SubscriptionFilter.Regex) == 0 {
+		return nil, fmt.Errorf("The subscription filter requires a set of prefixes or a regex")
+	}
+	if len(options.SubscriptionFilter.Prefixes) > 0 && len(options.SubscriptionFilter.Regex) > 0 {
+		return nil, fmt.Errorf("The subscription filter may only contain a regex or a set of prefixes, but not both.")
+	}
+	var filterOptions *api.ReadReq_Options_FilterOptions
+	if options.SubscriptionFilter.FilterType == filtering.EventFilter {
+		filterOptions = &api.ReadReq_Options_FilterOptions{
+			CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),
+			Filter: &api.ReadReq_Options_FilterOptions_EventType{
+				EventType: &api.ReadReq_Options_FilterOptions_Expression{
+					Prefix: options.SubscriptionFilter.Prefixes,
+					Regex:  options.SubscriptionFilter.Regex,
+				},
+			},
+		}
+	}
+	if options.SubscriptionFilter.FilterType == filtering.StreamFilter {
+		filterOptions = &api.ReadReq_Options_FilterOptions{
+			CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),
+			Filter: &api.ReadReq_Options_FilterOptions_StreamIdentifier{
+				StreamIdentifier: &api.ReadReq_Options_FilterOptions_Expression{
+					Prefix: options.SubscriptionFilter.Prefixes,
+					Regex:  options.SubscriptionFilter.Regex,
+				},
+			},
+		}
+	}
+	if options.MaxSearchWindow == filtering.NoMaxSearchWindow {
+		filterOptions.Window = &api.ReadReq_Options_FilterOptions_Count{
+			Count: &shared.Empty{},
+		}
+	} else {
+		filterOptions.Window = &api.ReadReq_Options_FilterOptions_Max{
+			Max: uint32(options.MaxSearchWindow),
+		}
+	}
+	return filterOptions, nil
 }

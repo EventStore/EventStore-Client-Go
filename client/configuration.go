@@ -12,13 +12,12 @@ type Configuration struct {
 	Connected                   bool
 }
 
-// NewDefaultConfiguration ...
-func NewConfiguration() *Configuration {
+// NewConfiguration ...
+func NewDefaultConfiguration() *Configuration {
 	return &Configuration{
 		Address:                     "localhost:2113",
 		Username:                    "admin",
 		Password:                    "changeit",
 		SkipCertificateVerification: false,
-		UseTls:                      true,
 	}
 }
