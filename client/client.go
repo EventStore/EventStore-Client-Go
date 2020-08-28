@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 
+	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	protoutils "github.com/EventStore/EventStore-Client-Go/internal/protoutils"
@@ -16,6 +17,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
+	"github.com/EventStore/EventStore-Client-Go/subscription"
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -23,27 +25,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type basicAuth struct {
-	username string
-	password string
-}
-
-func (b basicAuth) GetRequestMetadata(tx context.Context, in ...string) (map[string]string, error) {
-	auth := b.username + ":" + b.password
-	enc := base64.StdEncoding.EncodeToString([]byte(auth))
-	return map[string]string{
-		"Authorization": "Basic " + enc,
-	}, nil
-}
-
-func (basicAuth) RequireTransportSecurity() bool {
-	return false
-}
-
 // Client ...
 type Client struct {
-	Config     *Configuration
-	Connection *grpc.ClientConn
+	Config        *Configuration
+	Connection    *grpc.ClientConn
+	streamsClient api.StreamsClient
 }
 
 // NewClient ...
@@ -91,6 +77,8 @@ func (client *Client) Connect() error {
 		return fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
 	}
 	client.Connection = conn
+	client.streamsClient = api.NewStreamsClient(client.Connection)
+
 	return nil
 }
 
@@ -101,9 +89,7 @@ func (client *Client) Close() error {
 
 // AppendToStream ...
 func (client *Client) AppendToStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision, events []messages.ProposedEvent) (*WriteResult, error) {
-	streamsClient := api.NewStreamsClient(client.Connection)
-
-	appendOperation, err := streamsClient.Append(context)
+	appendOperation, err := client.streamsClient.Append(context)
 	if err != nil {
 		return nil, fmt.Errorf("Could not construct append operation. Reason: %v", err)
 	}
@@ -145,8 +131,6 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 
 // SoftDeleteStream ...
 func (client *Client) SoftDeleteStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision) (*DeleteResult, error) {
-	streamsClient := api.NewStreamsClient(client.Connection)
-
 	deleteReq := &api.DeleteReq{
 		Options: &api.DeleteReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
@@ -172,7 +156,7 @@ func (client *Client) SoftDeleteStream(context context.Context, streamID string,
 			Revision: uint64(streamRevision),
 		}
 	}
-	deleteResponse, err := streamsClient.Delete(context, deleteReq)
+	deleteResponse, err := client.streamsClient.Delete(context, deleteReq)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to perform delete, details: %v", err)
@@ -204,7 +188,7 @@ func (client *Client) ReadStreamEvents(context context.Context, direction direct
 			},
 		},
 	}
-	return readInternal(context, client.Connection, readReq, count)
+	return readInternal(context, client.streamsClient, readReq, count)
 }
 
 // ReadAllEvents ...
@@ -227,12 +211,129 @@ func (client *Client) ReadAllEvents(context context.Context, direction direction
 			},
 		},
 	}
-	return readInternal(context, client.Connection, readReq, count)
+	return readInternal(context, client.streamsClient, readReq, count)
 }
 
-func readInternal(context context.Context, connection *grpc.ClientConn, readRequest *api.ReadReq, limit uint64) ([]messages.RecordedEvent, error) {
-	streamsClient := api.NewStreamsClient(connection)
+func (client *Client) SubscribeToStream(context context.Context, streamID string, streamRevision uint64, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+	readReq := &api.ReadReq{
+		Options: &api.ReadReq_Options{
+			CountOption: &api.ReadReq_Options_Subscription{
+				Subscription: &api.ReadReq_Options_SubscriptionOptions{},
+			},
+			FilterOption: &api.ReadReq_Options_NoFilter{
+				NoFilter: &shared.Empty{},
+			},
+			ReadDirection: protoutils.ToReadDirectionFromDirection(direction.Forwards),
+			ResolveLinks:  resolveLinks,
+			StreamOption:  protoutils.ToReadStreamOptionsFromStreamAndStreamRevision(streamID, streamRevision),
+			UuidOption: &api.ReadReq_Options_UUIDOption{
+				Content: &api.ReadReq_Options_UUIDOption_String_{
+					String_: nil,
+				},
+			},
+		},
+	}
+	readClient, err := client.streamsClient.Read(context, readReq)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
+	}
+	readResult, err := readClient.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
+	}
+	switch readResult.Content.(type) {
+	case *api.ReadResp_Confirmation:
+		{
+			confirmation := readResult.GetConfirmation()
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+		}
+	case *api.ReadResp_StreamNotFound_:
+		{
+			return nil, fmt.Errorf("Failed to initiate subscription because the stream (%s) was not found.", streamID)
+		}
+	}
+	return nil, fmt.Errorf("Failed to initiate subscription.")
+}
 
+func (client *Client) SubscribeFilteredToAll(context context.Context, position position.Position, resolveLinks bool, filter filtering.SubscriptionFilterOptions, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+	filterOptions, err := protoutils.ToFilterOptions(filter)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initiate subscription. Reason: %v", err)
+	}
+	readReq := &api.ReadReq{
+		Options: &api.ReadReq_Options{
+			CountOption: &api.ReadReq_Options_Subscription{
+				Subscription: &api.ReadReq_Options_SubscriptionOptions{},
+			},
+			FilterOption: &api.ReadReq_Options_Filter{
+				Filter: filterOptions,
+			},
+			ReadDirection: protoutils.ToReadDirectionFromDirection(direction.Forwards),
+			ResolveLinks:  resolveLinks,
+			StreamOption:  protoutils.ToAllReadOptionsFromPosition(position),
+			UuidOption: &api.ReadReq_Options_UUIDOption{
+				Content: &api.ReadReq_Options_UUIDOption_String_{
+					String_: nil,
+				},
+			},
+		},
+	}
+	readClient, err := client.streamsClient.Read(context, readReq)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initiate subscription. Reason: %v", err)
+	}
+	readResult, err := readClient.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read from subscription. Reason: %v", err)
+	}
+	switch readResult.Content.(type) {
+	case *api.ReadResp_Confirmation:
+		{
+			confirmation := readResult.GetConfirmation()
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+		}
+	}
+	return nil, fmt.Errorf("Failed to initiate subscription.")
+}
+
+func (client *Client) SubscribeToAll(context context.Context, position position.Position, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+	readReq := &api.ReadReq{
+		Options: &api.ReadReq_Options{
+			CountOption: &api.ReadReq_Options_Subscription{
+				Subscription: &api.ReadReq_Options_SubscriptionOptions{},
+			},
+			FilterOption: &api.ReadReq_Options_NoFilter{
+				NoFilter: &shared.Empty{},
+			},
+			ReadDirection: protoutils.ToReadDirectionFromDirection(direction.Forwards),
+			ResolveLinks:  resolveLinks,
+			StreamOption:  protoutils.ToAllReadOptionsFromPosition(position),
+			UuidOption: &api.ReadReq_Options_UUIDOption{
+				Content: &api.ReadReq_Options_UUIDOption_String_{
+					String_: nil,
+				},
+			},
+		},
+	}
+	readClient, err := client.streamsClient.Read(context, readReq)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
+	}
+	readResult, err := readClient.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
+	}
+	switch readResult.Content.(type) {
+	case *api.ReadResp_Confirmation:
+		{
+			confirmation := readResult.GetConfirmation()
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+		}
+	}
+	return nil, fmt.Errorf("Failed to initiate subscription.")
+}
+
+func readInternal(context context.Context, streamsClient api.StreamsClient, readRequest *api.ReadReq, limit uint64) ([]messages.RecordedEvent, error) {
 	result, err := streamsClient.Read(context, readRequest)
 
 	if err != nil {
@@ -249,14 +350,6 @@ func readInternal(context context.Context, connection *grpc.ClientConn, readRequ
 			return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
 		}
 		switch readResult.Content.(type) {
-		case *api.ReadResp_Checkpoint_:
-			{
-
-			}
-		case *api.ReadResp_Confirmation:
-			{
-
-			}
 		case *api.ReadResp_Event:
 			{
 				event := readResult.GetEvent()
@@ -286,4 +379,21 @@ func readInternal(context context.Context, connection *grpc.ClientConn, readRequ
 		}
 	}
 	return events, nil
+}
+
+type basicAuth struct {
+	username string
+	password string
+}
+
+func (b basicAuth) GetRequestMetadata(tx context.Context, in ...string) (map[string]string, error) {
+	auth := b.username + ":" + b.password
+	enc := base64.StdEncoding.EncodeToString([]byte(auth))
+	return map[string]string{
+		"Authorization": "Basic " + enc,
+	}, nil
+}
+
+func (basicAuth) RequireTransportSecurity() bool {
+	return false
 }

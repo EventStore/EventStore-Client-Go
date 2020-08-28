@@ -79,7 +79,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 }
 
 func CreateTestClient(container *Container, t *testing.T) *client.Client {
-	config := client.NewConfiguration()
+	config := client.NewDefaultConfiguration()
 	config.SkipCertificateVerification = true
 	config.Address = container.Endpoint
 

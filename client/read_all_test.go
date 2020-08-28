@@ -19,7 +19,7 @@ func TestAllReads(t *testing.T) {
 		client := CreateTestClient(container, t)
 		defer client.Close()
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
 		defer cancel()
 
 		numberOfEvents := uint64(10)
@@ -56,7 +56,7 @@ func TestAllReads(t *testing.T) {
 		client := CreateTestClient(container, t)
 		defer client.Close()
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
 		defer cancel()
 
 		numberOfEvents := uint64(10)
@@ -93,7 +93,7 @@ func TestAllReads(t *testing.T) {
 		client := CreateTestClient(container, t)
 		defer client.Close()
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
 		defer cancel()
 
 		numberOfEvents := uint64(10)
@@ -120,7 +120,7 @@ func TestAllReads(t *testing.T) {
 		client := CreateTestClient(container, t)
 		defer client.Close()
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
 		defer cancel()
 
 		numberOfEvents := uint64(10)

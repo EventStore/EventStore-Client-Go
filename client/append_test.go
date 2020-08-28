@@ -83,7 +83,7 @@ func TestAppends(t *testing.T) {
 	})
 
 	t.Run("TestAppendToSystemStreamWithIncorrectCredentials", func(t *testing.T) {
-		config := client.NewConfiguration()
+		config := client.NewDefaultConfiguration()
 		config.Address = container.Endpoint
 		config.Username = "bad_user"
 		config.Password = "bad_password"
