@@ -14,11 +14,9 @@ import (
 	protoutils "github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
 	position "github.com/EventStore/EventStore-Client-Go/position"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	"github.com/EventStore/EventStore-Client-Go/subscription"
-	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -48,7 +46,7 @@ func (client *Client) Connect() error {
 		for _, seed := range client.Config.GossipSeeds {
 			seedUrl, err := url.Parse(seed)
 			if err != nil {
-				return fmt.Errorf("The gossip seed (seed) is invalid and is required to be in the format of {scheme}://{host}:{port}, details: %s", err.Error())
+				return fmt.Errorf("The gossip seed (%s) is invalid and is required to be in the format of {scheme}://{host}:{port}, details: %s", seed, err.Error())
 			}
 			seeds = append(seeds, seedUrl)
 		}
@@ -131,32 +129,8 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 
 // SoftDeleteStream ...
 func (client *Client) SoftDeleteStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision) (*DeleteResult, error) {
-	deleteReq := &api.DeleteReq{
-		Options: &api.DeleteReq_Options{
-			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: []byte(streamID),
-			},
-		},
-	}
-	switch streamRevision {
-	case stream_revision.StreamRevisionAny:
-		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_Any{
-			Any: &shared.Empty{},
-		}
-	case stream_revision.StreamRevisionNoStream:
-		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_NoStream{
-			NoStream: &shared.Empty{},
-		}
-	case stream_revision.StreamRevisionStreamExists:
-		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_StreamExists{
-			StreamExists: &shared.Empty{},
-		}
-	default:
-		deleteReq.GetOptions().ExpectedStreamRevision = &api.DeleteReq_Options_Revision{
-			Revision: uint64(streamRevision),
-		}
-	}
-	deleteResponse, err := client.streamsClient.Delete(context, deleteReq)
+	deleteRequest := protoutils.ToDeleteRequest(streamID, streamRevision)
+	deleteResponse, err := client.streamsClient.Delete(context, deleteRequest)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to perform delete, details: %v", err)
@@ -169,71 +143,24 @@ func (client *Client) SoftDeleteStream(context context.Context, streamID string,
 }
 
 // ReadStreamEvents ...
-func (client *Client) ReadStreamEvents(context context.Context, direction direction.Direction, streamID string, streamRevision uint64, count uint64, resolveLinks bool) ([]messages.RecordedEvent, error) {
-	readReq := &api.ReadReq{
-		Options: &api.ReadReq_Options{
-			CountOption: &api.ReadReq_Options_Count{
-				Count: count,
-			},
-			FilterOption: &api.ReadReq_Options_NoFilter{
-				NoFilter: nil,
-			},
-			ReadDirection: protoutils.ToReadDirectionFromDirection(direction),
-			ResolveLinks:  resolveLinks,
-			StreamOption:  protoutils.ToReadStreamOptionsFromStreamAndStreamRevision(streamID, streamRevision),
-			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
-			},
-		},
-	}
-	return readInternal(context, client.streamsClient, readReq, count)
+func (client *Client) ReadStreamEvents(context context.Context, direction direction.Direction, streamID string, from uint64, count uint64, resolveLinks bool) ([]messages.RecordedEvent, error) {
+	readRequest := protoutils.ToReadStreamRequest(streamID, direction, from, count, resolveLinks)
+	return readInternal(context, client.streamsClient, readRequest, count)
 }
 
 // ReadAllEvents ...
-func (client *Client) ReadAllEvents(context context.Context, direction direction.Direction, position position.Position, count uint64, resolveLinks bool) ([]messages.RecordedEvent, error) {
-	readReq := &api.ReadReq{
-		Options: &api.ReadReq_Options{
-			CountOption: &api.ReadReq_Options_Count{
-				Count: count,
-			},
-			FilterOption: &api.ReadReq_Options_NoFilter{
-				NoFilter: nil,
-			},
-			ReadDirection: protoutils.ToReadDirectionFromDirection(direction),
-			ResolveLinks:  resolveLinks,
-			StreamOption:  protoutils.ToAllReadOptionsFromPosition(position),
-			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
-			},
-		},
-	}
-	return readInternal(context, client.streamsClient, readReq, count)
+func (client *Client) ReadAllEvents(context context.Context, direction direction.Direction, from position.Position, count uint64, resolveLinks bool) ([]messages.RecordedEvent, error) {
+	readRequest := protoutils.ToReadAllRequest(direction, from, count, resolveLinks)
+	return readInternal(context, client.streamsClient, readRequest, count)
 }
 
-func (client *Client) SubscribeToStream(context context.Context, streamID string, streamRevision uint64, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
-	readReq := &api.ReadReq{
-		Options: &api.ReadReq_Options{
-			CountOption: &api.ReadReq_Options_Subscription{
-				Subscription: &api.ReadReq_Options_SubscriptionOptions{},
-			},
-			FilterOption: &api.ReadReq_Options_NoFilter{
-				NoFilter: &shared.Empty{},
-			},
-			ReadDirection: protoutils.ToReadDirectionFromDirection(direction.Forwards),
-			ResolveLinks:  resolveLinks,
-			StreamOption:  protoutils.ToReadStreamOptionsFromStreamAndStreamRevision(streamID, streamRevision),
-			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
-			},
-		},
+// SubscribeToStream ...
+func (client *Client) SubscribeToStream(context context.Context, streamID string, from uint64, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+	subscriptionRequest, err := protoutils.ToStreamSubscriptionRequest(streamID, from, resolveLinks, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
-	readClient, err := client.streamsClient.Read(context, readReq)
+	readClient, err := client.streamsClient.Read(context, subscriptionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
@@ -255,67 +182,10 @@ func (client *Client) SubscribeToStream(context context.Context, streamID string
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
-func (client *Client) SubscribeFilteredToAll(context context.Context, position position.Position, resolveLinks bool, filter filtering.SubscriptionFilterOptions, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
-	filterOptions, err := protoutils.ToFilterOptions(filter)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initiate subscription. Reason: %v", err)
-	}
-	readReq := &api.ReadReq{
-		Options: &api.ReadReq_Options{
-			CountOption: &api.ReadReq_Options_Subscription{
-				Subscription: &api.ReadReq_Options_SubscriptionOptions{},
-			},
-			FilterOption: &api.ReadReq_Options_Filter{
-				Filter: filterOptions,
-			},
-			ReadDirection: protoutils.ToReadDirectionFromDirection(direction.Forwards),
-			ResolveLinks:  resolveLinks,
-			StreamOption:  protoutils.ToAllReadOptionsFromPosition(position),
-			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
-			},
-		},
-	}
-	readClient, err := client.streamsClient.Read(context, readReq)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initiate subscription. Reason: %v", err)
-	}
-	readResult, err := readClient.Recv()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read from subscription. Reason: %v", err)
-	}
-	switch readResult.Content.(type) {
-	case *api.ReadResp_Confirmation:
-		{
-			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
-		}
-	}
-	return nil, fmt.Errorf("Failed to initiate subscription.")
-}
-
-func (client *Client) SubscribeToAll(context context.Context, position position.Position, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
-	readReq := &api.ReadReq{
-		Options: &api.ReadReq_Options{
-			CountOption: &api.ReadReq_Options_Subscription{
-				Subscription: &api.ReadReq_Options_SubscriptionOptions{},
-			},
-			FilterOption: &api.ReadReq_Options_NoFilter{
-				NoFilter: &shared.Empty{},
-			},
-			ReadDirection: protoutils.ToReadDirectionFromDirection(direction.Forwards),
-			ResolveLinks:  resolveLinks,
-			StreamOption:  protoutils.ToAllReadOptionsFromPosition(position),
-			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
-			},
-		},
-	}
-	readClient, err := client.streamsClient.Read(context, readReq)
+// SubscribeToAll ...
+func (client *Client) SubscribeToAll(context context.Context, from position.Position, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, nil)
+	readClient, err := client.streamsClient.Read(context, subscriptionRequest)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
@@ -333,8 +203,32 @@ func (client *Client) SubscribeToAll(context context.Context, position position.
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
-func readInternal(context context.Context, streamsClient api.StreamsClient, readRequest *api.ReadReq, limit uint64) ([]messages.RecordedEvent, error) {
-	result, err := streamsClient.Read(context, readRequest)
+// SubscribeToAllFiltered ...
+func (client *Client) SubscribeToAllFiltered(context context.Context, from position.Position, resolveLinks bool, filterOptions filtering.SubscriptionFilterOptions, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, &filterOptions)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
+	}
+	readClient, err := client.streamsClient.Read(context, subscriptionRequest)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initiate subscription. Reason: %v", err)
+	}
+	readResult, err := readClient.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read from subscription. Reason: %v", err)
+	}
+	switch readResult.Content.(type) {
+	case *api.ReadResp_Confirmation:
+		{
+			confirmation := readResult.GetConfirmation()
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+		}
+	}
+	return nil, fmt.Errorf("Failed to initiate subscription.")
+}
+
+func readInternal(context context.Context, streamsClient api.StreamsClient, readRequestuest *api.ReadReq, limit uint64) ([]messages.RecordedEvent, error) {
+	result, err := streamsClient.Read(context, readRequestuest)
 
 	if err != nil {
 		return []messages.RecordedEvent{}, fmt.Errorf("Failed to construct read client. Reason: %v", err)
@@ -353,28 +247,15 @@ func readInternal(context context.Context, streamsClient api.StreamsClient, read
 		case *api.ReadResp_Event:
 			{
 				event := readResult.GetEvent()
-				recordedEvent := event.GetEvent()
-				streamIdentifier := recordedEvent.GetStreamIdentifier()
-
-				events = append(events, messages.RecordedEvent{
-					EventID:        protoutils.EventIDFromProto(recordedEvent),
-					EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
-					ContentType:    protoutils.GetContentTypeFromProto(recordedEvent),
-					StreamID:       string(streamIdentifier.StreamName),
-					EventNumber:    recordedEvent.GetStreamRevision(),
-					CreatedDate:    protoutils.CreatedFromProto(recordedEvent),
-					Position:       protoutils.PositionFromProto(recordedEvent),
-					Data:           recordedEvent.GetData(),
-					SystemMetadata: recordedEvent.GetMetadata(),
-					UserMetadata:   recordedEvent.GetCustomMetadata(),
-				})
+				recordedEvent := protoutils.RecordedEventFromProto(event)
+				events = append(events, recordedEvent)
 				if uint64(len(events)) >= limit {
 					break
 				}
 			}
 		case *api.ReadResp_StreamNotFound_:
 			{
-
+				return nil, fmt.Errorf("Failed to perform read because the stream was not found")
 			}
 		}
 	}
