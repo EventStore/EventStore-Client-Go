@@ -177,6 +177,35 @@ func ToDeleteRequest(streamID string, streamRevision streamrevision.StreamRevisi
 	return deleteReq
 }
 
+func ToTombstoneRequest(streamID string, streamRevision streamrevision.StreamRevision) *api.TombstoneReq {
+	tombstoneReq := &api.TombstoneReq{
+		Options: &api.TombstoneReq_Options{
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: []byte(streamID),
+			},
+		},
+	}
+	switch streamRevision {
+	case stream_revision.StreamRevisionAny:
+		tombstoneReq.GetOptions().ExpectedStreamRevision = &api.TombstoneReq_Options_Any{
+			Any: &shared.Empty{},
+		}
+	case stream_revision.StreamRevisionNoStream:
+		tombstoneReq.GetOptions().ExpectedStreamRevision = &api.TombstoneReq_Options_NoStream{
+			NoStream: &shared.Empty{},
+		}
+	case stream_revision.StreamRevisionStreamExists:
+		tombstoneReq.GetOptions().ExpectedStreamRevision = &api.TombstoneReq_Options_StreamExists{
+			StreamExists: &shared.Empty{},
+		}
+	default:
+		tombstoneReq.GetOptions().ExpectedStreamRevision = &api.TombstoneReq_Options_Revision{
+			Revision: uint64(streamRevision),
+		}
+	}
+	return tombstoneReq
+}
+
 func ToReadStreamRequest(streamID string, direction direction.Direction, from uint64, count uint64, resolveLinks bool) *api.ReadReq {
 	return &api.ReadReq{
 		Options: &api.ReadReq_Options{
@@ -306,6 +335,13 @@ func DeletePositionFromProto(deleteResponse *api.DeleteResp) position.Position {
 	return position.Position{
 		Commit:  deleteResponse.GetPosition().CommitPosition,
 		Prepare: deleteResponse.GetPosition().PreparePosition,
+	}
+}
+
+func TombstonePositionFromProto(tombstoneResponse *api.TombstoneResp) position.Position {
+	return position.Position{
+		Commit:  tombstoneResponse.GetPosition().CommitPosition,
+		Prepare: tombstoneResponse.GetPosition().PreparePosition,
 	}
 }
 
