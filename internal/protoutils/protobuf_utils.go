@@ -66,8 +66,8 @@ func ToProposedMessage(event messages.ProposedEvent) *api.AppendReq_ProposedMess
 	}
 }
 
-// ToReadDirectionFromDirection ...
-func ToReadDirectionFromDirection(dir direction.Direction) api.ReadReq_Options_ReadDirection {
+// toReadDirectionFromDirection ...
+func toReadDirectionFromDirection(dir direction.Direction) api.ReadReq_Options_ReadDirection {
 	var readDirection api.ReadReq_Options_ReadDirection
 	switch dir {
 	case direction.Forwards:
@@ -78,8 +78,8 @@ func ToReadDirectionFromDirection(dir direction.Direction) api.ReadReq_Options_R
 	return readDirection
 }
 
-// ToAllReadOptionsFromPosition ...
-func ToAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Options_All {
+// toAllReadOptionsFromPosition ...
+func toAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Options_All {
 	return &api.ReadReq_Options_All{
 		All: &api.ReadReq_Options_AllOptions{
 			AllOption: &api.ReadReq_Options_AllOptions_Position{
@@ -105,8 +105,8 @@ func toReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevis
 	}
 }
 
-// ToFilterOptions ...
-func ToFilterOptions(options filtering.SubscriptionFilterOptions) (*api.ReadReq_Options_FilterOptions, error) {
+// toFilterOptions ...
+func toFilterOptions(options filtering.SubscriptionFilterOptions) (*api.ReadReq_Options_FilterOptions, error) {
 	if len(options.SubscriptionFilter.Prefixes) == 0 && len(options.SubscriptionFilter.Regex) == 0 {
 		return nil, fmt.Errorf("The subscription filter requires a set of prefixes or a regex")
 	}
@@ -186,7 +186,7 @@ func ToReadStreamRequest(streamID string, direction direction.Direction, from ui
 			FilterOption: &api.ReadReq_Options_NoFilter{
 				NoFilter: nil,
 			},
-			ReadDirection: ToReadDirectionFromDirection(direction),
+			ReadDirection: toReadDirectionFromDirection(direction),
 			ResolveLinks:  resolveLinks,
 			StreamOption:  toReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
@@ -207,9 +207,9 @@ func ToReadAllRequest(direction direction.Direction, from position.Position, cou
 			FilterOption: &api.ReadReq_Options_NoFilter{
 				NoFilter: nil,
 			},
-			ReadDirection: ToReadDirectionFromDirection(direction),
+			ReadDirection: toReadDirectionFromDirection(direction),
 			ResolveLinks:  resolveLinks,
-			StreamOption:  ToAllReadOptionsFromPosition(from),
+			StreamOption:  toAllReadOptionsFromPosition(from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
 				Content: &api.ReadReq_Options_UUIDOption_String_{
 					String_: nil,
@@ -228,7 +228,7 @@ func ToStreamSubscriptionRequest(streamID string, from uint64, resolveLinks bool
 			FilterOption: &api.ReadReq_Options_NoFilter{
 				NoFilter: &shared.Empty{},
 			},
-			ReadDirection: ToReadDirectionFromDirection(direction.Forwards),
+			ReadDirection: toReadDirectionFromDirection(direction.Forwards),
 			ResolveLinks:  resolveLinks,
 			StreamOption:  toReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
@@ -239,7 +239,7 @@ func ToStreamSubscriptionRequest(streamID string, from uint64, resolveLinks bool
 		},
 	}
 	if filterOptions != nil {
-		options, err := ToFilterOptions(*filterOptions)
+		options, err := toFilterOptions(*filterOptions)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to construct subscription request. Reason: %v", err)
 		}
@@ -259,9 +259,9 @@ func ToAllSubscriptionRequest(from position.Position, resolveLinks bool, filterO
 			FilterOption: &api.ReadReq_Options_NoFilter{
 				NoFilter: &shared.Empty{},
 			},
-			ReadDirection: ToReadDirectionFromDirection(direction.Forwards),
+			ReadDirection: toReadDirectionFromDirection(direction.Forwards),
 			ResolveLinks:  resolveLinks,
-			StreamOption:  ToAllReadOptionsFromPosition(from),
+			StreamOption:  toAllReadOptionsFromPosition(from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
 				Content: &api.ReadReq_Options_UUIDOption_String_{
 					String_: nil,
@@ -270,7 +270,7 @@ func ToAllSubscriptionRequest(from position.Position, resolveLinks bool, filterO
 		},
 	}
 	if filterOptions != nil {
-		options, err := ToFilterOptions(*filterOptions)
+		options, err := toFilterOptions(*filterOptions)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to construct subscription request. Reason: %v", err)
 		}
