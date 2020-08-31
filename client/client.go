@@ -92,7 +92,7 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 		return nil, fmt.Errorf("Could not construct append operation. Reason: %v", err)
 	}
 
-	header := protoutils.ToAppendHeaderFromStreamIDAndStreamRevision(streamID, streamRevision)
+	header := protoutils.ToAppendHeader(streamID, streamRevision)
 
 	if err := appendOperation.Send(header); err != nil {
 		return nil, fmt.Errorf("Could not send append request header. Reason: %v", err)
@@ -136,10 +136,7 @@ func (client *Client) SoftDeleteStream(context context.Context, streamID string,
 		return nil, fmt.Errorf("Failed to perform delete, details: %v", err)
 	}
 
-	return &DeleteResult{
-		CommitPosition:  deleteResponse.GetPosition().CommitPosition,
-		PreparePosition: deleteResponse.GetPosition().PreparePosition,
-	}, nil
+	return &DeleteResult{Position: protoutils.DeletePositionFromProto(deleteResponse)}, nil
 }
 
 // ReadStreamEvents ...

@@ -1,0 +1,612 @@
+[
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1999
+      },
+      "eventId": "16301e2a-595d-4875-a102-fc19b47d93b3",
+      "eventType": "eventType-1999",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        57,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        57,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521770000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1998
+      },
+      "eventId": "a2109b1d-4278-4337-98cb-7eee706f2e00",
+      "eventType": "eventType-1998",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        56,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        56,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521767000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1997
+      },
+      "eventId": "4612f010-db0f-46e4-a8ec-24bc5e81993a",
+      "eventType": "eventType-1997",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        55,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        55,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521765000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1996
+      },
+      "eventId": "d8e5e5c7-d3dd-4f9b-9940-066efa5f86e4",
+      "eventType": "eventType-1996",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        54,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        54,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521762000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1995
+      },
+      "eventId": "c6f0b8e4-19db-4272-a3d7-3d49240c6cf1",
+      "eventType": "eventType-1995",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        53,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        53,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521759000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1994
+      },
+      "eventId": "67b3dcbd-330b-4f65-ad8f-3e873ae9a7e4",
+      "eventType": "eventType-1994",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        52,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        52,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521756000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1993
+      },
+      "eventId": "6f760d99-8730-482f-a662-f9bed739d91f",
+      "eventType": "eventType-1993",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        51,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        51,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521753000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1992
+      },
+      "eventId": "5450f5f6-370d-420d-93fd-c5ac51e2b77e",
+      "eventType": "eventType-1992",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        50,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        50,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521750000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1991
+      },
+      "eventId": "ff4abbfb-6f8a-4ca4-85b4-999f3ee18239",
+      "eventType": "eventType-1991",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        49,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        49,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521748000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "dataset20M-1800",
+      "streamRevision": {
+        "value": 1990
+      },
+      "eventId": "4c45f3af-605f-4973-9198-07f0579a279a",
+      "eventType": "eventType-1990",
+      "eventData": [
+        123,
+        34,
+        115,
+        111,
+        109,
+        101,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        48,
+        125
+      ],
+      "userMetadata": [
+        123,
+        34,
+        109,
+        101,
+        116,
+        97,
+        100,
+        97,
+        116,
+        97,
+        34,
+        32,
+        58,
+        32,
+        49,
+        57,
+        57,
+        48,
+        125
+      ],
+      "created": {
+        "seconds": 1578852986,
+        "nanos": 521745000
+      },
+      "position": {
+        "prepare": 18446744073709551615,
+        "commit": 18446744073709551615
+      },
+      "contentType": "application/json"
+    }
+  }
+]

@@ -1,7 +1,8 @@
 package client
 
+import position "github.com/EventStore/EventStore-Client-Go/position"
+
 // DeleteResult ...
 type DeleteResult struct {
-	CommitPosition  uint64
-	PreparePosition uint64
+	Position position.Position
 }

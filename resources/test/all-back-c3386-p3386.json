@@ -1,0 +1,412 @@
+[
+  {
+    "event": {
+      "streamId": "$projections-$all",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "c4bde754-dc19-4835-9005-1e82002ecc10",
+      "eventType": "$ProjectionsInitialized",
+      "eventData": [],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 158068000
+      },
+      "position": {
+        "prepare": 3256,
+        "commit": 3256
+      },
+      "contentType": "application/octet-stream"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$projections-$master",
+      "streamRevision": {
+        "value": 3
+      },
+      "eventId": "727fb1c0-e60b-4f73-bc55-b5990bdc2df7",
+      "eventType": "$projection-worker-started",
+      "eventData": [
+        123,
+        34,
+        105,
+        100,
+        34,
+        58,
+        34,
+        53,
+        53,
+        52,
+        49,
+        55,
+        51,
+        48,
+        54,
+        97,
+        56,
+        100,
+        55,
+        52,
+        54,
+        100,
+        100,
+        57,
+        99,
+        99,
+        100,
+        56,
+        98,
+        52,
+        102,
+        49,
+        97,
+        49,
+        100,
+        56,
+        50,
+        100,
+        98,
+        34,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 147247000
+      },
+      "position": {
+        "prepare": 3079,
+        "commit": 3079
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$projections-$master",
+      "streamRevision": {
+        "value": 2
+      },
+      "eventId": "137f5be3-195f-426d-9bf3-7cb9ab79c450",
+      "eventType": "$projection-worker-started",
+      "eventData": [
+        123,
+        34,
+        105,
+        100,
+        34,
+        58,
+        34,
+        48,
+        99,
+        55,
+        52,
+        53,
+        56,
+        56,
+        51,
+        100,
+        102,
+        102,
+        99,
+        52,
+        52,
+        48,
+        101,
+        56,
+        57,
+        100,
+        99,
+        102,
+        52,
+        102,
+        53,
+        49,
+        49,
+        101,
+        56,
+        49,
+        49,
+        48,
+        49,
+        34,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 145346000
+      },
+      "position": {
+        "prepare": 2902,
+        "commit": 2902
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$projections-$master",
+      "streamRevision": {
+        "value": 1
+      },
+      "eventId": "04514919-af8d-4436-83e7-1f8840e6981d",
+      "eventType": "$projection-worker-started",
+      "eventData": [
+        123,
+        34,
+        105,
+        100,
+        34,
+        58,
+        34,
+        98,
+        51,
+        48,
+        101,
+        101,
+        101,
+        54,
+        99,
+        54,
+        57,
+        101,
+        54,
+        52,
+        101,
+        49,
+        99,
+        56,
+        100,
+        52,
+        54,
+        50,
+        100,
+        51,
+        101,
+        54,
+        50,
+        99,
+        97,
+        97,
+        102,
+        56,
+        53,
+        34,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 140628000
+      },
+      "position": {
+        "prepare": 2725,
+        "commit": 2725
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$projections-$control-3a59bcd3-22a2-4c27-9b01-f7f643992f40",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "769c8265-e472-4ed1-bb7e-a756080fe626",
+      "eventType": "$response-reader-started",
+      "eventData": [
+        123,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 123599000
+      },
+      "position": {
+        "prepare": 2551,
+        "commit": 2551
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$projections-$master",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "f6b7a3af-7d7e-42fb-b451-93425acfb30e",
+      "eventType": "$response-reader-starting",
+      "eventData": [
+        123,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 120830000
+      },
+      "position": {
+        "prepare": 2414,
+        "commit": 2414
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$$$projections-$master",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "8b466346-f518-4a65-9047-e2073556968e",
+      "eventType": "$metadata",
+      "eventData": [
+        123,
+        34,
+        36,
+        109,
+        97,
+        120,
+        65,
+        103,
+        101,
+        34,
+        58,
+        55,
+        50,
+        48,
+        48,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 113474000
+      },
+      "position": {
+        "prepare": 2277,
+        "commit": 2277
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$$$projections-$b30eee6c69e64e1c8d462d3e62caaf85",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "68091e18-e282-4c0a-884e-94e9589f0219",
+      "eventType": "$metadata",
+      "eventData": [
+        123,
+        34,
+        36,
+        109,
+        97,
+        120,
+        65,
+        103,
+        101,
+        34,
+        58,
+        55,
+        50,
+        48,
+        48,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 111554000
+      },
+      "position": {
+        "prepare": 2114,
+        "commit": 2114
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$$$projections-$55417306a8d746dd9ccd8b4f1a1d82db",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "a23eb69b-00ba-4c9a-8a48-5616f258777b",
+      "eventType": "$metadata",
+      "eventData": [
+        123,
+        34,
+        36,
+        109,
+        97,
+        120,
+        65,
+        103,
+        101,
+        34,
+        58,
+        55,
+        50,
+        48,
+        48,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 111527000
+      },
+      "position": {
+        "prepare": 1951,
+        "commit": 1951
+      },
+      "contentType": "application/json"
+    }
+  },
+  {
+    "event": {
+      "streamId": "$$$projections-$0c745883dffc440e89dcf4f511e81101",
+      "streamRevision": {
+        "value": 0
+      },
+      "eventId": "4936a85f-e6cb-4a72-9007-ceed0c8a56e7",
+      "eventType": "$metadata",
+      "eventData": [
+        123,
+        34,
+        36,
+        109,
+        97,
+        120,
+        65,
+        103,
+        101,
+        34,
+        58,
+        55,
+        50,
+        48,
+        48,
+        125
+      ],
+      "userMetadata": [],
+      "created": {
+        "seconds": 1578852854,
+        "nanos": 108422000
+      },
+      "position": {
+        "prepare": 1788,
+        "commit": 1788
+      },
+      "contentType": "application/json"
+    }
+  }
+]
