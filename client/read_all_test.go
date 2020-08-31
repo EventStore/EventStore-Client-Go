@@ -27,7 +27,7 @@ func TestReadAllEventsForwardsFromZeroPosition(t *testing.T) {
 	client := CreateTestClient(container, t)
 	defer client.Close()
 
-	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
 
 	numberOfEventsToRead := 10
@@ -66,7 +66,7 @@ func TestReadAllEventsForwardsFromNonZeroPosition(t *testing.T) {
 	client := CreateTestClient(container, t)
 	defer client.Close()
 
-	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
 
 	numberOfEventsToRead := 10
@@ -105,7 +105,7 @@ func TestReadAllEventsBackwardsFromZeroPosition(t *testing.T) {
 	client := CreateTestClient(container, t)
 	defer client.Close()
 
-	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
 
 	numberOfEventsToRead := 10
@@ -144,7 +144,7 @@ func TestReadAllEventsBackwardsFromNonZeroPosition(t *testing.T) {
 	client := CreateTestClient(container, t)
 	defer client.Close()
 
-	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
 
 	numberOfEventsToRead := 10

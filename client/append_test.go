@@ -24,92 +24,96 @@ func createTestEvent() messages.ProposedEvent {
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
 }
-func TestAppends(t *testing.T) {
+func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 	container := GetEmptyDatabase()
 	defer container.Close()
 
-	t.Run("TestAppendToStreamSingleEventNoStream", func(t *testing.T) {
-		client := CreateTestClient(container, t)
-		defer client.Close()
-		testEvent := messages.ProposedEvent{
-			EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
-			EventType:    "TestEvent",
-			ContentType:  "application/octet-stream",
-			UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-			Data:         []byte{0xb, 0xe, 0xe, 0xf},
-		}
-		proposedEvents := []messages.ProposedEvent{
-			testEvent,
-		}
+	client := CreateTestClient(container, t)
+	defer client.Close()
+	testEvent := messages.ProposedEvent{
+		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
+		EventType:    "TestEvent",
+		ContentType:  "application/octet-stream",
+		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
+		Data:         []byte{0xb, 0xe, 0xe, 0xf},
+	}
+	proposedEvents := []messages.ProposedEvent{
+		testEvent,
+	}
 
-		streamID, _ := uuid.NewV4()
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-		defer cancel()
-		_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionNoStream, proposedEvents)
+	streamID, _ := uuid.NewV4()
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancel()
+	_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionNoStream, proposedEvents)
 
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
 
-		events, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_revision.StreamRevisionStart, 1, false)
+	events, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_revision.StreamRevisionStart, 1, false)
 
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
 
-		assert.Equal(t, int32(1), int32(len(events)), "Expected the correct number of messages to be returned")
-		assert.Equal(t, testEvent.EventID, events[0].EventID)
-		assert.Equal(t, testEvent.EventType, events[0].EventType)
-		assert.Equal(t, streamID.String(), events[0].StreamID)
-		assert.Equal(t, testEvent.Data, events[0].Data)
-		assert.Equal(t, testEvent.UserMetadata, events[0].UserMetadata)
-	})
+	assert.Equal(t, int32(1), int32(len(events)), "Expected the correct number of messages to be returned")
+	assert.Equal(t, testEvent.EventID, events[0].EventID)
+	assert.Equal(t, testEvent.EventType, events[0].EventType)
+	assert.Equal(t, streamID.String(), events[0].StreamID)
+	assert.Equal(t, testEvent.Data, events[0].Data)
+	assert.Equal(t, testEvent.UserMetadata, events[0].UserMetadata)
+}
 
-	t.Run("TestAppendWithInvalidStreamRevision", func(t *testing.T) {
-		client := CreateTestClient(container, t)
-		defer client.Close()
-		events := []messages.ProposedEvent{
-			createTestEvent(),
-		}
+func TestAppendWithInvalidStreamRevision(t *testing.T) {
+	container := GetEmptyDatabase()
+	defer container.Close()
 
-		streamID, _ := uuid.NewV4()
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-		defer cancel()
-		_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionStreamExists, events)
+	client := CreateTestClient(container, t)
+	defer client.Close()
+	events := []messages.ProposedEvent{
+		createTestEvent(),
+	}
 
-		if !errors.Is(err, client_errors.ErrWrongExpectedStreamRevision) {
-			t.Fatalf("Expected WrongExpectedVersion, got %+v", err)
-		}
-	})
+	streamID, _ := uuid.NewV4()
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancel()
+	_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionStreamExists, events)
 
-	t.Run("TestAppendToSystemStreamWithIncorrectCredentials", func(t *testing.T) {
-		config := client.NewDefaultConfiguration()
-		config.Address = container.Endpoint
-		config.Username = "bad_user"
-		config.Password = "bad_password"
-		config.SkipCertificateVerification = true
+	if !errors.Is(err, client_errors.ErrWrongExpectedStreamRevision) {
+		t.Fatalf("Expected WrongExpectedVersion, got %+v", err)
+	}
+}
 
-		client, err := client.NewClient(config)
-		if err != nil {
-			t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
-		}
-		err = client.Connect()
-		if err != nil {
-			t.Fatalf("Unexpected failure connecting: %s", err.Error())
-		}
+func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
+	container := GetEmptyDatabase()
+	defer container.Close()
 
-		defer client.Close()
-		events := []messages.ProposedEvent{
-			createTestEvent(),
-		}
+	config := client.NewDefaultConfiguration()
+	config.Address = container.Endpoint
+	config.Username = "bad_user"
+	config.Password = "bad_password"
+	config.SkipCertificateVerification = true
 
-		streamID, _ := uuid.NewV4()
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-		defer cancel()
-		_, err = client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionAny, events)
+	client, err := client.NewClient(config)
+	if err != nil {
+		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
+	}
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Unexpected failure connecting: %s", err.Error())
+	}
 
-		if !errors.Is(err, client_errors.ErrUnauthenticated) {
-			t.Fatalf("Expected Unauthenticated, got %+v", err)
-		}
-	})
+	defer client.Close()
+	events := []messages.ProposedEvent{
+		createTestEvent(),
+	}
+
+	streamID, _ := uuid.NewV4()
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancel()
+	_, err = client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionAny, events)
+
+	if !errors.Is(err, client_errors.ErrUnauthenticated) {
+		t.Fatalf("Expected Unauthenticated, got %+v", err)
+	}
 }
