@@ -2,6 +2,8 @@ package client_test
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"sync"
 	"testing"
 	"time"
@@ -110,7 +112,23 @@ func TestAllSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
 	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
 }
 
+type Position struct {
+	Prepare uint64 `json:"prepare"`
+	Commit  uint64 `json:"commit"`
+}
+
 func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
+	positionsContent, err := ioutil.ReadFile("../resources/test/all_positions_filtered_stream_194_e0_e30.json")
+	require.NoError(t, err)
+	versionsContent, err := ioutil.ReadFile("../resources/test/all_versions_filtered_stream_194_e0_e30.json")
+	require.NoError(t, err)
+	var positions []Position
+	var versions []uint64
+	err = json.Unmarshal(positionsContent, &positions)
+	require.NoError(t, err)
+	err = json.Unmarshal(versionsContent, &versions)
+	require.NoError(t, err)
+
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -119,14 +137,20 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 
 	var receivedEvents sync.WaitGroup
 	var cancellation sync.WaitGroup
-	receivedEvents.Add(130)
+	receivedEvents.Add(len(positions))
 	cancellation.Add(1)
 
 	filter := filtering.NewEventPrefixFilter([]string{"eventType-194"})
 	filterOptions := filtering.NewDefaultSubscriptionFilterOptions(filter)
 
-	subscription, err := client.SubscribeFilteredToAll(context.Background(), position.StartPosition, false, filterOptions,
+	current := 0
+
+	subscription, err := client.SubscribeToAllFiltered(context.Background(), position.StartPosition, false, filterOptions,
 		func(event messages.RecordedEvent) {
+			require.Equal(t, versions[current], event.EventNumber)
+			require.Equal(t, positions[current].Commit, event.Position.Commit)
+			require.Equal(t, positions[current].Prepare, event.Position.Prepare)
+			current++
 			receivedEvents.Done()
 		}, nil, func(reason string) {
 			cancellation.Done()
