@@ -114,7 +114,7 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 	if err != nil {
 		status, _ := status.FromError(err)
 		if status.Code() == codes.FailedPrecondition { //Precondition -> ErrWrongExpectedStremRevision
-			return nil, fmt.Errorf("%w", errors.ErrWrongExpectedStreamRevision)
+			return nil, fmt.Errorf("%w, reason: %s", errors.ErrWrongExpectedStreamRevision, err.Error())
 		}
 		if status.Code() == codes.PermissionDenied { //PermissionDenied -> ErrPemissionDenied
 			return nil, fmt.Errorf("%w", errors.ErrPermissionDenied)
@@ -165,8 +165,8 @@ func (client *Client) AppendToStream(context context.Context, streamID string, s
 	}, nil
 }
 
-// SoftDeleteStream ...
-func (client *Client) SoftDeleteStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision) (*DeleteResult, error) {
+// DeleteStream ...
+func (client *Client) DeleteStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision) (*DeleteResult, error) {
 	deleteRequest := protoutils.ToDeleteRequest(streamID, streamRevision)
 	deleteResponse, err := client.streamsClient.Delete(context, deleteRequest)
 
@@ -175,6 +175,18 @@ func (client *Client) SoftDeleteStream(context context.Context, streamID string,
 	}
 
 	return &DeleteResult{Position: protoutils.DeletePositionFromProto(deleteResponse)}, nil
+}
+
+// Tombstone ...
+func (client *Client) TombstoneStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision) (*DeleteResult, error) {
+	tombstoneRequest := protoutils.ToTombstoneRequest(streamID, streamRevision)
+	tombstoneResponse, err := client.streamsClient.Tombstone(context, tombstoneRequest)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform delete, details: %v", err)
+	}
+
+	return &DeleteResult{Position: protoutils.TombstonePositionFromProto(tombstoneResponse)}, nil
 }
 
 // ReadStreamEvents ...
