@@ -18,8 +18,8 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// ToAppendHeaderFromStreamIDAndStreamRevision ...
-func ToAppendHeaderFromStreamIDAndStreamRevision(streamID string, streamRevision stream_revision.StreamRevision) *api.AppendReq {
+// ToAppendHeader ...
+func ToAppendHeader(streamID string, streamRevision stream_revision.StreamRevision) *api.AppendReq {
 	appendReq := &api.AppendReq{
 		Content: &api.AppendReq_Options_{
 			Options: &api.AppendReq_Options{},
@@ -92,8 +92,7 @@ func ToAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Optio
 	}
 }
 
-// ToReadStreamOptionsFromStreamAndStreamRevision ...
-func ToReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevision uint64) *api.ReadReq_Options_Stream {
+func toReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevision uint64) *api.ReadReq_Options_Stream {
 	return &api.ReadReq_Options_Stream{
 		Stream: &api.ReadReq_Options_StreamOptions{
 			StreamIdentifier: &shared.StreamIdentifier{
@@ -103,51 +102,6 @@ func ToReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevis
 				Revision: uint64(streamRevision),
 			},
 		},
-	}
-}
-
-// EventIDFromProto ...
-func EventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
-	id := recordedEvent.GetId()
-	idString := id.GetString_()
-	return uuid.FromStringOrNil(idString)
-}
-
-// CreatedFromProto ...
-func CreatedFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) time.Time {
-	timeSinceEpoch, err := strconv.ParseInt(recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated], 10, 64)
-	if err != nil {
-		log.Fatalf("Failed to parse created date as int from %+v", recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated])
-	}
-	// The metadata contains the number of .NET "ticks" (100ns increments) since the UNIX epoch
-	return time.Unix(0, timeSinceEpoch*100).UTC()
-}
-
-// PositionFromProto ...
-func PositionFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) position.Position {
-	return position.Position{Commit: recordedEvent.GetCommitPosition(), Prepare: recordedEvent.GetPreparePosition()}
-}
-
-// GetContentTypeFromProto ...
-func GetContentTypeFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) string {
-	return recordedEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
-}
-
-// RecordedEventFromProto
-func RecordedEventFromProto(result *api.ReadResp_ReadEvent) messages.RecordedEvent {
-	recordedEvent := result.GetEvent()
-	streamIdentifier := recordedEvent.GetStreamIdentifier()
-	return messages.RecordedEvent{
-		EventID:        EventIDFromProto(recordedEvent),
-		EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
-		ContentType:    GetContentTypeFromProto(recordedEvent),
-		StreamID:       string(streamIdentifier.StreamName),
-		EventNumber:    recordedEvent.GetStreamRevision(),
-		CreatedDate:    CreatedFromProto(recordedEvent),
-		Position:       PositionFromProto(recordedEvent),
-		Data:           recordedEvent.GetData(),
-		SystemMetadata: recordedEvent.GetMetadata(),
-		UserMetadata:   recordedEvent.GetCustomMetadata(),
 	}
 }
 
@@ -234,7 +188,7 @@ func ToReadStreamRequest(streamID string, direction direction.Direction, from ui
 			},
 			ReadDirection: ToReadDirectionFromDirection(direction),
 			ResolveLinks:  resolveLinks,
-			StreamOption:  ToReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
+			StreamOption:  toReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
 				Content: &api.ReadReq_Options_UUIDOption_String_{
 					String_: nil,
@@ -276,7 +230,7 @@ func ToStreamSubscriptionRequest(streamID string, from uint64, resolveLinks bool
 			},
 			ReadDirection: ToReadDirectionFromDirection(direction.Forwards),
 			ResolveLinks:  resolveLinks,
-			StreamOption:  ToReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
+			StreamOption:  toReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
 				Content: &api.ReadReq_Options_UUIDOption_String_{
 					String_: nil,
@@ -325,4 +279,55 @@ func ToAllSubscriptionRequest(from position.Position, resolveLinks bool, filterO
 		}
 	}
 	return readReq, nil
+}
+
+// EventIDFromProto ...
+func EventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
+	id := recordedEvent.GetId()
+	idString := id.GetString_()
+	return uuid.FromStringOrNil(idString)
+}
+
+// CreatedFromProto ...
+func CreatedFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) time.Time {
+	timeSinceEpoch, err := strconv.ParseInt(recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated], 10, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse created date as int from %+v", recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated])
+	}
+	// The metadata contains the number of .NET "ticks" (100ns increments) since the UNIX epoch
+	return time.Unix(0, timeSinceEpoch*100).UTC()
+}
+
+func PositionFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) position.Position {
+	return position.Position{Commit: recordedEvent.GetCommitPosition(), Prepare: recordedEvent.GetPreparePosition()}
+}
+
+func DeletePositionFromProto(deleteResponse *api.DeleteResp) position.Position {
+	return position.Position{
+		Commit:  deleteResponse.GetPosition().CommitPosition,
+		Prepare: deleteResponse.GetPosition().PreparePosition,
+	}
+}
+
+// GetContentTypeFromProto ...
+func GetContentTypeFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) string {
+	return recordedEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
+}
+
+// RecordedEventFromProto
+func RecordedEventFromProto(result *api.ReadResp_ReadEvent) messages.RecordedEvent {
+	recordedEvent := result.GetEvent()
+	streamIdentifier := recordedEvent.GetStreamIdentifier()
+	return messages.RecordedEvent{
+		EventID:        EventIDFromProto(recordedEvent),
+		EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
+		ContentType:    GetContentTypeFromProto(recordedEvent),
+		StreamID:       string(streamIdentifier.StreamName),
+		EventNumber:    recordedEvent.GetStreamRevision(),
+		CreatedDate:    CreatedFromProto(recordedEvent),
+		Position:       PositionFromProto(recordedEvent),
+		Data:           recordedEvent.GetData(),
+		SystemMetadata: recordedEvent.GetMetadata(),
+		UserMetadata:   recordedEvent.GetCustomMetadata(),
+	}
 }

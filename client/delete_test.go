@@ -22,7 +22,7 @@ func TestDeletes(t *testing.T) {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
 
-		assert.True(t, deleteResult.CommitPosition > 0)
-		assert.True(t, deleteResult.PreparePosition > 0)
+		assert.True(t, deleteResult.Position.Commit > 0)
+		assert.True(t, deleteResult.Position.Prepare > 0)
 	})
 }

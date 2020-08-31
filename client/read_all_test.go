@@ -2,155 +2,171 @@ package client_test
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"testing"
 	"time"
 
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	position "github.com/EventStore/EventStore-Client-Go/position"
-	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAllReads(t *testing.T) {
+func TestReadAllEventsForwardsFromZeroPosition(t *testing.T) {
+	eventsContent, err := ioutil.ReadFile("../resources/test/all-e0-e10.json")
+	require.NoError(t, err)
+
+	var testEvents []TestEvent
+	err = json.Unmarshal(eventsContent, &testEvents)
+	require.NoError(t, err)
+
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 
-	t.Run("TestReadAllEventsForwardsFromZeroPosition", func(t *testing.T) {
-		client := CreateTestClient(container, t)
-		defer client.Close()
+	client := CreateTestClient(container, t)
+	defer client.Close()
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
-		defer cancel()
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	defer cancel()
 
-		numberOfEvents := uint64(10)
+	numberOfEventsToRead := 10
+	numberOfEvents := uint64(numberOfEventsToRead)
 
-		events, err := client.ReadAllEvents(context, direction.Forwards, position.StartPosition, numberOfEvents, true)
+	events, err := client.ReadAllEvents(context, direction.Forwards, position.StartPosition, numberOfEvents, true)
 
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
 
-		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
-		expectedEventID, _ := uuid.FromString("5ed0b2c9-dde9-4312-941e-19c494536f37")
-		assert.Equal(t, expectedEventID, events[0].EventID)
-		assert.Equal(t, "$metadata", events[0].EventType)
-		assert.Equal(t, "$$$stats-0.0.0.0:2113", events[0].StreamID)
-		assert.Equal(t, uint64(0), events[0].EventNumber)
-		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:14:13.990951Z")
-		assert.Equal(t, expectedCreated, events[0].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 167, Prepare: 167}, events[0].Position)
-		assert.Equal(t, "application/json", events[0].ContentType)
+	for i := 0; i < numberOfEventsToRead; i++ {
+		assert.Equal(t, testEvents[i].Event.EventID, events[i].EventID)
+		assert.Equal(t, testEvents[i].Event.EventType, events[i].EventType)
+		assert.Equal(t, testEvents[i].Event.StreamID, events[i].StreamID)
+		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].EventNumber)
+		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].CreatedDate.Nanosecond())
+		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].CreatedDate.Unix())
+		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].Position.Commit)
+		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].Position.Prepare)
+		assert.Equal(t, testEvents[i].Event.ContentType, events[i].ContentType)
+	}
+}
 
-		expectedEventID, _ = uuid.FromString("4936a85f-e6cb-4a72-9007-ceed0c8a56e7")
-		assert.Equal(t, expectedEventID, events[9].EventID)
-		assert.Equal(t, "$metadata", events[9].EventType)
-		assert.Equal(t, "$$$projections-$0c745883dffc440e89dcf4f511e81101", events[9].StreamID)
-		assert.Equal(t, uint64(0), events[9].EventNumber)
-		expectedCreated, _ = time.Parse(time.RFC3339, "2020-01-12T18:14:14.108422Z")
-		assert.Equal(t, expectedCreated, events[9].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 1788, Prepare: 1788}, events[9].Position)
-		assert.Equal(t, "application/json", events[9].ContentType)
-	})
+func TestReadAllEventsForwardsFromNonZeroPosition(t *testing.T) {
+	eventsContent, err := ioutil.ReadFile("../resources/test/all-c1788-p1788.json")
+	require.NoError(t, err)
 
-	t.Run("TestReadAllEventsForwardsFromNonZeroPosition", func(t *testing.T) {
-		client := CreateTestClient(container, t)
-		defer client.Close()
+	var testEvents []TestEvent
+	err = json.Unmarshal(eventsContent, &testEvents)
+	require.NoError(t, err)
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
-		defer cancel()
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
 
-		numberOfEvents := uint64(10)
+	client := CreateTestClient(container, t)
+	defer client.Close()
 
-		events, err := client.ReadAllEvents(context, direction.Forwards, position.Position{Commit: 1788, Prepare: 1788}, numberOfEvents, true)
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	defer cancel()
 
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
+	numberOfEventsToRead := 10
+	numberOfEvents := uint64(numberOfEventsToRead)
 
-		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
-		expectedEventID, _ := uuid.FromString("4936a85f-e6cb-4a72-9007-ceed0c8a56e7")
-		assert.Equal(t, expectedEventID, events[0].EventID)
-		assert.Equal(t, "$metadata", events[0].EventType)
-		assert.Equal(t, "$$$projections-$0c745883dffc440e89dcf4f511e81101", events[0].StreamID)
-		assert.Equal(t, uint64(0), events[0].EventNumber)
-		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:14:14.108422Z")
-		assert.Equal(t, expectedCreated, events[0].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 1788, Prepare: 1788}, events[0].Position)
-		assert.Equal(t, "application/json", events[0].ContentType)
+	events, err := client.ReadAllEvents(context, direction.Forwards, position.Position{Commit: 1788, Prepare: 1788}, numberOfEvents, true)
 
-		expectedEventID, _ = uuid.FromString("c4bde754-dc19-4835-9005-1e82002ecc10")
-		assert.Equal(t, expectedEventID, events[9].EventID)
-		assert.Equal(t, "$ProjectionsInitialized", events[9].EventType)
-		assert.Equal(t, "$projections-$all", events[9].StreamID)
-		assert.Equal(t, uint64(0), events[9].EventNumber)
-		expectedCreated, _ = time.Parse(time.RFC3339, "2020-01-12T18:14:14.158068Z")
-		assert.Equal(t, expectedCreated, events[9].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 3256, Prepare: 3256}, events[9].Position)
-		assert.Equal(t, "application/octet-stream", events[9].ContentType)
-	})
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
 
-	t.Run("TestReadAllEventsBackwardsFromZeroPosition", func(t *testing.T) {
-		client := CreateTestClient(container, t)
-		defer client.Close()
+	for i := 0; i < numberOfEventsToRead; i++ {
+		assert.Equal(t, testEvents[i].Event.EventID, events[i].EventID)
+		assert.Equal(t, testEvents[i].Event.EventType, events[i].EventType)
+		assert.Equal(t, testEvents[i].Event.StreamID, events[i].StreamID)
+		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].EventNumber)
+		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].CreatedDate.Nanosecond())
+		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].CreatedDate.Unix())
+		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].Position.Commit)
+		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].Position.Prepare)
+		assert.Equal(t, testEvents[i].Event.ContentType, events[i].ContentType)
+	}
+}
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
-		defer cancel()
+func TestReadAllEventsBackwardsFromZeroPosition(t *testing.T) {
+	eventsContent, err := ioutil.ReadFile("../resources/test/all-back-e0-e10.json")
+	require.NoError(t, err)
 
-		numberOfEvents := uint64(10)
+	var testEvents []TestEvent
+	err = json.Unmarshal(eventsContent, &testEvents)
+	require.NoError(t, err)
 
-		events, err := client.ReadAllEvents(context, direction.Backwards, position.EndPosition, numberOfEvents, true)
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
 
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
+	client := CreateTestClient(container, t)
+	defer client.Close()
 
-		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
-		expectedEventID, _ := uuid.FromString("01b58e8c-260c-4f77-a93d-c92edcc255c1")
-		assert.Equal(t, expectedEventID, events[0].EventID)
-		assert.Equal(t, "$statsCollected", events[0].EventType)
-		assert.Equal(t, "$stats-0.0.0.0:2113", events[0].StreamID)
-		assert.Equal(t, uint64(11), events[0].EventNumber)
-		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:20:14.583749Z")
-		assert.Equal(t, expectedCreated, events[0].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 20492574, Prepare: 20492574}, events[0].Position)
-		assert.Equal(t, "application/json", events[0].ContentType)
-	})
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	defer cancel()
 
-	t.Run("TestReadAllEventsBackwardsFromNonZeroPosition", func(t *testing.T) {
-		client := CreateTestClient(container, t)
-		defer client.Close()
+	numberOfEventsToRead := 10
+	numberOfEvents := uint64(numberOfEventsToRead)
 
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
-		defer cancel()
+	events, err := client.ReadAllEvents(context, direction.Backwards, position.EndPosition, numberOfEvents, true)
 
-		numberOfEvents := uint64(10)
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
 
-		events, err := client.ReadAllEvents(context, direction.Backwards, position.Position{Commit: 3386, Prepare: 3386}, numberOfEvents, true)
+	for i := 0; i < numberOfEventsToRead; i++ {
+		assert.Equal(t, testEvents[i].Event.EventID, events[i].EventID)
+		assert.Equal(t, testEvents[i].Event.EventType, events[i].EventType)
+		assert.Equal(t, testEvents[i].Event.StreamID, events[i].StreamID)
+		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].EventNumber)
+		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].CreatedDate.Nanosecond())
+		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].CreatedDate.Unix())
+		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].Position.Commit)
+		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].Position.Prepare)
+		assert.Equal(t, testEvents[i].Event.ContentType, events[i].ContentType)
+	}
+}
 
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
+func TestReadAllEventsBackwardsFromNonZeroPosition(t *testing.T) {
+	eventsContent, err := ioutil.ReadFile("../resources/test/all-back-c3386-p3386.json")
+	require.NoError(t, err)
 
-		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
+	var testEvents []TestEvent
+	err = json.Unmarshal(eventsContent, &testEvents)
+	require.NoError(t, err)
 
-		expectedEventID, _ := uuid.FromString("c4bde754-dc19-4835-9005-1e82002ecc10")
-		assert.Equal(t, expectedEventID, events[0].EventID)
-		assert.Equal(t, "$ProjectionsInitialized", events[0].EventType)
-		assert.Equal(t, "$projections-$all", events[0].StreamID)
-		assert.Equal(t, uint64(0), events[0].EventNumber)
-		expectedCreated, _ := time.Parse(time.RFC3339, "2020-01-12T18:14:14.158068Z")
-		assert.Equal(t, expectedCreated, events[0].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 3256, Prepare: 3256}, events[0].Position)
-		assert.Equal(t, "application/octet-stream", events[0].ContentType)
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
 
-		expectedEventID, _ = uuid.FromString("4936a85f-e6cb-4a72-9007-ceed0c8a56e7")
-		assert.Equal(t, expectedEventID, events[9].EventID)
-		assert.Equal(t, "$metadata", events[9].EventType)
-		assert.Equal(t, "$$$projections-$0c745883dffc440e89dcf4f511e81101", events[9].StreamID)
-		assert.Equal(t, uint64(0), events[9].EventNumber)
-		expectedCreated, _ = time.Parse(time.RFC3339, "2020-01-12T18:14:14.108422Z")
-		assert.Equal(t, expectedCreated, events[9].CreatedDate)
-		assert.Equal(t, position.Position{Commit: 1788, Prepare: 1788}, events[9].Position)
-		assert.Equal(t, "application/json", events[9].ContentType)
-	})
+	client := CreateTestClient(container, t)
+	defer client.Close()
+
+	context, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	defer cancel()
+
+	numberOfEventsToRead := 10
+	numberOfEvents := uint64(numberOfEventsToRead)
+
+	events, err := client.ReadAllEvents(context, direction.Backwards, position.Position{Commit: 3386, Prepare: 3386}, numberOfEvents, true)
+
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
+
+	assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
+
+	for i := 0; i < numberOfEventsToRead; i++ {
+		assert.Equal(t, testEvents[i].Event.EventID, events[i].EventID)
+		assert.Equal(t, testEvents[i].Event.EventType, events[i].EventType)
+		assert.Equal(t, testEvents[i].Event.StreamID, events[i].StreamID)
+		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].EventNumber)
+		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].CreatedDate.Nanosecond())
+		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].CreatedDate.Unix())
+		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].Position.Commit)
+		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].Position.Prepare)
+		assert.Equal(t, testEvents[i].Event.ContentType, events[i].ContentType)
+	}
 }

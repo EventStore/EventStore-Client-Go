@@ -118,9 +118,9 @@ type Position struct {
 }
 
 func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
-	positionsContent, err := ioutil.ReadFile("../resources/test/all_positions_filtered_stream_194_e0_e30.json")
+	positionsContent, err := ioutil.ReadFile("../resources/test/all-positions-filtered-stream-194-e0-e30.json")
 	require.NoError(t, err)
-	versionsContent, err := ioutil.ReadFile("../resources/test/all_versions_filtered_stream_194_e0_e30.json")
+	versionsContent, err := ioutil.ReadFile("../resources/test/all-versions-filtered-stream-194-e0-e30.json")
 	require.NoError(t, err)
 	var positions []Position
 	var versions []uint64
