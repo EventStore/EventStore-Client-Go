@@ -1,14 +1,16 @@
 package client
 
 import (
+	"net/url"
 	"strings"
 
 	client_errors "github.com/EventStore/EventStore-Client-Go/errors"
 )
 
 const (
-	SchemeName      = "esdb"
-	SchemeSeparator = "://"
+	SchemeName              = "esdb"
+	SchemeSeparator         = "://"
+	SchemeUserInfoSeparator = "@"
 )
 
 // Configuration ...
@@ -34,14 +36,24 @@ func NewDefaultConfiguration() *Configuration {
 }
 
 func ParseConfig(connectionString string) (*Configuration, error) {
-	schemeIndex := strings.Index(connectionString, SchemeSeparator)
-	if schemeIndex == -1 {
-		return nil, client_errors.ErrNoSchemeSpecified
+	u, err := url.Parse(connectionString)
+	if err != nil {
+		if strings.Contains(err.Error(), "missing protocol scheme") {
+			return nil, client_errors.ErrNoSchemeSpecified
+		}
+		return nil, err
 	}
 
-	scheme := connectionString[:schemeIndex]
-	if scheme != SchemeName {
+	if u.Scheme  != SchemeName {
 		return nil, client_errors.ErrInvalidSchemeSpecified
+	}
+
+	if u.User != nil {
+		userName := u.User.Username()
+		_, isPasswordSet := u.User.Password()
+		if userName == "" || !isPasswordSet {
+			return nil, client_errors.ErrInvalidUserCredentials
+		}
 	}
 
 	return &Configuration{}, nil

@@ -32,3 +32,15 @@ func TestConnectionStringWithInvalidScheme(t *testing.T) {
 		t.Fatalf("Expected ErrInvalidSchemeSpecified, got %+v", err)
 	}
 }
+
+func TestConnectionStringWithInvalidUserCredentials(t *testing.T) {
+	_, err := client.ParseConfig("esdb://userpass@127.0.0.1/")
+	if !errors.Is(err, client_errors.ErrInvalidUserCredentials) {
+		t.Fatalf("Expected ErrInvalidUserCredentials, got %+v", err)
+	}
+
+	_, err = client.ParseConfig("esdb://@127.0.0.1/")
+	if !errors.Is(err, client_errors.ErrInvalidUserCredentials) {
+		t.Fatalf("Expected ErrInvalidUserCredentials, got %+v", err)
+	}
+}
