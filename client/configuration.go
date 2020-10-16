@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	SchemeName         	 = "esdb"
-	SchemaSeperator      = "://"
 	SchemaHostsSeperator = ","
+	SchemeName         	 = "esdb"
+	SchemePathSeperator  = "/"
+	SchemaSeperator      = "://"
 )
 
 // Configuration ...
@@ -70,13 +71,17 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 			return nil, fmt.Errorf("An empty host is specified")
 		}
 
-		schemaPrefix := fmt.Sprintf("%s://", SchemeName)
+		schemaPrefix := fmt.Sprintf("%s%s", SchemeName, SchemaSeperator)
 		parsableHost := fmt.Sprintf("%s%s", schemaPrefix, host)
 		_, err := url.Parse(parsableHost)
 		if err != nil {
 			errorWithoutScheme := strings.Replace(err.Error(), schemaPrefix, "", 1)
 			return nil, fmt.Errorf("The specified host is invalid, details %s", errorWithoutScheme)
 		}
+	}
+
+	if strings.TrimLeft(u.Path, SchemePathSeperator) != "" {
+		return nil, fmt.Errorf("The connection string cannot have a path")
 	}
 
 	return config, nil

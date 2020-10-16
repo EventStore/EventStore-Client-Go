@@ -69,3 +69,42 @@ func TestConnectionStringWithInvalidHost(t *testing.T) {
 	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "empty host")
 }
+
+func TestConnectionStringWithEmptyPath(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1:1234")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1?maxDiscoverAttempts=10")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=10")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+}
+
+func TestConnectionStringWithNonEmptyPath(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/test")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "cannot have a path")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/maxDiscoverAttempts=10")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "cannot have a path")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/hello?maxDiscoverAttempts=10")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "cannot have a path")
+}
