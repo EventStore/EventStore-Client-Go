@@ -1,46 +1,35 @@
 package client_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
-	client_errors "github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConnectionStringWithNoSchema(t *testing.T) {
-	_, err := client.ParseConfig(":so/mething/random")
-
-	if !errors.Is(err, client_errors.ErrNoSchemeSpecified) {
-		t.Fatalf("Expected ErrNoSchemeSpecified, got %+v", err)
-	}
+	_, err := client.ParseConnectionString(":so/mething/random")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "scheme is missing")
 }
 
 func TestConnectionStringWithInvalidScheme(t *testing.T) {
-	_, err := client.ParseConfig("esdbwrong://")
-	if !errors.Is(err, client_errors.ErrInvalidSchemeSpecified) {
-		t.Fatalf("Expected ErrInvalidSchemeSpecified, got %+v", err)
-	}
-
-	_, err = client.ParseConfig("wrong://")
-	if !errors.Is(err, client_errors.ErrInvalidSchemeSpecified) {
-		t.Fatalf("Expected ErrInvalidSchemeSpecified, got %+v", err)
-	}
-
-	_, err = client.ParseConfig("badesdb://")
-	if !errors.Is(err, client_errors.ErrInvalidSchemeSpecified) {
-		t.Fatalf("Expected ErrInvalidSchemeSpecified, got %+v", err)
-	}
+	_, err := client.ParseConnectionString("esdbwrong://")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid scheme")
 }
 
 func TestConnectionStringWithInvalidUserCredentials(t *testing.T) {
-	_, err := client.ParseConfig("esdb://userpass@127.0.0.1/")
-	if !errors.Is(err, client_errors.ErrInvalidUserCredentials) {
-		t.Fatalf("Expected ErrInvalidUserCredentials, got %+v", err)
-	}
+	_, err := client.ParseConnectionString("esdb://:pass@127.0.0.1/")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "username is empty")
 
-	_, err = client.ParseConfig("esdb://@127.0.0.1/")
-	if !errors.Is(err, client_errors.ErrInvalidUserCredentials) {
-		t.Fatalf("Expected ErrInvalidUserCredentials, got %+v", err)
-	}
+	_, err = client.ParseConnectionString("esdb://user@127.0.0.1/")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "password is not set")
+
+	_, err = client.ParseConnectionString("esdb://user:@127.0.0.1/")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "password is empty")
 }

@@ -1,16 +1,13 @@
 package client
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
-
-	client_errors "github.com/EventStore/EventStore-Client-Go/errors"
 )
 
 const (
-	SchemeName              = "esdb"
-	SchemeSeparator         = "://"
-	SchemeUserInfoSeparator = "@"
+	SchemeName = "esdb"
 )
 
 // Configuration ...
@@ -35,26 +32,34 @@ func NewDefaultConfiguration() *Configuration {
 	}
 }
 
-func ParseConfig(connectionString string) (*Configuration, error) {
+func ParseConnectionString(connectionString string) (*Configuration, error) {
 	u, err := url.Parse(connectionString)
 	if err != nil {
 		if strings.Contains(err.Error(), "missing protocol scheme") {
-			return nil, client_errors.ErrNoSchemeSpecified
+			return nil, fmt.Errorf("The scheme is missing from the connection string, details: %s", err.Error())
 		}
-		return nil, err
+		return nil, fmt.Errorf("The connection string is invalid, details: %s", err.Error())
 	}
 
-	if u.Scheme  != SchemeName {
-		return nil, client_errors.ErrInvalidSchemeSpecified
+	if u.Scheme != SchemeName {
+		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb://")
 	}
 
 	if u.User != nil {
-		userName := u.User.Username()
-		_, isPasswordSet := u.User.Password()
-		if userName == "" || !isPasswordSet {
-			return nil, client_errors.ErrInvalidUserCredentials
+		username := u.User.Username()
+		if username == "" {
+			return nil, fmt.Errorf("The specified username is empty")
+		}
+
+		password, isPasswordSet := u.User.Password()
+		if !isPasswordSet {
+			return nil, fmt.Errorf("The password is not set")
+		}
+
+		if password == "" {
+			return nil, fmt.Errorf("The specified password is empty")
 		}
 	}
 
-	return &Configuration{}, nil
+	return NewDefaultConfiguration(), nil
 }
