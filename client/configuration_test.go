@@ -9,27 +9,63 @@ import (
 )
 
 func TestConnectionStringWithNoSchema(t *testing.T) {
-	_, err := client.ParseConnectionString(":so/mething/random")
+	config, err := client.ParseConnectionString(":so/mething/random")
 	require.Error(t, err)
+	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "scheme is missing")
 }
 
 func TestConnectionStringWithInvalidScheme(t *testing.T) {
-	_, err := client.ParseConnectionString("esdbwrong://")
+	config, err := client.ParseConnectionString("esdbwrong://")
 	require.Error(t, err)
+	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "invalid scheme")
 }
 
 func TestConnectionStringWithInvalidUserCredentials(t *testing.T) {
-	_, err := client.ParseConnectionString("esdb://:pass@127.0.0.1/")
+	config, err := client.ParseConnectionString("esdb://:pass@127.0.0.1/")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "username is empty")
 
-	_, err = client.ParseConnectionString("esdb://user@127.0.0.1/")
+	config, err = client.ParseConnectionString("esdb://user@127.0.0.1/")
 	require.Error(t, err)
+	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "password is not set")
 
-	_, err = client.ParseConnectionString("esdb://user:@127.0.0.1/")
+	config, err = client.ParseConnectionString("esdb://user:@127.0.0.1/")
 	require.Error(t, err)
+	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "password is empty")
+}
+
+func TestConnectionStringWithInvalidHost(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1:abc")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "invalid port")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1:1234,127.0.0.2:abc,127.0.0.3:4321")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "invalid port")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1:abc:def")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "invalid port")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1:abc:def")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "invalid port")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@localhost:1234,127.0.0.2:abc:def,127.0.0.3:4321")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "invalid port")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@localhost:1234,,127.0.0.3:4321")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "empty host")
 }

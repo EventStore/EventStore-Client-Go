@@ -7,7 +7,9 @@ import (
 )
 
 const (
-	SchemeName = "esdb"
+	SchemeName         	 = "esdb"
+	SchemaSeperator      = "://"
+	SchemaHostsSeperator = ","
 )
 
 // Configuration ...
@@ -33,6 +35,7 @@ func NewDefaultConfiguration() *Configuration {
 }
 
 func ParseConnectionString(connectionString string) (*Configuration, error) {
+	config := NewDefaultConfiguration()
 	u, err := url.Parse(connectionString)
 	if err != nil {
 		if strings.Contains(err.Error(), "missing protocol scheme") {
@@ -61,5 +64,20 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		}
 	}
 
-	return NewDefaultConfiguration(), nil
+	hosts := strings.Split(u.Host, SchemaHostsSeperator)
+	for _, host := range hosts {
+		if host == "" {
+			return nil, fmt.Errorf("An empty host is specified")
+		}
+
+		schemaPrefix := fmt.Sprintf("%s://", SchemeName)
+		parsableHost := fmt.Sprintf("%s%s", schemaPrefix, host)
+		_, err := url.Parse(parsableHost)
+		if err != nil {
+			errorWithoutScheme := strings.Replace(err.Error(), schemaPrefix, "", 1)
+			return nil, fmt.Errorf("The specified host is invalid, details %s", errorWithoutScheme)
+		}
+	}
+
+	return config, nil
 }
