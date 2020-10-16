@@ -65,7 +65,7 @@ func (client *Client) Connect() error {
 		client.Config.Address = preferedNodeAddress
 	}
 	var opts []grpc.DialOption
-	if !client.Config.UseTls {
+	if client.Config.DisableTLS {
 		opts = append(opts, grpc.WithInsecure())
 	} else {
 		opts = append(opts,
