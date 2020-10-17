@@ -10,7 +10,7 @@ import (
 const (
 	SchemeDefaultPort       = "2113"
 	SchemaHostsSeperator    = ","
-	SchemeName         	    = "esdb"
+	SchemeName              = "esdb"
 	SchemePathSeperator     = "/"
 	SchemeQuerySeperator    = "?"
 	SchemeSeperator         = "://"
