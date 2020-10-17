@@ -96,15 +96,69 @@ func TestConnectionStringWithNonEmptyPath(t *testing.T) {
 	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/test")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "cannot have a path")
+	assert.Contains(t, err.Error(), "path must be either an empty string or a forward slash")
 
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/maxDiscoverAttempts=10")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "cannot have a path")
+	assert.Contains(t, err.Error(), "path must be either an empty string or a forward slash")
 
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/hello?maxDiscoverAttempts=10")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "cannot have a path")
+	assert.Contains(t, err.Error(), "path must be either an empty string or a forward slash")
+}
+
+func TestConnectionStringWithDuplicateKey(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=1234&MaxDiscoverAttempts=10")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "duplicate key/value pair")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?gossipTimeout=10&gossipTimeout=30")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "duplicate key/value pair")
+}
+
+func TestConnectionStringWithInvalidSettings(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?unknown=1234")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Unknown setting")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "No value specified for")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=1234&hello=test")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Unknown setting")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=abcd")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "must be an integer value")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?discoveryInterval=abcd")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "must be an integer value")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?gossipTimeout=defg")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "must be an integer value")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?tlsVerifyCert=truee")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "must be either true or false")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=blabla")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid NodePreference")
 }
