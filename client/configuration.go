@@ -86,7 +86,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		return nil, fmt.Errorf("The specified path must be either an empty string or a forward slash (/) but the following path was found instead: '%s'", path)
 	}
 
-	err = parseSettings(u.Query())
+	err = parseSettings(u.Query(), config)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	return config, nil
 }
 
-func parseSettings(urlValues url.Values) error {
+func parseSettings(urlValues url.Values, config *Configuration) error {
 	settings := make(map[string]string)
 	for key, values := range urlValues {
 		normalizedKey := strings.ToLower(key)
@@ -110,7 +110,7 @@ func parseSettings(urlValues url.Values) error {
 				return fmt.Errorf("No value specified for: '%s'", key)
 			}
 			settings[normalizedKey] = values[0]
-			err := parseSetting(key, values[0])
+			err := parseSetting(key, values[0], config)
 			if err != nil {
 				return err
 			}
@@ -120,7 +120,7 @@ func parseSettings(urlValues url.Values) error {
 	return nil
 }
 
-func parseSetting(k, v string ) error {
+func parseSetting(k, v string, config *Configuration) error {
 	normalizedKey := strings.ToLower(k)
 	switch normalizedKey {
 	case "discoveryinterval":
@@ -139,13 +139,9 @@ func parseSetting(k, v string ) error {
 			return err
 		}
 	case "nodepreference":
-		switch v {
-		case "leader":
-		case "follower":
-		case "random":
-		case "readonlyreplica":
-		default:
-			return fmt.Errorf("Invalid NodePreference: '%s'", v)
+		err := parseNodePreference(k, v, config)
+		if err != nil {
+			return err
 		}
 	case "tlsverifycert":
 		_, err := parseBoolSetting(k, v)
@@ -175,4 +171,21 @@ func parseIntSetting(k, v string) (int, error) {
 	}
 
 	return i, nil
+}
+
+func parseNodePreference(k, v string, config *Configuration) error {
+	switch strings.ToLower(v) {
+	case "follower":
+		config.NodePreference = NodePreference_Follower
+	case "leader":
+		config.NodePreference = NodePreference_Leader
+	case "random":
+		config.NodePreference = NodePreference_Random
+	case "readonlyreplica":
+		config.NodePreference = NodePreference_ReadOnlyReplica
+	default:
+		return fmt.Errorf("Invalid NodePreference: '%s'", v)
+	}
+
+	return nil
 }

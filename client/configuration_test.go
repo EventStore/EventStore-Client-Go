@@ -162,3 +162,26 @@ func TestConnectionStringWithInvalidSettings(t *testing.T) {
 	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "Invalid NodePreference")
 }
+
+func TestConnectionStringWithDifferentNodePreferences(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=leader")
+	assert.NoError(t, err)
+	assert.Equal(t, client.NodePreference_Leader, config.NodePreference)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=Follower")
+	assert.NoError(t, err)
+	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=rAndom")
+	assert.NoError(t, err)
+	assert.Equal(t, client.NodePreference_Random, config.NodePreference)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=ReadOnlyReplica")
+	assert.NoError(t, err)
+	assert.Equal(t, client.NodePreference_ReadOnlyReplica, config.NodePreference)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=invalid")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid NodePreference")
+}
