@@ -51,6 +51,7 @@ func (client *Client) Connect() error {
 			seeds = append(seeds, seedUrl)
 		}
 		discoverer.GossipSeeds = seeds
+		discoverer.MaxDiscoverAttempts = client.Config.MaxDiscoverAttempts
 		discoverer.NodePreference = client.Config.NodePreference
 		discoverer.SkipCertificateValidation = client.Config.SkipCertificateVerification
 
