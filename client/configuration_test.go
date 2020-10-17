@@ -278,3 +278,50 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, "http://host2:3321", config.GossipSeeds[1])
 	assert.Equal(t, "http://127.0.0.3:2113", config.GossipSeeds[2])
 }
+
+func TestConnectionStringWithDifferentTlsSettings(t *testing.T) {
+	config, _ := client.ParseConnectionString("esdb://127.0.0.1/")
+	assert.Equal(t, "https://127.0.0.1:2113", config.Address)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1?tls=true")
+	assert.Equal(t, "https://127.0.0.1:2113", config.Address)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1/?tls=FaLsE")
+	assert.Equal(t, "http://127.0.0.1:2113", config.Address)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/")
+	assert.Equal(t, "https://127.0.0.1:2113", config.GossipSeeds[0])
+	assert.Equal(t, "https://127.0.0.2:3321", config.GossipSeeds[1])
+	assert.Equal(t, "https://127.0.0.3:2113", config.GossipSeeds[2])
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3?tls=true")
+	assert.Equal(t, "https://127.0.0.1:2113", config.GossipSeeds[0])
+	assert.Equal(t, "https://127.0.0.2:3321", config.GossipSeeds[1])
+	assert.Equal(t, "https://127.0.0.3:2113", config.GossipSeeds[2])
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/?tls=fAlSe")
+	assert.Equal(t, "http://127.0.0.1:2113", config.GossipSeeds[0])
+	assert.Equal(t, "http://127.0.0.2:3321", config.GossipSeeds[1])
+	assert.Equal(t, "http://127.0.0.3:2113", config.GossipSeeds[2])
+}
+
+func TestConnectionStringWithDifferentTlsVerifySettings(t *testing.T) {
+	config, _ := client.ParseConnectionString("esdb://127.0.0.1/")
+	assert.Equal(t, false, config.SkipCertificateVerification)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1/?tlsVerifyCert=TrUe")
+	assert.Equal(t, false, config.SkipCertificateVerification)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1/?tlsVerifyCert=FaLsE")
+	assert.Equal(t, true, config.SkipCertificateVerification)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/")
+	assert.Equal(t, false, config.SkipCertificateVerification)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/?tlsVerifyCert=true")
+	assert.Equal(t, false, config.SkipCertificateVerification)
+
+	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/?tlsVerifyCert=false")
+	assert.Equal(t, true, config.SkipCertificateVerification)
+
+}
