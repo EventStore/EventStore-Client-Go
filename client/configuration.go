@@ -8,10 +8,14 @@ import (
 )
 
 const (
-	SchemaHostsSeperator = ","
-	SchemeName         	 = "esdb"
-	SchemePathSeperator  = "/"
-	SchemaSeperator      = "://"
+	SchemeDefaultPort       = "2113"
+	SchemaHostsSeperator    = ","
+	SchemeName         	    = "esdb"
+	SchemePathSeperator     = "/"
+	SchemeQuerySeperator    = "?"
+	SchemeSeperator         = "://"
+	SchemeSettingSeperator  = "&"
+	SchemeUserInfoSeperator = "@"
 )
 
 // Configuration ...
@@ -24,69 +28,80 @@ type Configuration struct {
 	Password                    string
 	SkipCertificateVerification bool
 	Connected                   bool
+	MaxDiscoverAttempts         int
+	DiscoveryInterval           int
+	GossipTimeout               int
 }
 
 // NewConfiguration ...
 func NewDefaultConfiguration() *Configuration {
 	return &Configuration{
-		Address:                     "localhost:2113",
+		Address:                     "localhost:",
 		Username:                    "admin",
 		Password:                    "changeit",
 		SkipCertificateVerification: false,
+		MaxDiscoverAttempts:         10,
+		DiscoveryInterval:           100,
+		GossipTimeout:               5,
 	}
 }
 
 func ParseConnectionString(connectionString string) (*Configuration, error) {
-	config := NewDefaultConfiguration()
-	u, err := url.Parse(connectionString)
-	if err != nil {
-		if strings.Contains(err.Error(), "missing protocol scheme") {
-			return nil, fmt.Errorf("The scheme is missing from the connection string, details: %s", err.Error())
-		}
-		return nil, fmt.Errorf("The connection string is invalid, details: %s", err.Error())
+	config := &Configuration{
+		SkipCertificateVerification: false,
+		UseTls: true,
+		MaxDiscoverAttempts: 10,
 	}
 
-	if u.Scheme != SchemeName {
+	schemeIndex := strings.Index(connectionString, SchemeSeperator)
+	if schemeIndex == -1 {
+		return nil, fmt.Errorf("The scheme is missing from the connection string")
+	}
+
+	scheme := connectionString[:schemeIndex]
+	if scheme != SchemeName {
 		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb://")
 	}
+	currentConnectionString := connectionString[schemeIndex + len(SchemeSeperator):]
 
-	if u.User != nil {
-		username := u.User.Username()
-		if username == "" {
-			return nil, fmt.Errorf("The specified username is empty")
-		}
-
-		password, isPasswordSet := u.User.Password()
-		if !isPasswordSet {
-			return nil, fmt.Errorf("The password is not set")
-		}
-
-		if password == "" {
-			return nil, fmt.Errorf("The specified password is empty")
-		}
+	userInfoIndex, err := parseUserInfo(currentConnectionString, config)
+	if err != nil {
+		return nil, err
+	}
+	if userInfoIndex != -1 {
+		currentConnectionString = currentConnectionString[userInfoIndex:]
 	}
 
-	hosts := strings.Split(u.Host, SchemaHostsSeperator)
-	for _, host := range hosts {
-		if host == "" {
-			return nil, fmt.Errorf("An empty host is specified")
-		}
-
-		schemaPrefix := fmt.Sprintf("%s%s", SchemeName, SchemaSeperator)
-		parsableHost := fmt.Sprintf("%s%s", schemaPrefix, host)
-		_, err := url.Parse(parsableHost)
-		if err != nil {
-			errorWithoutScheme := strings.Replace(err.Error(), schemaPrefix, "", 1)
-			return nil, fmt.Errorf("The specified host is invalid, details %s", errorWithoutScheme)
-		}
+	var host string
+	pathIndex := strings.Index(currentConnectionString, SchemePathSeperator)
+	if pathIndex == -1 {
+		host = currentConnectionString
+		currentConnectionString = ""
+	} else {
+		host = currentConnectionString[:pathIndex]
+		currentConnectionString = currentConnectionString[pathIndex + len(SchemePathSeperator):]
 	}
 
-	path := strings.TrimLeft(u.Path, SchemePathSeperator)
-	if path != "" {
+	var path string
+	settingsIndex := strings.Index(currentConnectionString, SchemeQuerySeperator)
+	if settingsIndex == -1 {
+		path = currentConnectionString
+		currentConnectionString = ""
+	} else {
+		path = currentConnectionString[:settingsIndex]
+		currentConnectionString = currentConnectionString[settingsIndex + len(SchemeQuerySeperator):]
+	}
+
+	if len(path) > 0 {
 		return nil, fmt.Errorf("The specified path must be either an empty string or a forward slash (/) but the following path was found instead: '%s'", path)
 	}
 
-	err = parseSettings(u.Query(), config)
+	err = parseSettings(currentConnectionString, config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = parseHost(host, config)
 	if err != nil {
 		return nil, err
 	}
@@ -94,23 +109,59 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	return config, nil
 }
 
-func parseSettings(urlValues url.Values, config *Configuration) error {
-	settings := make(map[string]string)
-	for key, values := range urlValues {
-		normalizedKey := strings.ToLower(key)
-		duplicateKeyError := fmt.Errorf("The connection string cannot have duplicate key/value pairs, found: '%s'", key)
-		if len(values) > 1 {
-			return duplicateKeyError
+func parseUserInfo(s string, config *Configuration) (int, error) {
+	userInfoIndex := strings.Index(s, SchemeUserInfoSeperator)
+	if userInfoIndex != -1 {
+		userInfo := s[0:userInfoIndex]
+		tokens := strings.Split(userInfo, ":")
+		if len(tokens) != 2 {
+			return -1, fmt.Errorf("The user credentials are invalid and are expected to be in format {username}:{password}")
 		}
 
-		if _, ok := settings[normalizedKey]; ok {
+		username := tokens[0]
+		if username == "" {
+			return -1, fmt.Errorf("The specified username is empty")
+		}
+
+		password := tokens[1]
+		if password == "" {
+			return -1, fmt.Errorf("The specified password is empty")
+		}
+
+		config.Username = username
+		config.Password = password
+
+		return userInfoIndex + len(SchemeUserInfoSeperator), nil
+	}
+
+	return -1, nil
+}
+
+func parseSettings(settings string, config *Configuration) error {
+	if settings == "" {
+		return nil
+	}
+
+	kvPairs := make(map[string]string)
+	settingTokens := strings.Split(settings, SchemeSettingSeperator)
+
+	for _, settingToken := range settingTokens {
+		key, value, err := parseKeyValuePair(settingToken)
+		if err != nil {
+			return err
+		}
+
+		normalizedKey := strings.ToLower(key)
+		duplicateKeyError := fmt.Errorf("The connection string cannot have duplicate key/value pairs, found: '%s'", key)
+
+		if _, ok := kvPairs[normalizedKey]; ok {
 			return duplicateKeyError
 		} else {
-			if len(values) == 0 || values[0] == "" {
-				return fmt.Errorf("No value specified for: '%s'", key)
+			if value == "" {
+				return fmt.Errorf("No value specified for setting: '%s'", key)
 			}
-			settings[normalizedKey] = values[0]
-			err := parseSetting(key, values[0], config)
+			kvPairs[normalizedKey] = value
+			err := parseSetting(key, value, config)
 			if err != nil {
 				return err
 			}
@@ -120,21 +171,30 @@ func parseSettings(urlValues url.Values, config *Configuration) error {
 	return nil
 }
 
+func parseKeyValuePair(s string) (string, string, error){
+	keyValueTokens := strings.Split(s, "=")
+	if len(keyValueTokens) != 2 {
+		return "", "", fmt.Errorf("Invalid key/value pair specified in connection string, expecting {key}={value} got: '%s'", s)
+	}
+
+	return keyValueTokens[0], keyValueTokens[1], nil
+}
+
 func parseSetting(k, v string, config *Configuration) error {
 	normalizedKey := strings.ToLower(k)
 	switch normalizedKey {
 	case "discoveryinterval":
-		_, err := parseIntSetting(k, v)
+		err := parseIntSetting(k, v, &config.DiscoveryInterval)
 		if err != nil {
 			return err
 		}
 	case "gossiptimeout":
-		_, err := parseIntSetting(k, v)
+		err := parseIntSetting(k, v, &config.GossipTimeout)
 		if err != nil {
 			return err
 		}
 	case "maxdiscoverattempts":
-		_, err := parseIntSetting(k, v)
+		err := parseIntSetting(k, v, &config.MaxDiscoverAttempts)
 		if err != nil {
 			return err
 		}
@@ -143,8 +203,13 @@ func parseSetting(k, v string, config *Configuration) error {
 		if err != nil {
 			return err
 		}
+	case "tls":
+		err := parseBoolSetting(k, v, &config.UseTls, false)
+		if err != nil {
+			return err
+		}
 	case "tlsverifycert":
-		_, err := parseBoolSetting(k, v)
+		err := parseBoolSetting(k, v, &config.SkipCertificateVerification, true)
 		if err != nil {
 			return err
 		}
@@ -155,22 +220,26 @@ func parseSetting(k, v string, config *Configuration) error {
 	return nil
 }
 
-func parseBoolSetting(k, v string) (int, error) {
-	i, err := strconv.Atoi(v)
+func parseBoolSetting(k, v string, b *bool, inverse bool) error {
+	var err error
+	*b, err = strconv.ParseBool(strings.ToLower(v))
 	if err != nil {
-		return 0, fmt.Errorf("Setting '%s' must be either true or false", k)
+		return fmt.Errorf("Setting '%s' must be either true or false", k)
 	}
 
-	return i, nil
+	*b = *b != inverse
+
+	return  nil
 }
 
-func parseIntSetting(k, v string) (int, error) {
-	i, err := strconv.Atoi(v)
+func parseIntSetting(k, v string, i *int) error {
+	var err error
+	*i, err = strconv.Atoi(v)
 	if err != nil {
-		return 0, fmt.Errorf("Setting '%s' must be an integer value", k)
+		return fmt.Errorf("Setting '%s' must be an integer value", k)
 	}
 
-	return i, nil
+	return nil
 }
 
 func parseNodePreference(k, v string, config *Configuration) error {
@@ -185,6 +254,41 @@ func parseNodePreference(k, v string, config *Configuration) error {
 		config.NodePreference = NodePreference_ReadOnlyReplica
 	default:
 		return fmt.Errorf("Invalid NodePreference: '%s'", v)
+	}
+
+	return nil
+}
+
+func parseHost(host string, config *Configuration) error {
+	parsedHosts := make([]string, 0)
+	hosts := strings.Split(host, SchemaHostsSeperator)
+	for _, host := range hosts {
+		if host == "" {
+			return fmt.Errorf("An empty host is specified")
+		}
+
+		schemePrefix := "http://"
+		if config.UseTls {
+			schemePrefix = "https://"
+		}
+
+		u, err := url.Parse(fmt.Sprintf("%s%s", schemePrefix, host))
+		if err != nil {
+			return fmt.Errorf("The specified host is invalid, details %s", err.Error())
+		}
+
+		port := SchemeDefaultPort
+		if u.Port() != "" {
+			port = u.Port()
+		}
+
+		parsedHosts = append(parsedHosts, fmt.Sprintf("%s://%s:%s", u.Scheme, u.Hostname(), port))
+	}
+
+	if len(parsedHosts) == 1 {
+		config.Address = parsedHosts[0]
+	} else {
+		config.GossipSeeds = parsedHosts
 	}
 
 	return nil
