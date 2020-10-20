@@ -72,31 +72,28 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		currentConnectionString = currentConnectionString[userInfoIndex:]
 	}
 
-	var host string
-	pathIndex := strings.Index(currentConnectionString, SchemePathSeperator)
-	if pathIndex == -1 {
+	var host, path, settings string
+	settingsIndex := strings.Index(currentConnectionString, SchemeQuerySeperator)
+	hostIndex := strings.IndexAny(currentConnectionString, SchemePathSeperator + SchemeQuerySeperator)
+	if hostIndex == -1 {
 		host = currentConnectionString
 		currentConnectionString = ""
 	} else {
-		host = currentConnectionString[:pathIndex]
-		currentConnectionString = currentConnectionString[pathIndex + len(SchemePathSeperator):]
+		host = currentConnectionString[:hostIndex]
+		path = currentConnectionString[hostIndex:]
 	}
 
-	var path string
-	settingsIndex := strings.Index(currentConnectionString, SchemeQuerySeperator)
-	if settingsIndex == -1 {
-		path = currentConnectionString
-		currentConnectionString = ""
-	} else {
-		path = currentConnectionString[:settingsIndex]
-		currentConnectionString = currentConnectionString[settingsIndex + len(SchemeQuerySeperator):]
+	if settingsIndex != -1 {
+		path = currentConnectionString[hostIndex:settingsIndex]
+		settings = strings.TrimLeft(currentConnectionString[settingsIndex:], SchemeQuerySeperator)
 	}
 
+	path = strings.TrimLeft(path, SchemePathSeperator)
 	if len(path) > 0 {
 		return nil, fmt.Errorf("The specified path must be either an empty string or a forward slash (/) but the following path was found instead: '%s'", path)
 	}
 
-	err = parseSettings(currentConnectionString, config)
+	err = parseSettings(settings, config)
 	if err != nil {
 		return nil, err
 	}

@@ -135,17 +135,43 @@ func TestConnectionStringWithDuplicateKey(t *testing.T) {
 }
 
 func TestConnectionStringWithoutSettings(t *testing.T) {
-	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1")
+	config, err := client.ParseConnectionString("esdb://localhost")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://localhost:2113", config.Address)
+
+	config, err = client.ParseConnectionString("esdb://localhost:2114")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://localhost:2114", config.Address)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@localhost:2114")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://localhost:2114", config.Address)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@localhost:2114/")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://localhost:2114", config.Address)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1")
 	assert.Nil(t, err)
 	assert.NotNil(t, config)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
 
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/")
 	assert.Nil(t, err)
 	assert.NotNil(t, config)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
 
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?")
 	assert.Nil(t, err)
 	assert.NotNil(t, config)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
 }
 
 func TestConnectionStringWithInvalidKeyValuePair(t *testing.T) {
@@ -200,6 +226,11 @@ func TestConnectionStringWithInvalidSettings(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "Invalid NodePreference")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1?/")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid key/value pair specified")
 }
 
 func TestConnectionStringWithDifferentNodePreferences(t *testing.T) {
@@ -226,8 +257,21 @@ func TestConnectionStringWithDifferentNodePreferences(t *testing.T) {
 }
 
 func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
-	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=13&DiscoveryInterval=37&gossipTimeout=33&nOdEPrEfErence=FoLLoWer&tlsVerifyCert=faLse")
+	config, err := client.ParseConnectionString("esdb://user:pass@localhost:2114?tlsVerifyCert=false")
+	require.NoError(t, err)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
+	assert.Equal(t, "https://localhost:2114", config.Address)
+	assert.Equal(t, true, config.SkipCertificateVerification)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@localhost:2114?tls=false")
 	assert.NoError(t, err)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
+	assert.Equal(t, "http://localhost:2114", config.Address)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?maxDiscoverAttempts=13&DiscoveryInterval=37&gossipTimeout=33&nOdEPrEfErence=FoLLoWer&tlsVerifyCert=faLse")
+	require.NoError(t, err)
 	assert.Equal(t, "user", config.Username)
 	assert.Equal(t, "pass", config.Password)
 	assert.Equal(t, "https://127.0.0.1:2113", config.Address)
@@ -239,7 +283,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, true, config.SkipCertificateVerification)
 
 	config, err = client.ParseConnectionString("esdb://hostname:4321/?tls=fAlse")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, config.Username)
 	assert.Empty(t, config.Password)
 	assert.Equal(t, "http://hostname:4321", config.Address)
@@ -250,7 +294,56 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 }
 
 func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
-	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1,127.0.0.2:3321,127.0.0.3/?maxDiscoverAttempts=13&DiscoveryInterval=37&nOdEPrEfErence=FoLLoWer&tlsVerifyCert=false")
+	config, err := client.ParseConnectionString("esdb://host1,host2,host3")
+	assert.NoError(t, err)
+	assert.Empty(t, config.Address)
+	require.NotEmpty(t, config.GossipSeeds)
+	assert.Len(t, config.GossipSeeds, 3)
+	assert.Equal(t, "https://host1:2113", config.GossipSeeds[0])
+	assert.Equal(t, "https://host2:2113", config.GossipSeeds[1])
+	assert.Equal(t, "https://host3:2113", config.GossipSeeds[2])
+
+	config, err = client.ParseConnectionString("esdb://host1:1234,host2:4321,host3:3231")
+	assert.NoError(t, err)
+	assert.Empty(t, config.Address)
+	require.NotEmpty(t, config.GossipSeeds)
+	assert.Len(t, config.GossipSeeds, 3)
+	assert.Equal(t, "https://host1:1234", config.GossipSeeds[0])
+	assert.Equal(t, "https://host2:4321", config.GossipSeeds[1])
+	assert.Equal(t, "https://host3:3231", config.GossipSeeds[2])
+
+	config, err = client.ParseConnectionString("esdb://user:pass@host1:1234,host2:4321,host3:3231?nodePreference=follower")
+	assert.NoError(t, err)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
+	assert.Empty(t, config.Address)
+	require.NotEmpty(t, config.GossipSeeds)
+	assert.Len(t, config.GossipSeeds, 3)
+	assert.Equal(t, "https://host1:1234", config.GossipSeeds[0])
+	assert.Equal(t, "https://host2:4321", config.GossipSeeds[1])
+	assert.Equal(t, "https://host3:3231", config.GossipSeeds[2])
+	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
+
+	config, err = client.ParseConnectionString("esdb://host1,host2,host3?tls=false")
+	assert.NoError(t, err)
+	assert.Empty(t, config.Address)
+	require.NotEmpty(t, config.GossipSeeds)
+	assert.Len(t, config.GossipSeeds, 3)
+	assert.Equal(t, "http://host1:2113", config.GossipSeeds[0])
+	assert.Equal(t, "http://host2:2113", config.GossipSeeds[1])
+	assert.Equal(t, "http://host3:2113", config.GossipSeeds[2])
+
+	config, err = client.ParseConnectionString("esdb://host1,host2,host3?tlsVerifyCert=false")
+	assert.NoError(t, err)
+	assert.Empty(t, config.Address)
+	require.NotEmpty(t, config.GossipSeeds)
+	assert.Len(t, config.GossipSeeds, 3)
+	assert.Equal(t, "https://host1:2113", config.GossipSeeds[0])
+	assert.Equal(t, "https://host2:2113", config.GossipSeeds[1])
+	assert.Equal(t, "https://host3:2113", config.GossipSeeds[2])
+	assert.Equal(t, true, config.SkipCertificateVerification)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1,127.0.0.2:3321,127.0.0.3/?maxDiscoverAttempts=13&DiscoveryInterval=37&nOdEPrEfErence=FoLLoWer&tlsVerifyCert=false")
 	assert.NoError(t, err)
 	assert.Equal(t, "user", config.Username)
 	assert.Equal(t, "pass", config.Password)
