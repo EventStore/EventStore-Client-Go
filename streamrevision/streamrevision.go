@@ -5,11 +5,11 @@ type StreamRevision uint64
 
 const (
 	// StreamRevisionNoStream ...
-	StreamRevisionNoStream StreamRevision = iota
-	// StreamRevisionAny ...
-	StreamRevisionAny
+	StreamRevisionNoStream = StreamRevision(0)
 	// StreamRevisionStreamExists ...
-	StreamRevisionStreamExists
+	StreamRevisionStreamExists = StreamRevision(StreamRevisionEnd - 1)
+	// StreamRevisionAny ...
+	StreamRevisionAny = StreamRevision(StreamRevisionEnd - 2)
 )
 
 func NewStreamRevision(value uint64) StreamRevision {
