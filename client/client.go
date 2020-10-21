@@ -64,13 +64,22 @@ func (client *Client) Connect() error {
 		}
 		client.Config.Address = preferedNodeAddress
 	}
-	config := &tls.Config{
-		InsecureSkipVerify: client.Config.SkipCertificateVerification,
+	var opts []grpc.DialOption
+	if client.Config.DisableTLS {
+		opts = append(opts, grpc.WithInsecure())
+	} else {
+		opts = append(opts,
+			grpc.WithTransportCredentials(credentials.NewTLS(
+				&tls.Config{
+					InsecureSkipVerify: client.Config.SkipCertificateVerification,
+				})))
 	}
-	conn, err := grpc.Dial(client.Config.Address, grpc.WithTransportCredentials(credentials.NewTLS(config)), grpc.WithPerRPCCredentials(basicAuth{
+	opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
 		username: client.Config.Username,
 		password: client.Config.Password,
 	}))
+
+	conn, err := grpc.Dial(client.Config.Address, opts...)
 	if err != nil {
 		return fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
 	}

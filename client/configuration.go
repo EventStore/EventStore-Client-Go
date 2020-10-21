@@ -4,7 +4,7 @@ package client
 type Configuration struct {
 	Address                     string
 	GossipSeeds                 []string
-	UseTls                      bool
+	DisableTLS                  bool
 	NodePreference              NodePreference
 	Username                    string
 	Password                    string
