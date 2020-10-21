@@ -23,6 +23,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	// ErrStreamNotFound is returned when a read requests gets a stream not found response
+	// from the EventStore.
+	// Example usage:
+	// ```go
+	// events, err := client.ReadStreamEvents(...)
+	// if err == ErrStreamNotFound {
+	//   // handle the stream not being found
+	// }
+	// ```
+	ErrStreamNotFound = fmt.Errorf("Failed to perform read because the stream was not found")
+)
+
 // Client ...
 type Client struct {
 	Config        *Configuration
@@ -311,7 +324,7 @@ func readInternal(context context.Context, streamsClient api.StreamsClient, read
 			}
 		case *api.ReadResp_StreamNotFound_:
 			{
-				return nil, fmt.Errorf("Failed to perform read because the stream was not found")
+				return nil, ErrStreamNotFound
 			}
 		}
 	}
