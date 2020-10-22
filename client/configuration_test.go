@@ -290,7 +290,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, "http://hostname:4321", config.Address)
 	assert.Empty(t, config.GossipSeeds)
 	assert.Empty(t, config.NodePreference)
-	assert.Equal(t, false, config.UseTls)
+	assert.Equal(t, true, config.DisableTLS)
 	assert.Equal(t, false, config.SkipCertificateVerification)
 
 	config, err = client.ParseConnectionString("esdb+discover://user:pass@host?nodePreference=follower&tlsVerifyCert=false")
@@ -300,7 +300,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, "https://host:2113", config.Address)
 	assert.Empty(t, config.GossipSeeds)
 	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
-	assert.Equal(t, true, config.UseTls)
+	assert.Equal(t, false, config.DisableTLS)
 	assert.Equal(t, true, config.SkipCertificateVerification)
 	assert.Equal(t, true, config.DnsDiscover)
 }

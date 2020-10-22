@@ -50,8 +50,6 @@ func NewDefaultConfiguration() *Configuration {
 
 func ParseConnectionString(connectionString string) (*Configuration, error) {
 	config := &Configuration{
-		SkipCertificateVerification: false,
-		UseTls: true,
 		MaxDiscoverAttempts: 10,
 	}
 
@@ -205,7 +203,7 @@ func parseSetting(k, v string, config *Configuration) error {
 			return err
 		}
 	case "tls":
-		err := parseBoolSetting(k, v, &config.UseTls, false)
+		err := parseBoolSetting(k, v, &config.DisableTLS, true)
 		if err != nil {
 			return err
 		}
@@ -268,9 +266,9 @@ func parseHost(host string, config *Configuration) error {
 			return fmt.Errorf("An empty host is specified")
 		}
 
-		schemePrefix := "http://"
-		if config.UseTls {
-			schemePrefix = "https://"
+		schemePrefix := "https://"
+		if config.DisableTLS {
+			schemePrefix = "http://"
 		}
 
 		u, err := url.Parse(fmt.Sprintf("%s%s", schemePrefix, host))
