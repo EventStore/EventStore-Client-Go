@@ -263,6 +263,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, "pass", config.Password)
 	assert.Equal(t, "https://localhost:2114", config.Address)
 	assert.Equal(t, true, config.SkipCertificateVerification)
+	assert.Equal(t, false, config.DnsDiscover)
 
 	config, err = client.ParseConnectionString("esdb://user:pass@localhost:2114?tls=false")
 	assert.NoError(t, err)
@@ -291,6 +292,17 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Empty(t, config.NodePreference)
 	assert.Equal(t, false, config.UseTls)
 	assert.Equal(t, false, config.SkipCertificateVerification)
+
+	config, err = client.ParseConnectionString("esdb+discover://user:pass@host?nodePreference=follower&tlsVerifyCert=false")
+	require.NoError(t, err)
+	assert.Equal(t, "user", config.Username)
+	assert.Equal(t, "pass", config.Password)
+	assert.Equal(t, "https://host:2113", config.Address)
+	assert.Empty(t, config.GossipSeeds)
+	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, true, config.UseTls)
+	assert.Equal(t, true, config.SkipCertificateVerification)
+	assert.Equal(t, true, config.DnsDiscover)
 }
 
 func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {

@@ -11,6 +11,7 @@ const (
 	SchemeDefaultPort       = "2113"
 	SchemaHostsSeperator    = ","
 	SchemeName              = "esdb"
+	SchemeNameWithDiscover  = "esdb+discover"
 	SchemePathSeperator     = "/"
 	SchemeQuerySeperator    = "?"
 	SchemeSeperator         = "://"
@@ -31,6 +32,7 @@ type Configuration struct {
 	MaxDiscoverAttempts         int
 	DiscoveryInterval           int
 	GossipTimeout               int
+	DnsDiscover                 bool
 }
 
 // NewConfiguration ...
@@ -59,10 +61,12 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	}
 
 	scheme := connectionString[:schemeIndex]
-	if scheme != SchemeName {
-		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb://")
+	if scheme != SchemeName && scheme != SchemeNameWithDiscover {
+		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb:// or esdb+discover://")
 	}
 	currentConnectionString := connectionString[schemeIndex + len(SchemeSeperator):]
+
+	config.DnsDiscover = scheme == SchemeNameWithDiscover
 
 	userInfoIndex, err := parseUserInfo(currentConnectionString, config)
 	if err != nil {
