@@ -311,7 +311,7 @@ func readInternal(context context.Context, streamsClient api.StreamsClient, read
 			}
 		case *api.ReadResp_StreamNotFound_:
 			{
-				return nil, fmt.Errorf("Failed to perform read because the stream was not found")
+				return nil, errors.ErrStreamNotFound
 			}
 		}
 	}
