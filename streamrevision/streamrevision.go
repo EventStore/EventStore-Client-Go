@@ -4,12 +4,12 @@ package streamrevision
 type StreamRevision uint64
 
 const (
-	// StreamRevisionNoStream ...
-	StreamRevisionNoStream = StreamRevision(0)
 	// StreamRevisionStreamExists ...
 	StreamRevisionStreamExists = StreamRevision(StreamRevisionEnd - 1)
 	// StreamRevisionAny ...
 	StreamRevisionAny = StreamRevision(StreamRevisionEnd - 2)
+	// StreamRevisionNoStream ...
+	StreamRevisionNoStream = StreamRevision(StreamRevisionEnd - 3)
 )
 
 func NewStreamRevision(value uint64) StreamRevision {
