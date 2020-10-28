@@ -2,21 +2,21 @@ package client
 
 import (
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 )
 
 const (
-	SchemeDefaultPort       = "2113"
-	SchemaHostsSeperator    = ","
+	SchemeDefaultPort       = 2113
+	SchemaHostsSeparator    = ","
 	SchemeName              = "esdb"
 	SchemeNameWithDiscover  = "esdb+discover"
-	SchemePathSeperator     = "/"
-	SchemeQuerySeperator    = "?"
-	SchemeSeperator         = "://"
-	SchemeSettingSeperator  = "&"
-	SchemeUserInfoSeperator = "@"
+	SchemePathSeparator     = "/"
+	SchemePortSeparator     = ":"
+	SchemeQuerySeparator    = "?"
+	SchemeSeparator         = "://"
+	SchemeSettingSeparator  = "&"
+	SchemeUserInfoSeparator = "@"
 )
 
 // Configuration ...
@@ -35,25 +35,14 @@ type Configuration struct {
 	DnsDiscover                 bool
 }
 
-// NewConfiguration ...
-func NewDefaultConfiguration() *Configuration {
-	return &Configuration{
-		Address:                     "localhost:",
-		Username:                    "admin",
-		Password:                    "changeit",
-		SkipCertificateVerification: false,
-		MaxDiscoverAttempts:         10,
-		DiscoveryInterval:           100,
-		GossipTimeout:               5,
-	}
-}
-
 func ParseConnectionString(connectionString string) (*Configuration, error) {
 	config := &Configuration{
+		DiscoveryInterval:   100,
+		GossipTimeout:       5,
 		MaxDiscoverAttempts: 10,
 	}
 
-	schemeIndex := strings.Index(connectionString, SchemeSeperator)
+	schemeIndex := strings.Index(connectionString, SchemeSeparator)
 	if schemeIndex == -1 {
 		return nil, fmt.Errorf("The scheme is missing from the connection string")
 	}
@@ -62,7 +51,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	if scheme != SchemeName && scheme != SchemeNameWithDiscover {
 		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb:// or esdb+discover://")
 	}
-	currentConnectionString := connectionString[schemeIndex + len(SchemeSeperator):]
+	currentConnectionString := connectionString[schemeIndex + len(SchemeSeparator):]
 
 	config.DnsDiscover = scheme == SchemeNameWithDiscover
 
@@ -75,8 +64,8 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	}
 
 	var host, path, settings string
-	settingsIndex := strings.Index(currentConnectionString, SchemeQuerySeperator)
-	hostIndex := strings.IndexAny(currentConnectionString, SchemePathSeperator + SchemeQuerySeperator)
+	settingsIndex := strings.Index(currentConnectionString, SchemeQuerySeparator)
+	hostIndex := strings.IndexAny(currentConnectionString, SchemePathSeparator+SchemeQuerySeparator)
 	if hostIndex == -1 {
 		host = currentConnectionString
 		currentConnectionString = ""
@@ -87,10 +76,10 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 
 	if settingsIndex != -1 {
 		path = currentConnectionString[hostIndex:settingsIndex]
-		settings = strings.TrimLeft(currentConnectionString[settingsIndex:], SchemeQuerySeperator)
+		settings = strings.TrimLeft(currentConnectionString[settingsIndex:], SchemeQuerySeparator)
 	}
 
-	path = strings.TrimLeft(path, SchemePathSeperator)
+	path = strings.TrimLeft(path, SchemePathSeparator)
 	if len(path) > 0 {
 		return nil, fmt.Errorf("The specified path must be either an empty string or a forward slash (/) but the following path was found instead: '%s'", path)
 	}
@@ -109,7 +98,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 }
 
 func parseUserInfo(s string, config *Configuration) (int, error) {
-	userInfoIndex := strings.Index(s, SchemeUserInfoSeperator)
+	userInfoIndex := strings.Index(s, SchemeUserInfoSeparator)
 	if userInfoIndex != -1 {
 		userInfo := s[0:userInfoIndex]
 		tokens := strings.Split(userInfo, ":")
@@ -130,7 +119,7 @@ func parseUserInfo(s string, config *Configuration) (int, error) {
 		config.Username = username
 		config.Password = password
 
-		return userInfoIndex + len(SchemeUserInfoSeperator), nil
+		return userInfoIndex + len(SchemeUserInfoSeparator), nil
 	}
 
 	return -1, nil
@@ -142,7 +131,7 @@ func parseSettings(settings string, config *Configuration) error {
 	}
 
 	kvPairs := make(map[string]string)
-	settingTokens := strings.Split(settings, SchemeSettingSeperator)
+	settingTokens := strings.Split(settings, SchemeSettingSeparator)
 
 	for _, settingToken := range settingTokens {
 		key, value, err := parseKeyValuePair(settingToken)
@@ -260,28 +249,30 @@ func parseNodePreference(k, v string, config *Configuration) error {
 
 func parseHost(host string, config *Configuration) error {
 	parsedHosts := make([]string, 0)
-	hosts := strings.Split(host, SchemaHostsSeperator)
+	hosts := strings.Split(host, SchemaHostsSeparator)
 	for _, host := range hosts {
 		if host == "" {
 			return fmt.Errorf("An empty host is specified")
 		}
 
-		schemePrefix := "https://"
-		if config.DisableTLS {
-			schemePrefix = "http://"
-		}
-
-		u, err := url.Parse(fmt.Sprintf("%s%s", schemePrefix, host))
-		if err != nil {
-			return fmt.Errorf("The specified host is invalid, details %s", err.Error())
-		}
-
+		hostName := host
 		port := SchemeDefaultPort
-		if u.Port() != "" {
-			port = u.Port()
+		if strings.Contains(host, SchemePortSeparator) {
+			tokens := strings.Split(host, SchemePortSeparator)
+			if len(tokens) != 2 {
+				return fmt.Errorf("Too many colons specified in host, expecting {host}:{port}")
+			}
+
+			var err error
+			port, err = strconv.Atoi(tokens[1])
+			if err != nil {
+				return fmt.Errorf("Invalid port specified, expecting an integer value")
+			}
+
+			hostName = tokens[0]
 		}
 
-		parsedHosts = append(parsedHosts, fmt.Sprintf("%s://%s:%s", u.Scheme, u.Hostname(), port))
+		parsedHosts = append(parsedHosts, fmt.Sprintf("%s:%d", hostName, port))
 	}
 
 	if len(parsedHosts) == 1 {

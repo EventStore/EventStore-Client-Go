@@ -79,9 +79,10 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 }
 
 func CreateTestClient(container *Container, t *testing.T) *client.Client {
-	config := client.NewDefaultConfiguration()
-	config.SkipCertificateVerification = true
-	config.Address = container.Endpoint
+	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint))
+	if err != nil {
+		t.Fatalf("Unexpected configuration error: %s", err.Error())
+	}
 
 	client, err := client.NewClient(config)
 	if err != nil {
