@@ -3,6 +3,7 @@ package client_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -88,11 +89,11 @@ func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
 	container := GetEmptyDatabase()
 	defer container.Close()
 
-	config := client.NewDefaultConfiguration()
-	config.Address = container.Endpoint
-	config.Username = "bad_user"
-	config.Password = "bad_password"
-	config.SkipCertificateVerification = true
+	conn := fmt.Sprintf("esdb://bad_user:bad_password@%s?tlsverifycert=false", container.Endpoint)
+	config, err := client.ParseConnectionString(conn)
+	if err != nil {
+		t.Fatalf("Unexpected configuration error: %s", err.Error())
+	}
 
 	client, err := client.NewClient(config)
 	if err != nil {

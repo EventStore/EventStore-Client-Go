@@ -46,11 +46,12 @@ func (client *Client) Connect() error {
 		for _, seed := range client.Config.GossipSeeds {
 			seedUrl, err := url.Parse(seed)
 			if err != nil {
-				return fmt.Errorf("The gossip seed (%s) is invalid and is required to be in the format of {scheme}://{host}:{port}, details: %s", seed, err.Error())
+				return fmt.Errorf("The gossip seed (%s) is invalid and is required to be in the format of {host}:{port}, details: %s", seed, err.Error())
 			}
 			seeds = append(seeds, seedUrl)
 		}
 		discoverer.GossipSeeds = seeds
+		discoverer.MaxDiscoverAttempts = client.Config.MaxDiscoverAttempts
 		discoverer.NodePreference = client.Config.NodePreference
 		discoverer.SkipCertificateValidation = client.Config.SkipCertificateVerification
 
