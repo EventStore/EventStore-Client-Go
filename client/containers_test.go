@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
-	"github.com/ory/dockertest"
+	"github.com/ory/dockertest/v3"
 )
 
 const EVENTSTORE_DOCKER_REPOSITORY = "docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata"
