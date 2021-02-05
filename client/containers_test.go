@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
-	"github.com/ory/dockertest"
+	"github.com/ory/dockertest/v3"
 )
 
 const EVENTSTORE_DOCKER_REPOSITORY = "docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata"
@@ -63,7 +63,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 	// Disable certificate verification
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	err = pool.Retry(func() error {
-		healthCheckEndpoint := fmt.Sprintf("https://%s/health/live", endpoint)
+		healthCheckEndpoint := fmt.Sprintf("https://%s", endpoint)
 		_, err := http.Get(healthCheckEndpoint)
 		return err
 	})
