@@ -34,4 +34,5 @@ jobs:
 
       - name: Tests
         run: |
+          docker-compose up
           go test -v ./...
