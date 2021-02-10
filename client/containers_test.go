@@ -33,7 +33,6 @@ func GetEmptyDatabase() *Container {
 		Repository:   EVENTSTORE_DOCKER_REPOSITORY,
 		Tag:          EVENTSTORE_DOCKER_TAG,
 		ExposedPorts: []string{EVENTSTORE_DOCKER_PORT},
-		Env:          []string{"EVENTSTORE_DEV=true"},
 	}
 	return getDatabase(options)
 }
@@ -43,7 +42,7 @@ func GetPrePopulatedDatabase() *Container {
 		Repository:   EVENTSTORE_DOCKER_REPOSITORY,
 		Tag:          EVENTSTORE_DOCKER_TAG,
 		ExposedPorts: []string{EVENTSTORE_DOCKER_PORT},
-		Env:          []string{"EVENTSTORE_DEV=true", "EVENTSTORE_DB=/data/integration-tests", "EVENTSTORE_MEM_DB=false"},
+		Env:          []string{"EVENTSTORE_DB=/data/integration-tests", "EVENTSTORE_MEM_DB=false"},
 	}
 	return getDatabase(options)
 }
@@ -54,7 +53,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 		log.Fatalf("Could not connect to docker. Reason: %v", err)
 	}
 
-	err = setSSLContext(options)
+	err = setTLSContext(options)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +90,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 	}
 }
 
-func setSSLContext(options *dockertest.RunOptions) error {
+func setTLSContext(options *dockertest.RunOptions) error {
 	err := verifyCertificatesExist()
 	if err != nil {
 		return err

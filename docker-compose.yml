@@ -17,6 +17,7 @@ services:
       -c "mkdir -p ./certs && cd /certs
       && es-gencert-cli create-ca
       && es-gencert-cli create-node -out ./node --dns-names localhost
+      && es-gencert-cli create-ca -out ./untrusted-ca
       && find . -type f -print0 | xargs -0 chmod 666"
     container_name: setup
     volumes:

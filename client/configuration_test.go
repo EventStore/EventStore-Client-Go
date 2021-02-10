@@ -388,7 +388,7 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
 }
 
-func TestConnectionStringWithDifferentTlsSettings(t *testing.T) {
+func TestConnectionStringWithDifferentTLSSettings(t *testing.T) {
 	config, _ := client.ParseConnectionString("esdb://127.0.0.1/")
 	assert.Equal(t, "127.0.0.1:2113", config.Address)
 
@@ -414,7 +414,7 @@ func TestConnectionStringWithDifferentTlsSettings(t *testing.T) {
 	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
 }
 
-func TestConnectionStringWithDifferentTlsVerifySettings(t *testing.T) {
+func TestConnectionStringWithDifferentTLSVerifySettings(t *testing.T) {
 	config, _ := client.ParseConnectionString("esdb://127.0.0.1/")
 	assert.Equal(t, false, config.SkipCertificateVerification)
 

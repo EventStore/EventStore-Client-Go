@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/x509"
 	"fmt"
 	"strconv"
 	"strings"
@@ -33,6 +34,7 @@ type Configuration struct {
 	DiscoveryInterval           int
 	GossipTimeout               int
 	DnsDiscover                 bool
+	RootCAs                     *x509.CertPool
 }
 
 func ParseConnectionString(connectionString string) (*Configuration, error) {
