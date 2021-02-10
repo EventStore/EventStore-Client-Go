@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 	"strings"
 )
@@ -189,12 +190,17 @@ func parseSetting(k, v string, config *Configuration) error {
 			return err
 		}
 	case "nodepreference":
-		err := parseNodePreference(k, v, config)
+		err := parseNodePreference(v, config)
 		if err != nil {
 			return err
 		}
 	case "tls":
 		err := parseBoolSetting(k, v, &config.DisableTLS, true)
+		if err != nil {
+			return err
+		}
+	case "tlscafile":
+		err := parseCertificateFile(v, config)
 		if err != nil {
 			return err
 		}
@@ -206,6 +212,22 @@ func parseSetting(k, v string, config *Configuration) error {
 	default:
 		return fmt.Errorf("Unknown setting: '%s'", k)
 	}
+
+	return nil
+}
+
+func parseCertificateFile(certFile string, config *Configuration) error {
+	b, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return err
+	}
+
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(b) {
+		return fmt.Errorf("failed to append certificate file")
+	}
+
+	config.RootCAs = cp
 
 	return nil
 }
@@ -232,7 +254,7 @@ func parseIntSetting(k, v string, i *int) error {
 	return nil
 }
 
-func parseNodePreference(k, v string, config *Configuration) error {
+func parseNodePreference(v string, config *Configuration) error {
 	switch strings.ToLower(v) {
 	case "follower":
 		config.NodePreference = NodePreference_Follower

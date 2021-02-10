@@ -434,3 +434,20 @@ func TestConnectionStringWithDifferentTLSVerifySettings(t *testing.T) {
 	assert.Equal(t, true, config.SkipCertificateVerification)
 
 }
+
+func TestConnectionStringWithoutCertificateFile(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+}
+
+func TestConnectionStringWithCertificateFile(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?tlsCAFile=invalidPath")
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "open invalidPath")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?tlsCAFile=../certs/node/node.crt")
+	assert.Nil(t, err)
+	require.NotNil(t, config)
+	assert.NotNil(t, config.RootCAs)
+}
