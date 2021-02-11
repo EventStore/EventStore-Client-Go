@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -36,6 +37,8 @@ type Configuration struct {
 	GossipTimeout               int
 	DnsDiscover                 bool
 	RootCAs                     *x509.CertPool
+	KeepAliveInterval           time.Duration
+	KeepAliveTimeout            time.Duration
 }
 
 func ParseConnectionString(connectionString string) (*Configuration, error) {
@@ -43,6 +46,8 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		DiscoveryInterval:   100,
 		GossipTimeout:       5,
 		MaxDiscoverAttempts: 10,
+		KeepAliveInterval:   10 * time.Second,
+		KeepAliveTimeout:    10 * time.Second,
 	}
 
 	schemeIndex := strings.Index(connectionString, SchemeSeparator)
@@ -54,7 +59,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	if scheme != SchemeName && scheme != SchemeNameWithDiscover {
 		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb:// or esdb+discover://")
 	}
-	currentConnectionString := connectionString[schemeIndex + len(SchemeSeparator):]
+	currentConnectionString := connectionString[schemeIndex+len(SchemeSeparator):]
 
 	config.DnsDiscover = scheme == SchemeNameWithDiscover
 
@@ -162,7 +167,7 @@ func parseSettings(settings string, config *Configuration) error {
 	return nil
 }
 
-func parseKeyValuePair(s string) (string, string, error){
+func parseKeyValuePair(s string) (string, string, error) {
 	keyValueTokens := strings.Split(s, "=")
 	if len(keyValueTokens) != 2 {
 		return "", "", fmt.Errorf("Invalid key/value pair specified in connection string, expecting {key}={value} got: '%s'", s)
@@ -191,6 +196,16 @@ func parseSetting(k, v string, config *Configuration) error {
 		}
 	case "nodepreference":
 		err := parseNodePreference(v, config)
+		if err != nil {
+			return err
+		}
+	case "keepaliveinterval":
+		err := parseKeepAliveSetting(k, v, &config.KeepAliveInterval)
+		if err != nil {
+			return err
+		}
+	case "keepalivetimeout":
+		err := parseKeepAliveSetting(k, v, &config.KeepAliveTimeout)
 		if err != nil {
 			return err
 		}
@@ -241,7 +256,7 @@ func parseBoolSetting(k, v string, b *bool, inverse bool) error {
 
 	*b = *b != inverse
 
-	return  nil
+	return nil
 }
 
 func parseIntSetting(k, v string, i *int) error {
@@ -303,6 +318,21 @@ func parseHost(host string, config *Configuration) error {
 		config.Address = parsedHosts[0]
 	} else {
 		config.GossipSeeds = parsedHosts
+	}
+
+	return nil
+}
+
+func parseKeepAliveSetting(k, v string, d *time.Duration) error {
+	i, err := strconv.Atoi(v)
+	if err != nil || i < -1 {
+		return fmt.Errorf("Invalid %s \"%s\". Please provide a positive integer, or -1 to disable", k, v)
+	}
+
+	if i == -1 {
+		*d = -1
+	} else {
+		*d = time.Duration(i * int(time.Millisecond))
 	}
 
 	return nil

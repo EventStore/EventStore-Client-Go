@@ -8,19 +8,21 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/EventStore/EventStore-Client-Go/client/filtering"
-	direction "github.com/EventStore/EventStore-Client-Go/direction"
-	errors "github.com/EventStore/EventStore-Client-Go/errors"
-	protoutils "github.com/EventStore/EventStore-Client-Go/internal/protoutils"
-	messages "github.com/EventStore/EventStore-Client-Go/messages"
-	position "github.com/EventStore/EventStore-Client-Go/position"
-	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
-	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
-	"github.com/EventStore/EventStore-Client-Go/subscription"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
+
+	"github.com/EventStore/EventStore-Client-Go/client/filtering"
+	"github.com/EventStore/EventStore-Client-Go/direction"
+	"github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
+	"github.com/EventStore/EventStore-Client-Go/messages"
+	"github.com/EventStore/EventStore-Client-Go/position"
+	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
+	"github.com/EventStore/EventStore-Client-Go/subscription"
 )
 
 // Client ...
@@ -81,6 +83,14 @@ func (client *Client) Connect() error {
 		username: client.Config.Username,
 		password: client.Config.Password,
 	}))
+
+	if client.Config.KeepAliveInterval >= 0 {
+		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:					client.Config.KeepAliveInterval,
+			Timeout:				client.Config.KeepAliveTimeout,
+			PermitWithoutStream:	true,
+		}))
+	}
 
 	conn, err := grpc.Dial(client.Config.Address, opts...)
 	if err != nil {
