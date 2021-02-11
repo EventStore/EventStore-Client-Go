@@ -22,25 +22,43 @@ const (
 	SchemeUserInfoSeparator = "@"
 )
 
-// Configuration ...
+// Configuration describes how to connect to an instance of EventStoreDB.
 type Configuration struct {
-	Address                     string
-	GossipSeeds                 []string
-	DisableTLS                  bool
-	NodePreference              NodePreference
-	Username                    string
-	Password                    string
-	SkipCertificateVerification bool
-	Connected                   bool
-	MaxDiscoverAttempts         int
-	DiscoveryInterval           int
-	GossipTimeout               int
-	DnsDiscover                 bool
-	RootCAs                     *x509.CertPool
-	KeepAliveInterval           time.Duration
-	KeepAliveTimeout            time.Duration
+	// The URI of the EventStoreDB. Use this when connecting to a single node.
+	// Example: localhost:2113
+	Address string
+	// An array of end points used to seed gossip.
+	GossipSeeds []string
+	// Disable communicating over a secure channel.
+	DisableTLS bool // Defaults to false.
+	// The NodePreference to use when connecting.
+	NodePreference NodePreference
+	// The username to use for authenticating against the EventStoreDB instance.
+	Username string
+	// The password to use for authenticating against the EventStoreDB instance.
+	Password string
+	// RootCAs defines the set of root certificate authorities
+	// that clients use when verifying server certificates.
+	// If RootCAs is nil, TLS uses the host's root CA set.
+	RootCAs *x509.CertPool // Defaults to nil.
+	// Allows to skip certificate validation.
+	SkipCertificateVerification bool // Defaults to false.
+	// The maximum number of times to attempt end point discovery.
+	MaxDiscoverAttempts int // Defaults to 10.
+	// The polling interval (in milliseconds) used to discover the end point.
+	DiscoveryInterval int // Defaults to 100 milliseconds.
+	// The amount of time (in seconds) after which an attempt to discover gossip will fail.
+	GossipTimeout int // Defaults to 5 seconds.
+	// Specifies if DNS discovery should be used.
+	DnsDiscover bool // Defaults to false.
+	// The amount of time (in milliseconds) to wait after which a keepalive ping is sent on the transport.
+	// Use -1 to disable.
+	KeepAliveInterval time.Duration // Defaults to 10 seconds.
+	// The amount of time (in milliseconds) the sender of the keep alive ping waits for an acknowledgement.
+	KeepAliveTimeout time.Duration // Defaults to 10 seconds.
 }
 
+// ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
 func ParseConnectionString(connectionString string) (*Configuration, error) {
 	config := &Configuration{
 		DiscoveryInterval:   100,
