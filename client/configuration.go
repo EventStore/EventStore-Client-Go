@@ -27,33 +27,46 @@ type Configuration struct {
 	// The URI of the EventStoreDB. Use this when connecting to a single node.
 	// Example: localhost:2113
 	Address string
+
 	// An array of end points used to seed gossip.
 	GossipSeeds []string
+
 	// Disable communicating over a secure channel.
 	DisableTLS bool // Defaults to false.
+
 	// The NodePreference to use when connecting.
 	NodePreference NodePreference
+
 	// The username to use for authenticating against the EventStoreDB instance.
 	Username string
+
 	// The password to use for authenticating against the EventStoreDB instance.
 	Password string
+
 	// RootCAs defines the set of root certificate authorities
 	// that clients use when verifying server certificates.
 	// If RootCAs is nil, TLS uses the host's root CA set.
 	RootCAs *x509.CertPool // Defaults to nil.
+
 	// Allows to skip certificate validation.
 	SkipCertificateVerification bool // Defaults to false.
+
 	// The maximum number of times to attempt end point discovery.
 	MaxDiscoverAttempts int // Defaults to 10.
+
 	// The polling interval (in milliseconds) used to discover the end point.
 	DiscoveryInterval int // Defaults to 100 milliseconds.
+
 	// The amount of time (in seconds) after which an attempt to discover gossip will fail.
 	GossipTimeout int // Defaults to 5 seconds.
+
 	// Specifies if DNS discovery should be used.
 	DnsDiscover bool // Defaults to false.
+
 	// The amount of time (in milliseconds) to wait after which a keepalive ping is sent on the transport.
-	// Use -1 to disable.
+	// If set below 10s, a minimum value of 10s will be used instead. Use -1 to disable. Use -1 to disable.
 	KeepAliveInterval time.Duration // Defaults to 10 seconds.
+
 	// The amount of time (in milliseconds) the sender of the keep alive ping waits for an acknowledgement.
 	KeepAliveTimeout time.Duration // Defaults to 10 seconds.
 }
@@ -221,6 +234,10 @@ func parseSetting(k, v string, config *Configuration) error {
 		err := parseKeepAliveSetting(k, v, &config.KeepAliveInterval)
 		if err != nil {
 			return err
+		}
+
+		if config.KeepAliveInterval >= 0 && config.KeepAliveInterval < 10*time.Second {
+			fmt.Printf("Smaller KeepAliveInterval: %d smaller than suggested 10_000 ms", config.KeepAliveInterval)
 		}
 	case "keepalivetimeout":
 		err := parseKeepAliveSetting(k, v, &config.KeepAliveTimeout)
