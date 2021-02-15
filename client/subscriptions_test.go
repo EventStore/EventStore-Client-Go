@@ -112,11 +112,6 @@ func TestAllSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
 	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
 }
 
-type Position struct {
-	Prepare uint64 `json:"prepare"`
-	Commit  uint64 `json:"commit"`
-}
-
 func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	positionsContent, err := ioutil.ReadFile("../resources/test/all-positions-filtered-stream-194-e0-e30.json")
 	require.NoError(t, err)
@@ -164,6 +159,8 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	timedOut = waitWithTimeout(&cancellation, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
 }
+
+
 
 func waitWithTimeout(wg *sync.WaitGroup, duration time.Duration) bool {
 	channel := make(chan struct{})

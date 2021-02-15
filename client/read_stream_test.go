@@ -39,6 +39,11 @@ type Event struct {
 	Created        Created        `json:"created"`
 }
 
+type Position struct {
+	Prepare uint64 `json:"prepare"`
+	Commit  uint64 `json:"commit"`
+}
+
 func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {
 	eventsContent, err := ioutil.ReadFile("../resources/test/dataset20M-1800-e0-e10.json")
 	require.NoError(t, err)
