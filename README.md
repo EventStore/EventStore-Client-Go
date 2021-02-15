@@ -15,7 +15,7 @@ go build ./client
 
 ### Run tests
 
-Testing requires [Docker] to be installed. To access the [GitHub Packages][ghp] docker images, you need to authenticate docker with a gitub personal access token. It should be [generated](https://github.com/settings/tokens/new) with at least the following scopes:
+Testing requires [Docker] to be installed. To access the docker images in [GitHub Packages][ghp], you need to authenticate docker with a gitub personal access token. It should be [generated](https://github.com/settings/tokens/new) with at least the following scopes:
 - `repo`
 - `read:packages`
 
@@ -24,13 +24,16 @@ Then login to the github docker registry with:
 docker login https://docker.pkg.github.com -u YOUR_GITHUB_USERNAME
 ```
 
-and provide your personal access token as a password.
-
-Check the full instructions in the ["Authenticating to GitHub packages"](https://docs.github.com/en/free-pro-team@latest/packages/guides/configuring-docker-for-use-with-github-packages#authenticating-to-github-packages) guide.
+and provide your personal access token as a password. The full instructions can be found in the ["Authenticating to GitHub packages"](https://docs.github.com/en/free-pro-team@latest/packages/guides/configuring-docker-for-use-with-github-packages#authenticating-to-github-packages) guide.
 
 Pull the required docker image:
-```shell script
+```shell
 docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
+```
+
+Run docker compose for generating the required certificates, they can be found in `./certs`:
+```shell
+docker-compose up
 ```
 
 Then run the tests with:

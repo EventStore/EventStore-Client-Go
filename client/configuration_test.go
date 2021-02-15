@@ -388,7 +388,7 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
 }
 
-func TestConnectionStringWithDifferentTlsSettings(t *testing.T) {
+func TestConnectionStringWithDifferentTLSSettings(t *testing.T) {
 	config, _ := client.ParseConnectionString("esdb://127.0.0.1/")
 	assert.Equal(t, "127.0.0.1:2113", config.Address)
 
@@ -414,7 +414,7 @@ func TestConnectionStringWithDifferentTlsSettings(t *testing.T) {
 	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
 }
 
-func TestConnectionStringWithDifferentTlsVerifySettings(t *testing.T) {
+func TestConnectionStringWithDifferentTLSVerifySettings(t *testing.T) {
 	config, _ := client.ParseConnectionString("esdb://127.0.0.1/")
 	assert.Equal(t, false, config.SkipCertificateVerification)
 
@@ -433,4 +433,21 @@ func TestConnectionStringWithDifferentTlsVerifySettings(t *testing.T) {
 	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/?tlsVerifyCert=false")
 	assert.Equal(t, true, config.SkipCertificateVerification)
 
+}
+
+func TestConnectionStringWithoutCertificateFile(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1")
+	assert.Nil(t, err)
+	assert.NotNil(t, config)
+}
+
+func TestConnectionStringWithCertificateFile(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?tlsCAFile=invalidPath")
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "open invalidPath")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?tlsCAFile=../certs/node/node.crt")
+	assert.Nil(t, err)
+	require.NotNil(t, config)
+	assert.NotNil(t, config.RootCAs)
 }

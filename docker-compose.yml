@@ -1,0 +1,26 @@
+version: '3.5'
+
+services:
+  volumes-provisioner:
+    image: "hasnat/volumes-provisioner"
+    environment:
+      PROVISION_DIRECTORIES: "1000:1000:0755:/tmp/certs"
+    volumes:
+      - "./certs:/tmp/certs"
+    network_mode: "none"
+
+  setup:
+    image: eventstore/es-gencert-cli:1.0.2
+    entrypoint: bash
+    user: "1000:1000"
+    command: >
+      -c "mkdir -p ./certs && cd /certs
+      && es-gencert-cli create-ca
+      && es-gencert-cli create-node -out ./node --dns-names localhost
+      && es-gencert-cli create-ca -out ./untrusted-ca
+      && find . -type f -print0 | xargs -0 chmod 666"
+    container_name: setup
+    volumes:
+      - ./certs:/certs
+    depends_on:
+      - volumes-provisioner

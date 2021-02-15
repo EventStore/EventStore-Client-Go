@@ -65,6 +65,7 @@ func (client *Client) Connect() error {
 		}
 		client.Config.Address = preferedNodeAddress
 	}
+
 	var opts []grpc.DialOption
 	if client.Config.DisableTLS {
 		opts = append(opts, grpc.WithInsecure())
@@ -73,6 +74,7 @@ func (client *Client) Connect() error {
 			grpc.WithTransportCredentials(credentials.NewTLS(
 				&tls.Config{
 					InsecureSkipVerify: client.Config.SkipCertificateVerification,
+					RootCAs: client.Config.RootCAs,
 				})))
 	}
 	opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
