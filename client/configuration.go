@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -237,7 +238,7 @@ func parseSetting(k, v string, config *Configuration) error {
 		}
 
 		if config.KeepAliveInterval >= 0 && config.KeepAliveInterval < 10*time.Second {
-			fmt.Printf("Smaller KeepAliveInterval: %d smaller than suggested 10_000 ms", config.KeepAliveInterval)
+			log.Printf("Smaller KeepAliveInterval: %d smaller than suggested 10_000 ms", config.KeepAliveInterval)
 		}
 	case "keepalivetimeout":
 		err := parseKeepAliveSetting(k, v, &config.KeepAliveTimeout)
