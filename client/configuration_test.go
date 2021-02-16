@@ -464,6 +464,7 @@ func TestConnectionStringWithCertificateFile(t *testing.T) {
 	require.NotNil(t, config)
 	assert.NotNil(t, config.RootCAs)
 }
+
 func TestConnectionStringWithKeepAlive(t *testing.T) {
 	// KeepAliveInterval
 	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=zero")
@@ -502,4 +503,25 @@ func TestConnectionStringWithKeepAlive(t *testing.T) {
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?KeepAliveTimeout=50000")
 	require.NoError(t, err)
 	assert.Equal(t, 50*time.Second, config.KeepAliveTimeout)
+
+	// KeepAliveInterval & KeepAliveTimeout
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=12000&KeepAliveTimeout=15000")
+	require.NoError(t, err)
+	assert.Equal(t, 12*time.Second, config.KeepAliveInterval)
+	assert.Equal(t, 15*time.Second, config.KeepAliveTimeout)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=-1&KeepAliveTimeout=-1")
+	require.NoError(t, err)
+	assert.Equal(t, -1, int(config.KeepAliveInterval))
+	assert.Equal(t, -1, int(config.KeepAliveTimeout))
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=-1&KeepAliveTimeout=15000")
+	require.NoError(t, err)
+	assert.Equal(t, -1, int(config.KeepAliveInterval))
+	assert.Equal(t, 15*time.Second, config.KeepAliveTimeout)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=11000&KeepAliveTimeout=-1")
+	require.NoError(t, err)
+	assert.Equal(t, 11*time.Second, config.KeepAliveInterval)
+	assert.Equal(t, -1, int(config.KeepAliveTimeout))
 }
