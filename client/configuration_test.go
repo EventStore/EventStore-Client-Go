@@ -2,11 +2,24 @@ package client_test
 
 import (
 	"testing"
+	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/EventStore/EventStore-Client-Go/client"
 )
+
+func TestConnectionStringDefaults(t *testing.T) {
+	config, err := client.ParseConnectionString("esdb://localhost")
+	assert.NoError(t, err)
+	assert.Equal(t, "localhost:2113", config.Address)
+	assert.Equal(t, 100, config.DiscoveryInterval)
+	assert.Equal(t, 5, config.GossipTimeout)
+	assert.Equal(t, 10, config.MaxDiscoverAttempts)
+	assert.Equal(t, 10*time.Second, config.KeepAliveInterval)
+	assert.Equal(t, 10*time.Second, config.KeepAliveTimeout)
+}
 
 func TestConnectionStringWithNoSchema(t *testing.T) {
 	config, err := client.ParseConnectionString(":so/mething/random")
@@ -450,4 +463,65 @@ func TestConnectionStringWithCertificateFile(t *testing.T) {
 	assert.Nil(t, err)
 	require.NotNil(t, config)
 	assert.NotNil(t, config.RootCAs)
+}
+
+func TestConnectionStringWithKeepAlive(t *testing.T) {
+	// KeepAliveInterval
+	config, err := client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=zero")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid keepAliveInterval \"zero\". Please provide a positive integer, or -1 to disable")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=-2")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid keepAliveInterval \"-2\". Please provide a positive integer, or -1 to disable")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=-1")
+	require.NoError(t, err)
+	assert.Equal(t, -1, int(config.KeepAliveInterval))
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?KeepAliveInterval=100")
+	require.NoError(t, err)
+	assert.Equal(t, 100*time.Millisecond, config.KeepAliveInterval)
+
+	// KeepAliveTimeout
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveTimeout=one")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid keepAliveTimeout \"one\". Please provide a positive integer, or -1 to disable")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveTimeout=-3")
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "Invalid keepAliveTimeout \"-3\". Please provide a positive integer, or -1 to disable")
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveTimeout=-1")
+	require.NoError(t, err)
+	assert.Equal(t, -1, int(config.KeepAliveTimeout))
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?KeepAliveTimeout=50000")
+	require.NoError(t, err)
+	assert.Equal(t, 50*time.Second, config.KeepAliveTimeout)
+
+	// KeepAliveInterval & KeepAliveTimeout
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=12000&KeepAliveTimeout=15000")
+	require.NoError(t, err)
+	assert.Equal(t, 12*time.Second, config.KeepAliveInterval)
+	assert.Equal(t, 15*time.Second, config.KeepAliveTimeout)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=-1&KeepAliveTimeout=-1")
+	require.NoError(t, err)
+	assert.Equal(t, -1, int(config.KeepAliveInterval))
+	assert.Equal(t, -1, int(config.KeepAliveTimeout))
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=-1&KeepAliveTimeout=15000")
+	require.NoError(t, err)
+	assert.Equal(t, -1, int(config.KeepAliveInterval))
+	assert.Equal(t, 15*time.Second, config.KeepAliveTimeout)
+
+	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1/?keepAliveInterval=11000&KeepAliveTimeout=-1")
+	require.NoError(t, err)
+	assert.Equal(t, 11*time.Second, config.KeepAliveInterval)
+	assert.Equal(t, -1, int(config.KeepAliveTimeout))
 }
