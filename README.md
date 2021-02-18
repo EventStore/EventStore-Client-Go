@@ -8,12 +8,11 @@ This repository contains an [EventStoreDB][es] Client SDK written in Go.
 
 Integration tests run against a server using Docker, with the [EventStoreDB gRPC Client Test Container][container]. Packages are not currently published to Maven Central, but will be once this library approaches release.
 
-### Build from source
-```shell
-go build ./client
-```
+### Setup dependencies
 
-### Run tests
+Some dependencies are required in order to work with the code:
+* Generated gRPC client, also checked-in but might require an update.
+* Certificates for testing TLS requirements, located at `./certs`.
 
 Testing requires [Docker] to be installed. To access the docker images in [GitHub Packages][ghp], you need to authenticate docker with a gitub personal access token. It should be [generated](https://github.com/settings/tokens/new) with at least the following scopes:
 - `repo`
@@ -31,13 +30,18 @@ Pull the required docker image:
 docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
 ```
 
-Run docker compose for generating the required certificates, they can be found in `./certs`:
+Run docker compose for generating the gRPC client and certificates:
 ```shell
 docker-compose up
+docker-compose down
 ```
 
-Then run the tests with:
+### Build from source
+```shell
+go build ./client
+```
 
+### Run tests
 ```shell
 go test ./client
 ```
