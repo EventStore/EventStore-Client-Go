@@ -3,6 +3,7 @@ package subscription
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	"github.com/EventStore/EventStore-Client-Go/messages"
@@ -14,63 +15,78 @@ import (
 type Subscription struct {
 	readClient                 api.Streams_ReadClient
 	subscriptionId             string
-	started                    bool
+	quit                       chan chan error
 	eventAppeared              chan<- messages.RecordedEvent
 	checkpointReached          chan<- position.Position
 	subscriptionDropped        chan<- string
-	subscriptionHasBeenDropped bool
 }
 
-func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared chan <- messages.RecordedEvent, checkpointReached chan<- position.Position, subscriptionDropped chan<- string) *Subscription {
+func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared chan<- messages.RecordedEvent,
+	checkpointReached chan<- position.Position, subscriptionDropped chan<- string) *Subscription {
 	return &Subscription{
 		readClient:          readClient,
 		subscriptionId:      subscriptionId,
 		eventAppeared:       eventAppeared,
 		checkpointReached:   checkpointReached,
 		subscriptionDropped: subscriptionDropped,
+		quit:                make(chan chan error),
 	}
 }
 
 func (subscription *Subscription) Stop() error {
-	subscription.started = false
-	if subscription.subscriptionDropped != nil && !subscription.subscriptionHasBeenDropped {
-		subscription.subscriptionDropped <- "User initiated"
-		subscription.subscriptionHasBeenDropped = true
-	}
-	return subscription.readClient.CloseSend()
+	errc := make(chan error)
+	subscription.quit <- errc
+	return <-errc
 }
 
-func (subscription *Subscription) Start() error {
-	subscription.started = true
-	go func() error {
-		for subscription.started {
-			readResult, err := subscription.readClient.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				if subscription.subscriptionDropped != nil && !subscription.subscriptionHasBeenDropped {
-					subscription.subscriptionDropped <- fmt.Sprintf("Subscription dropped by server: %s", err.Error())
-					subscription.subscriptionHasBeenDropped = true
+func (subscription *Subscription) Start() {
+	go func() {
+		type recvResult struct {
+			result *api.ReadResp
+			err    error
+		}
+
+		var err error
+		var recvDone chan recvResult
+		var subscriptionHasBeenDropped bool
+		startRecv := time.After(0)
+		for {
+			select {
+			case <-startRecv:
+				recvDone = make(chan recvResult, 1)
+				go func() {
+					result, err := subscription.readClient.Recv()
+					recvDone <- recvResult{result: result, err: err}
+				}()
+			case recvResult := <-recvDone:
+				recvDone = nil
+				result := recvResult.result
+				err = recvResult.err
+				startRecv = time.After(0)
+
+				if err == io.EOF {
+					break
 				}
-				return fmt.Errorf("Failed to perform read. Reason: %v", err)
-			}
-			switch readResult.Content.(type) {
-			case *api.ReadResp_Checkpoint_:
-				{
+				if err != nil {
+					if subscription.subscriptionDropped != nil && !subscriptionHasBeenDropped {
+						subscription.subscriptionDropped <- fmt.Sprintf("Subscription dropped by server: %s", err.Error())
+						subscriptionHasBeenDropped = true
+					}
+					err = fmt.Errorf("Failed to perform read. Reason: %v", err)
+				}
+				switch result.Content.(type) {
+				case *api.ReadResp_Checkpoint_:
 					if subscription.checkpointReached != nil {
-						checkpoint := readResult.GetCheckpoint()
+						checkpoint := result.GetCheckpoint()
 
 						subscription.checkpointReached <- position.Position{
 							Commit:  checkpoint.CommitPosition,
 							Prepare: checkpoint.PreparePosition,
 						}
 					}
-				}
-			case *api.ReadResp_Event:
-				{
+				case *api.ReadResp_Event:
 					if subscription.eventAppeared != nil {
-						event := readResult.GetEvent()
+						event := result.GetEvent()
 						recordedEvent := event.GetEvent()
 						streamIdentifier := recordedEvent.GetStreamIdentifier()
 
@@ -88,9 +104,14 @@ func (subscription *Subscription) Start() error {
 						}
 					}
 				}
+			case errc := <-subscription.quit:
+				if subscription.subscriptionDropped != nil && !subscriptionHasBeenDropped {
+					subscription.subscriptionDropped <- "User initiated"
+					subscriptionHasBeenDropped = true
+				}
+				errc <- subscription.readClient.CloseSend()
+				return
 			}
 		}
-		return nil
 	}()
-	return nil
 }
