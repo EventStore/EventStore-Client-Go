@@ -109,7 +109,13 @@ func (subscription *Subscription) Start() {
 					subscription.subscriptionDropped <- "User initiated"
 					subscriptionHasBeenDropped = true
 				}
-				errc <- subscription.readClient.CloseSend()
+
+				if err != nil {
+					errc <- err
+					subscription.readClient.CloseSend()
+				} else {
+					errc <- subscription.readClient.CloseSend()
+				}
 				return
 			}
 		}
