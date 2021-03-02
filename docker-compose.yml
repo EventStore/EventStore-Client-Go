@@ -37,8 +37,8 @@ services:
     user: "1000:1000"
     command: >
       -c "mkdir -p ./certs && cd /certs
-      && es-gencert-cli create-ca
-      && es-gencert-cli create-node -out ./node --dns-names localhost
+      && es-gencert-cli create-ca -out ./ca
+      && es-gencert-cli create-node -ca-certificate ./ca/ca.crt -ca-key ./ca/ca.key -ip-addresses 127.0.0.1 -dns-names localhost -out ./node --dns-names localhost
       && es-gencert-cli create-ca -out ./untrusted-ca
       && find . -type f -print0 | xargs -0 chmod 666"
     container_name: setup
