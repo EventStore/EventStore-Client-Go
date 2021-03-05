@@ -224,7 +224,7 @@ func (client *Client) ReadAllEvents(context context.Context, direction direction
 }
 
 // SubscribeToStream ...
-func (client *Client) SubscribeToStream(context context.Context, streamID string, from uint64, resolveLinks bool, eventAppeared chan<- messages.RecordedEvent, checkpointReached chan<- position.Position, subscriptionDropped chan<- string) (*subscription.Subscription, error) {
+func (client *Client) SubscribeToStream(context context.Context, streamID string, from uint64, resolveLinks bool, eventAppeared chan<- interface{}, subscriptionDropped chan<- string) (*subscription.Subscription, error) {
 	subscriptionRequest, err := protoutils.ToStreamSubscriptionRequest(streamID, from, resolveLinks, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
@@ -241,7 +241,7 @@ func (client *Client) SubscribeToStream(context context.Context, streamID string
 	case *api.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, subscriptionDropped), nil
 		}
 	case *api.ReadResp_StreamNotFound_:
 		{
@@ -252,7 +252,7 @@ func (client *Client) SubscribeToStream(context context.Context, streamID string
 }
 
 // SubscribeToAll ...
-func (client *Client) SubscribeToAll(context context.Context, from position.Position, resolveLinks bool, eventAppeared chan<- messages.RecordedEvent, checkpointReached chan<- position.Position, subscriptionDropped chan<- string) (*subscription.Subscription, error) {
+func (client *Client) SubscribeToAll(context context.Context, from position.Position, resolveLinks bool, eventAppeared chan<- interface{}, subscriptionDropped chan<- string) (*subscription.Subscription, error) {
 	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, nil)
 	readClient, err := client.streamsClient.Read(context, subscriptionRequest)
 	if err != nil {
@@ -266,14 +266,14 @@ func (client *Client) SubscribeToAll(context context.Context, from position.Posi
 	case *api.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, subscriptionDropped), nil
 		}
 	}
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
 // SubscribeToAllFiltered ...
-func (client *Client) SubscribeToAllFiltered(context context.Context, from position.Position, resolveLinks bool, filterOptions filtering.SubscriptionFilterOptions, eventAppeared chan<- messages.RecordedEvent, checkpointReached chan<- position.Position, subscriptionDropped chan<- string) (*subscription.Subscription, error) {
+func (client *Client) SubscribeToAllFiltered(context context.Context, from position.Position, resolveLinks bool, filterOptions filtering.SubscriptionFilterOptions, eventAppeared chan<- interface{}, subscriptionDropped chan<- string) (*subscription.Subscription, error) {
 	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, &filterOptions)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
@@ -290,7 +290,7 @@ func (client *Client) SubscribeToAllFiltered(context context.Context, from posit
 	case *api.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, checkpointReached, subscriptionDropped), nil
+			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared, subscriptionDropped), nil
 		}
 	}
 	return nil, fmt.Errorf("Failed to initiate subscription.")

@@ -27,8 +27,8 @@ func TestStreamSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) 
 	var cancellation sync.WaitGroup
 	cancellation.Add(1)
 	subscriptionDropped := make(chan string)
-	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", streamrevision.StreamRevisionStart,
-		false, nil, nil, subscriptionDropped)
+	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0",
+		streamrevision.StreamRevisionStart, false, nil, subscriptionDropped)
 
 	go func() {
 		for {
@@ -62,25 +62,30 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	}
 
 	current := 0
-	eventAppeared := make(chan messages.RecordedEvent)
+	eventAppeared := make(chan interface{})
 	var receivedEvents sync.WaitGroup
 	var appendedEvents sync.WaitGroup
-	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", streamrevision.StreamRevisionStart, false, eventAppeared, nil, nil)
+	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0",
+		streamrevision.StreamRevisionStart, false, eventAppeared, nil)
 
 	go func() {
 		for {
 			select {
-			case event := <-eventAppeared:
-				current++
-				if current <= 5999 {
-					receivedEvents.Done()
-				} else {
-					require.Equal(t, testEvent.EventID, event.EventID)
-					require.Equal(t, uint64(6000), event.EventNumber)
-					require.Equal(t, streamID, event.StreamID)
-					require.Equal(t, testEvent.Data, event.Data)
-					require.Equal(t, testEvent.UserMetadata, event.UserMetadata)
-					appendedEvents.Done()
+			case e := <-eventAppeared:
+				switch e.(type) {
+				case messages.RecordedEvent:
+					event := e.(messages.RecordedEvent)
+					current++
+					if current <= 5999 {
+						receivedEvents.Done()
+					} else {
+						require.Equal(t, testEvent.EventID, event.EventID)
+						require.Equal(t, uint64(6000), event.EventNumber)
+						require.Equal(t, streamID, event.StreamID)
+						require.Equal(t, testEvent.Data, event.Data)
+						require.Equal(t, testEvent.UserMetadata, event.UserMetadata)
+						appendedEvents.Done()
+					}
 				}
 			}
 		}
@@ -114,9 +119,7 @@ func TestAllSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
 	cancellation.Add(1)
 	subscriptionDropped := make(chan string)
 	subscription, err := client.SubscribeToAll(context.Background(), position.StartPosition, false,
-		nil,
-		nil,
-		subscriptionDropped)
+		nil, subscriptionDropped)
 
 	go func() {
 		for {
@@ -166,19 +169,24 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	filterOptions := filtering.NewDefaultSubscriptionFilterOptions(filter)
 
 	current := 0
-	eventAppeared := make(chan messages.RecordedEvent)
+	eventAppeared := make(chan interface{})
 	subscriptionDropped := make(chan string)
-	subscription, err := client.SubscribeToAllFiltered(context.Background(), position.StartPosition, false, filterOptions, eventAppeared, nil, subscriptionDropped)
+	subscription, err := client.SubscribeToAllFiltered(context.Background(), position.StartPosition, false,
+		filterOptions, eventAppeared, subscriptionDropped)
 
 	go func() {
 		for {
 			select {
-			case event := <-eventAppeared:
-				require.Equal(t, versions[current], event.EventNumber)
-				require.Equal(t, positions[current].Commit, event.Position.Commit)
-				require.Equal(t, positions[current].Prepare, event.Position.Prepare)
-				current++
-				receivedEvents.Done()
+			case e := <-eventAppeared:
+				switch e.(type) {
+				case messages.RecordedEvent:
+					event := e.(messages.RecordedEvent)
+					require.Equal(t, versions[current], event.EventNumber)
+					require.Equal(t, positions[current].Commit, event.Position.Commit)
+					require.Equal(t, positions[current].Prepare, event.Position.Prepare)
+					current++
+					receivedEvents.Done()
+				}
 			case <-subscriptionDropped:
 				cancellation.Done()
 			}

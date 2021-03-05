@@ -7,7 +7,6 @@ import (
 
 	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/EventStore/EventStore-Client-Go/position"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 )
@@ -16,18 +15,16 @@ type Subscription struct {
 	readClient                 api.Streams_ReadClient
 	subscriptionId             string
 	quit                       chan chan error
-	eventAppeared              chan<- messages.RecordedEvent
-	checkpointReached          chan<- position.Position
+	eventAppeared              chan<- interface{}
 	subscriptionDropped        chan<- string
 }
 
-func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared chan<- messages.RecordedEvent,
-	checkpointReached chan<- position.Position, subscriptionDropped chan<- string) *Subscription {
+func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared chan<- interface {},
+					subscriptionDropped chan<- string) *Subscription {
 	return &Subscription{
 		readClient:          readClient,
 		subscriptionId:      subscriptionId,
 		eventAppeared:       eventAppeared,
-		checkpointReached:   checkpointReached,
 		subscriptionDropped: subscriptionDropped,
 		quit:                make(chan chan error),
 	}
@@ -76,10 +73,10 @@ func (subscription *Subscription) Start() {
 				}
 				switch result.Content.(type) {
 				case *api.ReadResp_Checkpoint_:
-					if subscription.checkpointReached != nil {
+					if subscription.eventAppeared != nil {
 						checkpoint := result.GetCheckpoint()
 
-						subscription.checkpointReached <- position.Position{
+						subscription.eventAppeared <- messages.CheckpointEvent{
 							Commit:  checkpoint.CommitPosition,
 							Prepare: checkpoint.PreparePosition,
 						}
