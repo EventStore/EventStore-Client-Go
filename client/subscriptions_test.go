@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofrs/uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/position"
 	"github.com/EventStore/EventStore-Client-Go/streamrevision"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
-	uuid "github.com/gofrs/uuid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStreamSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
@@ -160,7 +161,58 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
 }
 
+func TestStreamSubscriptionAndAppendToSameStream(t *testing.T) {
+	container := GetEmptyDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer client.Close()
 
+	streamID := "stream-with-multiple-subscriptions"
+	birthEvent := createTypedTestEvent("birthEvent")
+	firstEvent := createTypedTestEvent("firstEvent")
+	secondEvent := createTypedTestEvent("secondEvent")
+
+	_, err := client.AppendToStream(context.Background(), streamID, stream_revision.StreamRevisionNoStream, []messages.ProposedEvent{
+		birthEvent,
+		firstEvent,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
+
+	var firstEventReceived, secondEventReceived sync.WaitGroup
+	firstEventReceived.Add(1)
+	secondEventReceived.Add(1)
+
+	subscriptionOne, err := client.SubscribeToStream(context.Background(), streamID, streamrevision.StreamRevisionStart, false,
+		func(event messages.RecordedEvent) {
+			if event.EventType == firstEvent.EventType {
+				firstEventReceived.Done()
+			}
+			if event.EventType == secondEvent.EventType {
+				secondEventReceived.Done()
+			}
+		}, nil,
+		nil)
+	require.NoError(t, err)
+
+	err = subscriptionOne.Start()
+	require.NoError(t, err, "failed to start subscription one")
+
+	timedOut := waitWithTimeout(&firstEventReceived, 5*time.Second)
+	require.False(t, timedOut, "Timed out waiting for first event")
+
+	_, err = client.AppendToStream(context.Background(), streamID, 1, []messages.ProposedEvent{
+		secondEvent,
+	})
+
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
+
+	timedOut = waitWithTimeout(&secondEventReceived, 5*time.Second)
+	require.False(t, timedOut, "Timed out waiting for second event")
+}
 
 func waitWithTimeout(wg *sync.WaitGroup, duration time.Duration) bool {
 	channel := make(chan struct{})
