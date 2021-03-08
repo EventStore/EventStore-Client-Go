@@ -129,9 +129,15 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		return nil, err
 	}
 
-	err = parseHost(host, config)
+	parsedHosts, err := parseHosts(host)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(parsedHosts) == 1 && scheme != SchemeNameWithDiscover {
+		config.Address = parsedHosts[0]
+	} else {
+		config.GossipSeeds = parsedHosts
 	}
 
 	return config, nil
@@ -322,12 +328,12 @@ func parseNodePreference(v string, config *Configuration) error {
 	return nil
 }
 
-func parseHost(host string, config *Configuration) error {
+func parseHosts(host string) ([]string, error) {
 	parsedHosts := make([]string, 0)
 	hosts := strings.Split(host, SchemaHostsSeparator)
 	for _, host := range hosts {
 		if host == "" {
-			return fmt.Errorf("An empty host is specified")
+			return nil, fmt.Errorf("An empty host is specified")
 		}
 
 		hostName := host
@@ -335,13 +341,13 @@ func parseHost(host string, config *Configuration) error {
 		if strings.Contains(host, SchemePortSeparator) {
 			tokens := strings.Split(host, SchemePortSeparator)
 			if len(tokens) != 2 {
-				return fmt.Errorf("Too many colons specified in host, expecting {host}:{port}")
+				return nil, fmt.Errorf("Too many colons specified in host, expecting {host}:{port}")
 			}
 
 			var err error
 			port, err = strconv.Atoi(tokens[1])
 			if err != nil {
-				return fmt.Errorf("Invalid port specified, expecting an integer value")
+				return nil, fmt.Errorf("Invalid port specified, expecting an integer value")
 			}
 
 			hostName = tokens[0]
@@ -350,13 +356,7 @@ func parseHost(host string, config *Configuration) error {
 		parsedHosts = append(parsedHosts, fmt.Sprintf("%s:%d", hostName, port))
 	}
 
-	if len(parsedHosts) == 1 {
-		config.Address = parsedHosts[0]
-	} else {
-		config.GossipSeeds = parsedHosts
-	}
-
-	return nil
+	return parsedHosts, nil
 }
 
 func parseKeepAliveSetting(k, v string, d *time.Duration) error {

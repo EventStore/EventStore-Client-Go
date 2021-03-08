@@ -17,14 +17,19 @@ import (
 )
 
 func createTestEvent() messages.ProposedEvent {
+	return createTypedTestEvent("TestEvent")
+}
+
+func createTypedTestEvent(typeName string) messages.ProposedEvent {
 	return messages.ProposedEvent{
 		EventID:      uuid.Must(uuid.NewV4()),
-		EventType:    "TestEvent",
+		EventType:    typeName,
 		ContentType:  "application/octet-stream",
 		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
 }
+
 func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 	container := GetEmptyDatabase()
 	defer container.Close()

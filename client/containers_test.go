@@ -33,6 +33,7 @@ func GetEmptyDatabase() *Container {
 		Repository:   EVENTSTORE_DOCKER_REPOSITORY,
 		Tag:          EVENTSTORE_DOCKER_TAG,
 		ExposedPorts: []string{EVENTSTORE_DOCKER_PORT},
+		Env:          []string{"EVENTSTORE_MEM_DB=true"},
 	}
 	return getDatabase(options)
 }
