@@ -137,6 +137,36 @@ func TestAllSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
 	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
 }
 
+func TestSubscriptionWithDroppedConnection(t *testing.T) {
+	container := GetEmptyDatabase()
+	client := CreateTestClient(container, t)
+	defer client.Close()
+
+	var cancellation sync.WaitGroup
+	cancellation.Add(1)
+	subscriptionDropped := make(chan string)
+	subscription, err := client.SubscribeToAll(context.Background(), position.StartPosition, false,
+		nil, subscriptionDropped)
+
+	go func() {
+		for {
+			select {
+			case reason := <-subscriptionDropped:
+				require.Equal(t, reason, "Subscription dropped by server: rpc error: code = Unavailable desc = transport is closing")
+				cancellation.Done()
+			}
+		}
+	}()
+
+	require.NoError(t, err)
+	subscription.Start()
+
+	container.Close() // Drop the connection
+
+	timedOut := waitWithTimeout(&cancellation, time.Duration(5)*time.Second)
+	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
+}
+
 type Position struct {
 	Prepare uint64 `json:"prepare"`
 	Commit  uint64 `json:"commit"`

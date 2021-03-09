@@ -12,15 +12,15 @@ import (
 )
 
 type Subscription struct {
-	readClient                 api.Streams_ReadClient
-	subscriptionId             string
-	quit                       chan chan error
-	eventAppeared              chan<- interface{}
-	subscriptionDropped        chan<- string
+	readClient          api.Streams_ReadClient
+	subscriptionId      string
+	quit                chan chan error
+	eventAppeared       chan<- interface{}
+	subscriptionDropped chan<- string
 }
 
-func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared chan<- interface {},
-					subscriptionDropped chan<- string) *Subscription {
+func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared chan<- interface{},
+	subscriptionDropped chan<- string) *Subscription {
 	return &Subscription{
 		readClient:          readClient,
 		subscriptionId:      subscriptionId,
@@ -66,8 +66,9 @@ func (subscription *Subscription) Start() {
 				}
 				if err != nil {
 					if subscription.subscriptionDropped != nil && !subscriptionHasBeenDropped {
-						subscription.subscriptionDropped <- fmt.Sprintf("Subscription dropped by server: %s", err.Error())
 						subscriptionHasBeenDropped = true
+						subscription.subscriptionDropped <- fmt.Sprintf("Subscription dropped by server: %s", err.Error())
+						return
 					}
 					err = fmt.Errorf("Failed to perform read. Reason: %v", err)
 				}
@@ -103,8 +104,8 @@ func (subscription *Subscription) Start() {
 				}
 			case errc := <-subscription.quit:
 				if subscription.subscriptionDropped != nil && !subscriptionHasBeenDropped {
-					subscription.subscriptionDropped <- "User initiated"
 					subscriptionHasBeenDropped = true
+					subscription.subscriptionDropped <- "User initiated"
 				}
 
 				if err != nil {
