@@ -77,8 +77,8 @@ func (subscription *Subscription) Start() {
 						checkpoint := result.GetCheckpoint()
 
 						subscription.eventAppeared <- messages.CheckpointEvent{
-							Commit:  checkpoint.CommitPosition,
-							Prepare: checkpoint.PreparePosition,
+							CommitPosition:  checkpoint.CommitPosition,
+							PreparePosition: checkpoint.PreparePosition,
 						}
 					}
 				case *api.ReadResp_Event:
