@@ -5,7 +5,7 @@ import (
 )
 
 // ErrWrongExpectedStreamRevision ...
-var ErrWrongExpectedStreamRevision = errors.New("WrongExceptedStreamRevision")
+var ErrWrongExpectedStreamRevision = errors.New("WrongExpectedStreamRevision")
 
 // ErrPermissionDenied ...
 var ErrPermissionDenied = errors.New("PermissionDenied")
