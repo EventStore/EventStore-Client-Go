@@ -6,12 +6,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/client/config"
+
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
 	position "github.com/EventStore/EventStore-Client-Go/position"
 	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	subscriptionapi "github.com/EventStore/EventStore-Client-Go/protos/subscription"
 	"github.com/EventStore/EventStore-Client-Go/streamrevision"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
@@ -248,6 +251,67 @@ func ToReadAllRequest(direction direction.Direction, from position.Position, cou
 	}
 }
 
+func ToStreamPersistentSubscriptionRequest(groupName string, streamID string, bufferSize int32) *subscriptionapi.ReadReq {
+	readReq := &subscriptionapi.ReadReq{
+		Content: &subscriptionapi.ReadReq_Options_{
+			Options: &subscriptionapi.ReadReq_Options{
+				StreamIdentifier: &shared.StreamIdentifier{
+					StreamName: []byte(streamID),
+				},
+				GroupName: groupName,
+				UuidOption: &subscriptionapi.ReadReq_Options_UUIDOption{
+					Content: &subscriptionapi.ReadReq_Options_UUIDOption_String_{
+						String_: &shared.Empty{},
+					},
+				},
+				BufferSize: bufferSize,
+			},
+		},
+	}
+
+	return readReq
+}
+
+func ToStreamPersistentSubscriptionAckRequest(subscriptionID string, ID uuid.UUID) *subscriptionapi.ReadReq {
+
+	readReq := &subscriptionapi.ReadReq{
+		Content: &subscriptionapi.ReadReq_Ack_{
+			Ack: &subscriptionapi.ReadReq_Ack{
+				Id: []byte(subscriptionID),
+				Ids: []*shared.UUID{
+					{
+						Value: &shared.UUID_String_{
+							String_: ID.String(),
+						},
+					},
+				},
+			},
+		},
+	}
+	return readReq
+}
+
+func ToStreamPersistentSubscriptionNackRequest(subscriptionID string, ID uuid.UUID, err error) *subscriptionapi.ReadReq {
+
+	readReq := &subscriptionapi.ReadReq{
+		Content: &subscriptionapi.ReadReq_Nack_{
+			Nack: &subscriptionapi.ReadReq_Nack{
+				Id: []byte(subscriptionID),
+				Ids: []*shared.UUID{
+					{
+						Value: &shared.UUID_String_{
+							String_: ID.String(),
+						},
+					},
+				},
+				Action: subscriptionapi.ReadReq_Nack_Retry,
+				Reason: err.Error(),
+			},
+		},
+	}
+	return readReq
+}
+
 func ToStreamSubscriptionRequest(streamID string, from uint64, resolveLinks bool, filterOptions *filtering.SubscriptionFilterOptions) (*api.ReadReq, error) {
 	readReq := &api.ReadReq{
 		Options: &api.ReadReq_Options{
@@ -310,8 +374,103 @@ func ToAllSubscriptionRequest(from position.Position, resolveLinks bool, filterO
 	return readReq, nil
 }
 
+func ToCreatePersistentSubscriptionRequest(groupName string, streamID string, options *config.PersistentSubscriptionOptions) (*subscriptionapi.CreateReq, error) {
+	createReq := &subscriptionapi.CreateReq{
+		Options: &subscriptionapi.CreateReq_Options{
+			GroupName: groupName,
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: []byte(streamID),
+			},
+			Settings: &subscriptionapi.CreateReq_Settings{
+				ExtraStatistics:       options.ExtraStatistics,
+				ResolveLinks:          options.ResolveLinks,
+				HistoryBufferSize:     options.HistoryBufferSize,
+				LiveBufferSize:        options.LiveBufferSize,
+				MaxCheckpointCount:    options.MaxCheckpointCount,
+				MaxRetryCount:         options.MaxRetryCount,
+				MaxSubscriberCount:    options.MaxSubscriberCount,
+				MinCheckpointCount:    options.MinCheckpointCount,
+				NamedConsumerStrategy: subscriptionapi.CreateReq_ConsumerStrategy(options.NamedConsumerStrategy),
+				ReadBatchSize:         options.ReadBatchSize,
+			},
+		},
+	}
+	if options.MessageTimeoutConfig.Mode == config.FrequencyModeMs {
+		createReq.Options.Settings.MessageTimeout = &subscriptionapi.CreateReq_Settings_MessageTimeoutMs{
+			MessageTimeoutMs: int32(options.MessageTimeoutConfig.Value),
+		}
+	} else {
+		createReq.Options.Settings.MessageTimeout = &subscriptionapi.CreateReq_Settings_MessageTimeoutTicks{
+			MessageTimeoutTicks: options.MessageTimeoutConfig.Value,
+		}
+	}
+
+	if options.CheckpointConfig.Mode == config.FrequencyModeMs {
+		createReq.Options.Settings.CheckpointAfter = &subscriptionapi.CreateReq_Settings_CheckpointAfterMs{
+			CheckpointAfterMs: int32(options.CheckpointConfig.Value),
+		}
+	} else {
+		createReq.Options.Settings.CheckpointAfter = &subscriptionapi.CreateReq_Settings_CheckpointAfterTicks{
+			CheckpointAfterTicks: options.CheckpointConfig.Value,
+		}
+	}
+
+	return createReq, nil
+}
+
+func ToUpdatePersistentSubscriptionRequest(groupName string, streamID string, options *config.PersistentSubscriptionOptions) (*subscriptionapi.UpdateReq, error) {
+	updateReq := &subscriptionapi.UpdateReq{
+		Options: &subscriptionapi.UpdateReq_Options{
+			GroupName: groupName,
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: []byte(streamID),
+			},
+			Settings: &subscriptionapi.UpdateReq_Settings{
+				ExtraStatistics:       options.ExtraStatistics,
+				ResolveLinks:          options.ResolveLinks,
+				HistoryBufferSize:     options.HistoryBufferSize,
+				LiveBufferSize:        options.LiveBufferSize,
+				MaxCheckpointCount:    options.MaxCheckpointCount,
+				MaxRetryCount:         options.MaxRetryCount,
+				MaxSubscriberCount:    options.MaxSubscriberCount,
+				MinCheckpointCount:    options.MinCheckpointCount,
+				NamedConsumerStrategy: subscriptionapi.UpdateReq_ConsumerStrategy(options.NamedConsumerStrategy),
+				ReadBatchSize:         options.ReadBatchSize,
+			},
+		},
+	}
+	if options.MessageTimeoutConfig.Mode == config.FrequencyModeMs {
+		updateReq.Options.Settings.MessageTimeout = &subscriptionapi.UpdateReq_Settings_MessageTimeoutMs{
+			MessageTimeoutMs: int32(options.MessageTimeoutConfig.Value),
+		}
+	} else {
+		updateReq.Options.Settings.MessageTimeout = &subscriptionapi.UpdateReq_Settings_MessageTimeoutTicks{
+			MessageTimeoutTicks: options.MessageTimeoutConfig.Value,
+		}
+	}
+
+	if options.CheckpointConfig.Mode == config.FrequencyModeMs {
+		updateReq.Options.Settings.CheckpointAfter = &subscriptionapi.UpdateReq_Settings_CheckpointAfterMs{
+			CheckpointAfterMs: int32(options.CheckpointConfig.Value),
+		}
+	} else {
+		updateReq.Options.Settings.CheckpointAfter = &subscriptionapi.UpdateReq_Settings_CheckpointAfterTicks{
+			CheckpointAfterTicks: options.CheckpointConfig.Value,
+		}
+	}
+
+	return updateReq, nil
+}
+
 // EventIDFromProto ...
 func EventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
+	id := recordedEvent.GetId()
+	idString := id.GetString_()
+	return uuid.FromStringOrNil(idString)
+}
+
+// EventIDFromSubscriptionProto ...
+func EventIDFromSubscriptionProto(recordedEvent *subscriptionapi.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
 	id := recordedEvent.GetId()
 	idString := id.GetString_()
 	return uuid.FromStringOrNil(idString)
@@ -327,7 +486,23 @@ func CreatedFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) time.
 	return time.Unix(0, timeSinceEpoch*100).UTC()
 }
 
+// CreatedFromSubscriptionProto ...
+func CreatedFromSubscriptionProto(recordedEvent *subscriptionapi.ReadResp_ReadEvent_RecordedEvent) time.Time {
+	timeSinceEpoch, err := strconv.ParseInt(recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated], 10, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse created date as int from %+v", recordedEvent.Metadata[system_metadata.SystemMetadataKeysCreated])
+	}
+	// The metadata contains the number of .NET "ticks" (100ns increments) since the UNIX epoch
+	return time.Unix(0, timeSinceEpoch*100).UTC()
+}
+
+// PositionFromProto ...
 func PositionFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) position.Position {
+	return position.Position{Commit: recordedEvent.GetCommitPosition(), Prepare: recordedEvent.GetPreparePosition()}
+}
+
+// PositionFromSubscriptionProto ...
+func PositionFromSubscriptionProto(recordedEvent *subscriptionapi.ReadResp_ReadEvent_RecordedEvent) position.Position {
 	return position.Position{Commit: recordedEvent.GetCommitPosition(), Prepare: recordedEvent.GetPreparePosition()}
 }
 
@@ -347,6 +522,11 @@ func TombstonePositionFromProto(tombstoneResponse *api.TombstoneResp) position.P
 
 // GetContentTypeFromProto ...
 func GetContentTypeFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) string {
+	return recordedEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
+}
+
+// GetContentTypeFromSubscriptionProto ...
+func GetContentTypeFromSubscriptionProto(recordedEvent *subscriptionapi.ReadResp_ReadEvent_RecordedEvent) string {
 	return recordedEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
 }
 

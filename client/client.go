@@ -8,6 +8,12 @@ import (
 	"io"
 	"net/url"
 
+	"github.com/EventStore/EventStore-Client-Go/client/config"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+
+	projectionsapi "github.com/EventStore/EventStore-Client-Go/protos/projections"
+	subscriptionapi "github.com/EventStore/EventStore-Client-Go/protos/subscription"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -27,9 +33,11 @@ import (
 
 // Client ...
 type Client struct {
-	Config        *Configuration
-	Connection    *grpc.ClientConn
-	streamsClient api.StreamsClient
+	Config              *Configuration
+	Connection          *grpc.ClientConn
+	streamsClient       api.StreamsClient
+	persistentSubClient subscriptionapi.PersistentSubscriptionsClient
+	projectionsClient   projectionsapi.ProjectionsClient
 }
 
 // NewClient ...
@@ -76,7 +84,7 @@ func (client *Client) Connect() error {
 			grpc.WithTransportCredentials(credentials.NewTLS(
 				&tls.Config{
 					InsecureSkipVerify: client.Config.SkipCertificateVerification,
-					RootCAs: client.Config.RootCAs,
+					RootCAs:            client.Config.RootCAs,
 				})))
 	}
 	opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
@@ -86,9 +94,9 @@ func (client *Client) Connect() error {
 
 	if client.Config.KeepAliveInterval >= 0 {
 		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:					client.Config.KeepAliveInterval,
-			Timeout:				client.Config.KeepAliveTimeout,
-			PermitWithoutStream:	true,
+			Time:                client.Config.KeepAliveInterval,
+			Timeout:             client.Config.KeepAliveTimeout,
+			PermitWithoutStream: true,
 		}))
 	}
 
@@ -96,8 +104,11 @@ func (client *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
 	}
+
 	client.Connection = conn
 	client.streamsClient = api.NewStreamsClient(client.Connection)
+	client.persistentSubClient = subscriptionapi.NewPersistentSubscriptionsClient(client.Connection)
+	client.projectionsClient = projectionsapi.NewProjectionsClient(client.Connection)
 
 	return nil
 }
@@ -251,6 +262,30 @@ func (client *Client) SubscribeToStream(context context.Context, streamID string
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
+// SubscribeToStream ...
+func (client *Client) SubscribeToPersistentSubscription(context context.Context, groupName string, streamID string, bufferSize int32, eventAppeared func(messages.RecordedEvent) error, subscriptionConfirmed func(subscriptionID string), subscriptionDropped func(reason string)) (*subscription.PersistentSubscription, error) {
+	readClient, err := client.persistentSubClient.Read(context)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
+	}
+	err = readClient.Send(protoutils.ToStreamPersistentSubscriptionRequest(groupName, streamID, bufferSize))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
+	}
+	readResult, err := readClient.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
+	}
+	switch readResult.Content.(type) {
+	case *subscriptionapi.ReadResp_SubscriptionConfirmation_:
+		{
+			confirmation := readResult.GetSubscriptionConfirmation()
+			return subscription.NewPersistentSubscription(readClient, confirmation.SubscriptionId, eventAppeared, subscriptionConfirmed, subscriptionDropped), nil
+		}
+	}
+	return nil, fmt.Errorf("Failed to initiate subscription.")
+}
+
 // SubscribeToAll ...
 func (client *Client) SubscribeToAll(context context.Context, from position.Position, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
 	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, nil)
@@ -296,6 +331,102 @@ func (client *Client) SubscribeToAllFiltered(context context.Context, from posit
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
+// CreatePersistentSubscription ...
+func (client *Client) CreatePersistentSubscription(ctx context.Context, groupName string, stream string, options *config.PersistentSubscriptionOptions) error {
+	req, err := protoutils.ToCreatePersistentSubscriptionRequest(groupName, stream, options)
+	if err != nil {
+		return err
+	}
+	_, err = client.persistentSubClient.Create(ctx, req)
+	return err
+}
+
+// UpdatePersistentSubscription ...
+func (client *Client) UpdatePersistentSubscription(ctx context.Context, groupName string, stream string, options *config.PersistentSubscriptionOptions) error {
+	req, err := protoutils.ToUpdatePersistentSubscriptionRequest(groupName, stream, options)
+	if err != nil {
+		return err
+	}
+	_, err = client.persistentSubClient.Update(ctx, req)
+	return err
+}
+
+// DeletePersistentSubscription ...
+func (client *Client) DeletePersistentSubscription(ctx context.Context, groupName string, stream string) error {
+
+	_, err := client.persistentSubClient.Delete(ctx, &subscriptionapi.DeleteReq{
+		Options: &subscriptionapi.DeleteReq_Options{
+			GroupName: groupName,
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: []byte(stream),
+			},
+		},
+	})
+	return err
+}
+
+func (client *Client) CreateContinuousProjection(ctx context.Context, name, query string, emit bool) error {
+
+	_, err := client.projectionsClient.Create(ctx, &projectionsapi.CreateReq{
+		Options: &projectionsapi.CreateReq_Options{
+			Query: query,
+			Mode: &projectionsapi.CreateReq_Options_Continuous_{
+				Continuous: &projectionsapi.CreateReq_Options_Continuous{
+					Name:                name,
+					TrackEmittedStreams: emit,
+				},
+			},
+		},
+	})
+
+	return err
+}
+
+func (client *Client) UpdateContinuousProjection(ctx context.Context, name, query string, emit bool) error {
+
+	req := &projectionsapi.UpdateReq{
+		Options: &projectionsapi.UpdateReq_Options{
+			Name:  name,
+			Query: query,
+			EmitOption: &projectionsapi.UpdateReq_Options_EmitEnabled{
+				EmitEnabled: emit,
+			},
+		},
+	}
+	_, err := client.projectionsClient.Update(ctx, req)
+
+	return err
+}
+
+func (client *Client) CreateOneTimeProjection(ctx context.Context, query string) error {
+
+	_, err := client.projectionsClient.Create(ctx, &projectionsapi.CreateReq{
+		Options: &projectionsapi.CreateReq_Options{
+			Query: query,
+			Mode: &projectionsapi.CreateReq_Options_OneTime{
+				OneTime: &shared.Empty{},
+			},
+		},
+	})
+	return err
+}
+
+func (client *Client) CreateTransientProjection(ctx context.Context, name, query string) error {
+
+	_, err := client.projectionsClient.Create(ctx, &projectionsapi.CreateReq{
+		Options: &projectionsapi.CreateReq_Options{
+			Query: query,
+			Mode: &projectionsapi.CreateReq_Options_Transient_{
+				Transient: &projectionsapi.CreateReq_Options_Transient{
+					Name: name,
+				},
+			},
+		},
+	})
+
+	return err
+}
+
 func readInternal(context context.Context, streamsClient api.StreamsClient, readRequestuest *api.ReadReq, limit uint64) ([]messages.RecordedEvent, error) {
 	result, err := streamsClient.Read(context, readRequestuest)
 
@@ -303,7 +434,7 @@ func readInternal(context context.Context, streamsClient api.StreamsClient, read
 		return []messages.RecordedEvent{}, fmt.Errorf("Failed to construct read client. Reason: %v", err)
 	}
 
-	events := []messages.RecordedEvent{}
+	events := make([]messages.RecordedEvent, 0)
 	for {
 		readResult, err := result.Recv()
 		if err == io.EOF {

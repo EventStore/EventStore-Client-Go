@@ -55,6 +55,7 @@ func (discoverer *GossipEndpointDiscoverer) Discover() (*MemberInfo, error) {
 			}
 			continue
 		}
+		log.Printf("Selected candidate: %s (%s)", member.HttpEndPointIP, member.State.String())
 		return member, nil
 	}
 	return nil, nil
@@ -100,6 +101,7 @@ func getBestCandidate(response GossipResponse, nodePreference NodePreference) (*
 	for _, member := range response.Members {
 		for _, allowedState := range allowedStates() {
 			if member.State == allowedState && member.IsAlive {
+				log.Printf("Found member: %s (%s)\n", member.HttpEndPointIP, member.State.String())
 				allowedMembers = append(allowedMembers, member)
 			}
 		}
@@ -126,7 +128,7 @@ func getBestCandidate(response GossipResponse, nodePreference NodePreference) (*
 }
 
 func gossip(gossipSeed *url.URL, httpClient *http.Client) (GossipResponse, error) {
-	response, err := httpClient.Get(fmt.Sprintf("%s/gossip", gossipSeed.String()))
+	response, err := httpClient.Get(fmt.Sprintf("http://%s/gossip", gossipSeed.String()))
 	if err != nil || response.StatusCode != http.StatusOK {
 		return GossipResponse{}, err
 	}
