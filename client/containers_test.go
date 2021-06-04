@@ -1,14 +1,16 @@
 package client_test
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/ory/dockertest/v3"
@@ -160,7 +162,7 @@ func CreateTestClient(container *Container, t *testing.T) *client.Client {
 	if err != nil {
 		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
 	}
-	err = client.Connect()
+	err = client.Connect(context.Background())
 	if err != nil {
 		t.Fatalf("Unexpected failure connecting: %s", err.Error())
 	}

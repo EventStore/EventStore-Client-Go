@@ -2,9 +2,10 @@ package protoutils
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/EventStore/EventStore-Client-Go/client/config"
 

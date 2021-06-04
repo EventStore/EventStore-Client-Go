@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"sync"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/client/config"
+	"github.com/sirupsen/logrus"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 
@@ -38,6 +41,9 @@ type Client struct {
 	streamsClient       api.StreamsClient
 	persistentSubClient subscriptionapi.PersistentSubscriptionsClient
 	projectionsClient   projectionsapi.ProjectionsClient
+	interrupt           chan bool
+	watcherWaitGroup    sync.WaitGroup
+	subcriptions        sync.Map
 }
 
 // NewClient ...
@@ -47,8 +53,7 @@ func NewClient(configuration *Configuration) (*Client, error) {
 	}, nil
 }
 
-// Connect ...
-func (client *Client) Connect() error {
+func (client *Client) discover(ctx context.Context) (string, error) {
 	if len(client.Config.GossipSeeds) > 0 {
 		discoverer := NewGossipEndpointDiscoverer()
 
@@ -56,7 +61,7 @@ func (client *Client) Connect() error {
 		for _, seed := range client.Config.GossipSeeds {
 			seedUrl, err := url.Parse(seed)
 			if err != nil {
-				return fmt.Errorf("The gossip seed (%s) is invalid and is required to be in the format of {host}:{port}, details: %s", seed, err.Error())
+				return "", fmt.Errorf("the gossip seed (%s) is invalid and is required to be in the format of {host}:{port}, details: %s", seed, err.Error())
 			}
 			seeds = append(seeds, seedUrl)
 		}
@@ -67,15 +72,41 @@ func (client *Client) Connect() error {
 
 		preferedNode, err := discoverer.Discover()
 		if err != nil {
-			return fmt.Errorf("Failed to connect due to discovery failure, details: %s", err.Error())
+			return "", fmt.Errorf("failed to connect due to discovery failure, details: %s", err.Error())
+		}
+		if preferedNode == nil {
+			return "", fmt.Errorf("unable to identify a suitable node to connect to")
 		}
 		preferedNodeAddress := fmt.Sprintf("%s:%d", preferedNode.HttpEndPointIP, preferedNode.HttpEndPointPort)
 		if err != nil {
-			return fmt.Errorf("Failed to transform prefered node (%+v) into address returned from discovery: details: %+v", preferedNode, err)
+			return "", fmt.Errorf("failed to transform prefered node (%+v) into address returned from discovery: details: %+v", preferedNode, err)
 		}
-		client.Config.Address = preferedNodeAddress
+		if logrus.IsLevelEnabled(logrus.DebugLevel) {
+			logrus.WithContext(ctx).WithField("preferedNodeAddress", preferedNodeAddress).Debug("Discovery completed")
+		}
+		return preferedNodeAddress, nil
 	}
+	//TODO: default to address?
+	return client.Config.Address, nil
+}
 
+// Connect ...
+func (client *Client) Connect(ctx context.Context) error {
+	var err error
+	client.Config.Address, err = client.discover(ctx)
+	if err != nil {
+		return err
+	}
+	client.Connection, err = client.connect(ctx, client.Config.Address)
+	if err != nil {
+		return err
+	}
+	client.updateClients()
+	client.watchStatusChanges()
+	return nil
+}
+
+func (client *Client) connect(ctx context.Context, address string) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 	if client.Config.DisableTLS {
 		opts = append(opts, grpc.WithInsecure())
@@ -100,21 +131,73 @@ func (client *Client) Connect() error {
 		}))
 	}
 
-	conn, err := grpc.Dial(client.Config.Address, opts...)
+	conn, err := grpc.DialContext(ctx, address, opts...)
 	if err != nil {
-		return fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
+		return nil, fmt.Errorf("failed to initialize connection to %+v. Reason: %v", client.Config, err)
 	}
 
-	client.Connection = conn
+	return conn, nil
+}
+
+func (client *Client) watchStatusChanges() {
+	client.interrupt = make(chan bool)
+	client.watcherWaitGroup.Add(1)
+	go func() {
+		ctx := context.Background()
+		if logrus.IsLevelEnabled(logrus.DebugLevel) {
+			logrus.WithContext(ctx).Debug("Starting Discovery Watcher")
+		}
+		defer client.watcherWaitGroup.Done()
+		t := time.NewTicker(time.Duration(client.Config.DiscoveryInterval) * time.Millisecond)
+		for {
+			select {
+			case <-client.interrupt:
+				if logrus.IsLevelEnabled(logrus.DebugLevel) {
+					logrus.WithContext(ctx).Debug("Discovery Watcher stopped")
+				}
+				return
+			case <-t.C:
+				preferedNodeAddress, err := client.discover(ctx)
+				if err != nil {
+					logrus.WithContext(ctx).WithError(err).Error("Discovery failed")
+					continue
+				}
+				if client.Config.Address != preferedNodeAddress {
+					//TODO: add mutex on connection
+					logrus.WithContext(ctx).WithField("currentNode", client.Config.Address).WithField("newNode", preferedNodeAddress).Info("Prefered node changed. Reconnecting...")
+					newConn, err := client.connect(ctx, preferedNodeAddress)
+					if err != nil {
+						logrus.WithContext(ctx).WithError(err).WithField("newNode", preferedNodeAddress).Error("Failed to connect to new node")
+						continue
+					}
+					err = client.Connection.Close()
+					if err != nil {
+						logrus.WithContext(ctx).WithError(err).Error("Failed to close old connection")
+					}
+					client.Connection = newConn
+					client.Config.Address = preferedNodeAddress
+					client.updateClients()
+
+				}
+			}
+		}
+	}()
+}
+
+func (client *Client) updateClients() {
 	client.streamsClient = api.NewStreamsClient(client.Connection)
 	client.persistentSubClient = subscriptionapi.NewPersistentSubscriptionsClient(client.Connection)
 	client.projectionsClient = projectionsapi.NewProjectionsClient(client.Connection)
-
-	return nil
+	client.subcriptions.Range(func(key, value interface{}) bool {
+		value.(subscription.Subscription).OnConnectionUpdate(client.Connection)
+		return true
+	})
 }
 
 // Close ...
 func (client *Client) Close() error {
+	client.interrupt <- true
+	client.watcherWaitGroup.Wait()
 	return client.Connection.Close()
 }
 
@@ -122,7 +205,7 @@ func (client *Client) Close() error {
 func (client *Client) AppendToStream(context context.Context, streamID string, streamRevision stream_revision.StreamRevision, events []messages.ProposedEvent) (*WriteResult, error) {
 	appendOperation, err := client.streamsClient.Append(context)
 	if err != nil {
-		return nil, fmt.Errorf("Could not construct append operation. Reason: %v", err)
+		return nil, fmt.Errorf("could not construct append operation. Reason: %v", err)
 	}
 
 	header := protoutils.ToAppendHeader(streamID, streamRevision)
@@ -235,7 +318,7 @@ func (client *Client) ReadAllEvents(context context.Context, direction direction
 }
 
 // SubscribeToStream ...
-func (client *Client) SubscribeToStream(context context.Context, streamID string, from uint64, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+func (client *Client) SubscribeToStream(context context.Context, streamID string, from uint64, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.StreamSubscription, error) {
 	subscriptionRequest, err := protoutils.ToStreamSubscriptionRequest(streamID, from, resolveLinks, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
@@ -262,32 +345,17 @@ func (client *Client) SubscribeToStream(context context.Context, streamID string
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
-// SubscribeToStream ...
-func (client *Client) SubscribeToPersistentSubscription(context context.Context, groupName string, streamID string, bufferSize int32, eventAppeared func(messages.RecordedEvent) error, subscriptionConfirmed func(subscriptionID string), subscriptionDropped func(reason string)) (*subscription.PersistentSubscription, error) {
-	readClient, err := client.persistentSubClient.Read(context)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
-	}
-	err = readClient.Send(protoutils.ToStreamPersistentSubscriptionRequest(groupName, streamID, bufferSize))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
-	}
-	readResult, err := readClient.Recv()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
-	}
-	switch readResult.Content.(type) {
-	case *subscriptionapi.ReadResp_SubscriptionConfirmation_:
-		{
-			confirmation := readResult.GetSubscriptionConfirmation()
-			return subscription.NewPersistentSubscription(readClient, confirmation.SubscriptionId, eventAppeared, subscriptionConfirmed, subscriptionDropped), nil
-		}
-	}
-	return nil, fmt.Errorf("Failed to initiate subscription.")
+// SubscribeToPersistentSubscription ...
+func (client *Client) SubscribeToPersistentSubscription(groupName string, streamID string, bufferSize int32, handler subscription.PersistentSubscriptionHandler) subscription.Subscription {
+	sub := subscription.NewPersistentSubscription(groupName, streamID, bufferSize, client.Config.SubscriberReconnectInterval, handler)
+	sub.OnConnectionUpdate(client.Connection)
+	client.subcriptions.Store(fmt.Sprintf("%s::%s", groupName, streamID), sub)
+	return sub
+
 }
 
 // SubscribeToAll ...
-func (client *Client) SubscribeToAll(context context.Context, from position.Position, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+func (client *Client) SubscribeToAll(context context.Context, from position.Position, resolveLinks bool, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.StreamSubscription, error) {
 	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, nil)
 	readClient, err := client.streamsClient.Read(context, subscriptionRequest)
 	if err != nil {
@@ -308,7 +376,7 @@ func (client *Client) SubscribeToAll(context context.Context, from position.Posi
 }
 
 // SubscribeToAllFiltered ...
-func (client *Client) SubscribeToAllFiltered(context context.Context, from position.Position, resolveLinks bool, filterOptions filtering.SubscriptionFilterOptions, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.Subscription, error) {
+func (client *Client) SubscribeToAllFiltered(context context.Context, from position.Position, resolveLinks bool, filterOptions filtering.SubscriptionFilterOptions, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) (*subscription.StreamSubscription, error) {
 	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, &filterOptions)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)

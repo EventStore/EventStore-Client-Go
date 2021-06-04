@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // GossipEndpointDiscoverer used for discovering and picking the most appropriate node in a cluster
@@ -47,7 +48,9 @@ func (discoverer *GossipEndpointDiscoverer) Discover() (*MemberInfo, error) {
 		}
 		gossipSeed := discoverer.GossipSeeds[gossipIndex]
 		gossipIndex++
-		log.Printf("[info] attempting to gossip via %+v", gossipSeed)
+		if log.IsLevelEnabled(log.DebugLevel) {
+			log.WithField("gossipSeed", gossipSeed).Debug("Attempting to gossip")
+		}
 		member, err := discoverEndPoint(gossipSeed, discoverer.httpClient, discoverer.NodePreference)
 		if err != nil {
 			if attempt == discoverer.MaxDiscoverAttempts {
@@ -55,7 +58,9 @@ func (discoverer *GossipEndpointDiscoverer) Discover() (*MemberInfo, error) {
 			}
 			continue
 		}
-		log.Printf("Selected candidate: %s (%s)", member.HttpEndPointIP, member.State.String())
+		if log.IsLevelEnabled(log.DebugLevel) {
+			log.WithField("candidate", member).Debug("Selected candidate")
+		}
 		return member, nil
 	}
 	return nil, nil
@@ -101,7 +106,6 @@ func getBestCandidate(response GossipResponse, nodePreference NodePreference) (*
 	for _, member := range response.Members {
 		for _, allowedState := range allowedStates() {
 			if member.State == allowedState && member.IsAlive {
-				log.Printf("Found member: %s (%s)\n", member.HttpEndPointIP, member.State.String())
 				allowedMembers = append(allowedMembers, member)
 			}
 		}

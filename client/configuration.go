@@ -4,10 +4,11 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -56,7 +57,10 @@ type Configuration struct {
 	MaxDiscoverAttempts int // Defaults to 10.
 
 	// The polling interval (in milliseconds) used to discover the end point.
-	DiscoveryInterval int // Defaults to 100 milliseconds.
+	DiscoveryInterval int // Defaults to 1000 milliseconds.
+
+	// The reconnect delay (in milliseconds) used to tentatively reconnect a subscription.
+	SubscriberReconnectInterval int // Defaults to 5000 milliseconds.
 
 	// The amount of time (in seconds) after which an attempt to discover gossip will fail.
 	GossipTimeout int // Defaults to 5 seconds.
@@ -75,11 +79,12 @@ type Configuration struct {
 // ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
 func ParseConnectionString(connectionString string) (*Configuration, error) {
 	config := &Configuration{
-		DiscoveryInterval:   100,
-		GossipTimeout:       5,
-		MaxDiscoverAttempts: 10,
-		KeepAliveInterval:   10 * time.Second,
-		KeepAliveTimeout:    10 * time.Second,
+		DiscoveryInterval:           1000,
+		SubscriberReconnectInterval: 5000,
+		GossipTimeout:               5,
+		MaxDiscoverAttempts:         10,
+		KeepAliveInterval:           10 * time.Second,
+		KeepAliveTimeout:            10 * time.Second,
 	}
 
 	schemeIndex := strings.Index(connectionString, SchemeSeparator)

@@ -11,7 +11,7 @@ import (
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 )
 
-type Subscription struct {
+type StreamSubscription struct {
 	readClient                 api.Streams_ReadClient
 	subscriptionId             string
 	started                    bool
@@ -21,8 +21,8 @@ type Subscription struct {
 	subscriptionHasBeenDropped bool
 }
 
-func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) *Subscription {
-	return &Subscription{
+func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, eventAppeared func(messages.RecordedEvent), checkpointReached func(position.Position), subscriptionDropped func(reason string)) *StreamSubscription {
+	return &StreamSubscription{
 		readClient:          readClient,
 		subscriptionId:      subscriptionId,
 		eventAppeared:       eventAppeared,
@@ -31,7 +31,7 @@ func NewSubscription(readClient api.Streams_ReadClient, subscriptionId string, e
 	}
 }
 
-func (subscription *Subscription) Stop() error {
+func (subscription *StreamSubscription) Stop() error {
 	subscription.started = false
 	if subscription.subscriptionDropped != nil && !subscription.subscriptionHasBeenDropped {
 		subscription.subscriptionDropped(fmt.Sprintf("User initiated"))
@@ -40,7 +40,7 @@ func (subscription *Subscription) Stop() error {
 	return subscription.readClient.CloseSend()
 }
 
-func (subscription *Subscription) Start() error {
+func (subscription *StreamSubscription) Start() error {
 	subscription.started = true
 	go func() error {
 		for subscription.started {
@@ -50,7 +50,7 @@ func (subscription *Subscription) Start() error {
 			}
 			if err != nil {
 				if subscription.subscriptionDropped != nil && !subscription.subscriptionHasBeenDropped {
-					subscription.subscriptionDropped(fmt.Sprintf("Subscription dropped by server: %s", err.Error()))
+					subscription.subscriptionDropped(fmt.Sprintf("StreamSubscription dropped by server: %s", err.Error()))
 					subscription.subscriptionHasBeenDropped = true
 				}
 				return fmt.Errorf("Failed to perform read. Reason: %v", err)
