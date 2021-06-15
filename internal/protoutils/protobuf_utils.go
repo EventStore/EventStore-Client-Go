@@ -84,8 +84,8 @@ func toAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Optio
 		All: &api.ReadReq_Options_AllOptions{
 			AllOption: &api.ReadReq_Options_AllOptions_Position{
 				Position: &api.ReadReq_Options_Position{
-					PreparePosition: uint64(position.Prepare),
-					CommitPosition:  uint64(position.Commit),
+					PreparePosition: position.Prepare,
+					CommitPosition:  position.Commit,
 				},
 			},
 		},
@@ -99,7 +99,7 @@ func toReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevis
 				StreamName: []byte(streamID),
 			},
 			RevisionOption: &api.ReadReq_Options_StreamOptions_Revision{
-				Revision: uint64(streamRevision),
+				Revision: streamRevision,
 			},
 		},
 	}
@@ -113,26 +113,21 @@ func toFilterOptions(options filtering.SubscriptionFilterOptions) (*api.ReadReq_
 	if len(options.SubscriptionFilter.Prefixes) > 0 && len(options.SubscriptionFilter.Regex) > 0 {
 		return nil, fmt.Errorf("The subscription filter may only contain a regex or a set of prefixes, but not both.")
 	}
-	var filterOptions *api.ReadReq_Options_FilterOptions
+	filterOptions := api.ReadReq_Options_FilterOptions{
+		CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),
+	}
 	if options.SubscriptionFilter.FilterType == filtering.EventFilter {
-		filterOptions = &api.ReadReq_Options_FilterOptions{
-			CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),
-			Filter: &api.ReadReq_Options_FilterOptions_EventType{
-				EventType: &api.ReadReq_Options_FilterOptions_Expression{
-					Prefix: options.SubscriptionFilter.Prefixes,
-					Regex:  options.SubscriptionFilter.Regex,
-				},
+		filterOptions.Filter = &api.ReadReq_Options_FilterOptions_EventType{
+			EventType: &api.ReadReq_Options_FilterOptions_Expression{
+				Prefix: options.SubscriptionFilter.Prefixes,
+				Regex:  options.SubscriptionFilter.Regex,
 			},
 		}
-	}
-	if options.SubscriptionFilter.FilterType == filtering.StreamFilter {
-		filterOptions = &api.ReadReq_Options_FilterOptions{
-			CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),
-			Filter: &api.ReadReq_Options_FilterOptions_StreamIdentifier{
-				StreamIdentifier: &api.ReadReq_Options_FilterOptions_Expression{
-					Prefix: options.SubscriptionFilter.Prefixes,
-					Regex:  options.SubscriptionFilter.Regex,
-				},
+	} else {
+		filterOptions.Filter = &api.ReadReq_Options_FilterOptions_StreamIdentifier{
+			StreamIdentifier: &api.ReadReq_Options_FilterOptions_Expression{
+				Prefix: options.SubscriptionFilter.Prefixes,
+				Regex:  options.SubscriptionFilter.Regex,
 			},
 		}
 	}
@@ -145,7 +140,7 @@ func toFilterOptions(options filtering.SubscriptionFilterOptions) (*api.ReadReq_
 			Max: uint32(options.MaxSearchWindow),
 		}
 	}
-	return filterOptions, nil
+	return &filterOptions, nil
 }
 
 func ToDeleteRequest(streamID string, streamRevision streamrevision.StreamRevision) *api.DeleteReq {
