@@ -19,7 +19,9 @@ services:
       && cd /src/protos/
       && protoc --go_out=./shared/ --go_opt=paths=source_relative shared.proto
       && protoc --go_out=./streams/ --go_opt=paths=source_relative \
-                --go-grpc_out=./streams/ --go-grpc_opt=paths=source_relative streams.proto"
+                --go-grpc_out=./streams/ --go-grpc_opt=paths=source_relative streams.proto
+      && protoc --go_out=./persistent/ --go_opt=paths=source_relative \
+                --go-grpc_out=./persistent/ --go-grpc_opt=paths=source_relative persistent.proto"
     volumes:
       - .:/src
 
