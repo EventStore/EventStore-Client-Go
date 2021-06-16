@@ -7,11 +7,13 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/position"
 )
 
+const SUBSCRIBER_COUNT_UNLIMITED = 0
+
 type ConsumerStrategy int32
 
 const (
-	ConsumerStrategy_DispatchToSingle ConsumerStrategy = 0
-	ConsumerStrategy_RoundRobin       ConsumerStrategy = 1
+	ConsumerStrategy_RoundRobin       ConsumerStrategy = 0
+	ConsumerStrategy_DispatchToSingle ConsumerStrategy = 1
 	ConsumerStrategy_Pinned           ConsumerStrategy = 2
 )
 
@@ -59,4 +61,19 @@ type SubscriptionSettings struct {
 	NamedConsumerStrategy ConsumerStrategy
 	MessageTimeoutInMs    int32
 	CheckpointAfterInMs   int32
+}
+
+var DefaultSubscriptionSettings = SubscriptionSettings{
+	ResolveLinks:          false,
+	ExtraStatistics:       false,
+	MaxRetryCount:         10,
+	MinCheckpointCount:    10,
+	MaxCheckpointCount:    10 * 1000,
+	MaxSubscriberCount:    SUBSCRIBER_COUNT_UNLIMITED,
+	LiveBufferSize:        500,
+	ReadBatchSize:         20,
+	HistoryBufferSize:     500,
+	NamedConsumerStrategy: ConsumerStrategy_RoundRobin,
+	MessageTimeoutInMs:    30 * 1000,
+	CheckpointAfterInMs:   2 * 1000,
 }
