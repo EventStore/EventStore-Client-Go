@@ -410,7 +410,7 @@ func (client *Client) CreatePersistentSubscriptionAll(
 
 	_, err = client.persistentStreamClient.Create(context, protoConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription. Error: %v", err)
+		return fmt.Errorf("failed to create permanent subscription all. Error: %v", err)
 	}
 
 	return nil
@@ -423,7 +423,7 @@ func (client *Client) UpdatePersistentSubscription(
 	updateSubscriptionConfig := persistent.UpdateRequestStreamProto(streamConfig)
 	_, err := client.persistentStreamClient.Update(context, updateSubscriptionConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription. Error: %v", err)
+		return fmt.Errorf("failed to update permanent subscription. Error: %v", err)
 	}
 
 	return nil
@@ -439,7 +439,7 @@ func (client *Client) UpdatePersistentSubscriptionAll(
 	}
 	_, err = client.persistentStreamClient.Update(context, updateSubscriptionConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription. Error: %v", err)
+		return fmt.Errorf("failed to update permanent subscription all. Error: %v", err)
 	}
 
 	return nil
@@ -452,7 +452,7 @@ func (client *Client) DeletePersistentSubscription(
 	deleteSubscriptionOptions := persistent.DeleteRequestStreamProto(deleteOptions)
 	_, err := client.persistentStreamClient.Delete(context, deleteSubscriptionOptions)
 	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription. Error: %v", err)
+		return fmt.Errorf("failed to delete permanent subscription. Error: %v", err)
 	}
 
 	return nil
@@ -465,7 +465,7 @@ func (client *Client) DeletePersistentSubscriptionAll(
 	deleteSubscriptionOptions := persistent.DeleteRequestAllOptionsProto(groupName)
 	_, err := client.persistentStreamClient.Delete(context, deleteSubscriptionOptions)
 	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription. Error: %v", err)
+		return fmt.Errorf("failed to delete permanent subscription all. Error: %v", err)
 	}
 
 	return nil
