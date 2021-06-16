@@ -17,7 +17,7 @@ type (
 )
 
 type PersistentSubscriptionConnection struct {
-	client                     persistent.PersistentSubscriptions_ReadClient
+	client                     ProtoClient
 	subscriptionId             string
 	started                    bool
 	eventAppeared              EventAppearedHandler
@@ -40,7 +40,7 @@ func NewPersistentSubscriptionConnection(
 	}
 }
 
-func (subscription *PersistentSubscriptionConnection) Start() error {
+func (subscription *PersistentSubscriptionConnection) Start() {
 	subscription.started = true
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -53,60 +53,63 @@ func (subscription *PersistentSubscriptionConnection) Start() error {
 			wg.Done()
 		}()
 
-	SubscriptionRead:
-		for subscription.started {
-			readResult, err := subscription.client.Recv()
-			if err == io.EOF {
-				break SubscriptionRead
+		subscription.readMessages()
+	}()
+	wg.Wait()
+}
+
+func (subscription *PersistentSubscriptionConnection) readMessages() {
+SubscriptionRead:
+	for subscription.started {
+		readResult, err := subscription.client.Recv()
+		if err == io.EOF {
+			break SubscriptionRead
+		}
+		if err != nil {
+			if !subscription.subscriptionHasBeenDropped {
+				subscription.subscriptionHasBeenDropped = true
 			}
-			if err != nil {
-				if !subscription.subscriptionHasBeenDropped {
-					subscription.subscriptionHasBeenDropped = true
-				}
 
-				if subscription.subscriptionDropped != nil {
-					subscription.subscriptionDropped(fmt.Sprintf("Subscription dropped by server: %s", err.Error()))
-				}
-				panic(fmt.Errorf("Failed to perform read. Reason: %v", err))
+			if subscription.subscriptionDropped != nil {
+				subscription.subscriptionDropped(fmt.Sprintf("Subscription dropped by server: %s", err.Error()))
 			}
-			switch readResult.Content.(type) {
-			case *persistent.ReadResp_Event:
-				{
-					event := readResult.GetEvent()
-					recordedEvent := event.GetEvent()
-					streamIdentifier := recordedEvent.GetStreamIdentifier()
+			panic(fmt.Errorf("Failed to perform read. Reason: %v", err))
+		}
+		switch readResult.Content.(type) {
+		case *persistent.ReadResp_Event:
+			{
+				event := readResult.GetEvent()
+				recordedEvent := event.GetEvent()
+				streamIdentifier := recordedEvent.GetStreamIdentifier()
 
-					if subscription.eventAppeared != nil {
-						subscription.eventAppeared(messages.RecordedEvent{
-							EventID:        eventIDFromProto(recordedEvent),
-							EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
-							ContentType:    getContentTypeFromProto(recordedEvent),
-							StreamID:       string(streamIdentifier.StreamName),
-							EventNumber:    recordedEvent.GetStreamRevision(),
-							CreatedDate:    createdFromProto(recordedEvent),
-							Position:       positionFromProto(recordedEvent),
-							Data:           recordedEvent.GetData(),
-							SystemMetadata: recordedEvent.GetMetadata(),
-							UserMetadata:   recordedEvent.GetCustomMetadata(),
-						})
+				if subscription.eventAppeared != nil {
+					subscription.eventAppeared(messages.RecordedEvent{
+						EventID:        eventIDFromProto(recordedEvent),
+						EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
+						ContentType:    getContentTypeFromProto(recordedEvent),
+						StreamID:       string(streamIdentifier.StreamName),
+						EventNumber:    recordedEvent.GetStreamRevision(),
+						CreatedDate:    createdFromProto(recordedEvent),
+						Position:       positionFromProto(recordedEvent),
+						Data:           recordedEvent.GetData(),
+						SystemMetadata: recordedEvent.GetMetadata(),
+						UserMetadata:   recordedEvent.GetCustomMetadata(),
+					})
 
-						err = subscription.client.Send(&persistent.ReadReq{
-							Content: &persistent.ReadReq_Ack_{
-								Ack: &persistent.ReadReq_Ack{
-									Id:  []byte(subscription.subscriptionId),
-									Ids: []*shared.UUID{recordedEvent.GetId()},
-								},
+					err = subscription.client.Send(&persistent.ReadReq{
+						Content: &persistent.ReadReq_Ack_{
+							Ack: &persistent.ReadReq_Ack{
+								Id:  []byte(subscription.subscriptionId),
+								Ids: []*shared.UUID{recordedEvent.GetId()},
 							},
-						})
-						// handle error
-						if err != nil {
-							fmt.Print(err)
-						}
+						},
+					})
+					// handle error
+					if err != nil {
+						fmt.Print(err)
 					}
 				}
 			}
 		}
-	}()
-	wg.Wait()
-	return nil
+	}
 }
