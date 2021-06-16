@@ -58,8 +58,12 @@ func updateRequestAllOptionsSettingsProto(
 func updateSubscriptionStreamConfigProto(config SubscriptionStreamConfig) *persistent.UpdateReq_Options {
 	return &persistent.UpdateReq_Options{
 		StreamOption: updateSubscriptionStreamSettingsProto(config.StreamOption),
-		GroupName:    config.GroupName,
-		Settings:     updateSubscriptionSettingsProto(config.Settings),
+		// backward compatibility
+		StreamIdentifier: &shared.StreamIdentifier{
+			StreamName: config.StreamOption.StreamName,
+		},
+		GroupName: config.GroupName,
+		Settings:  updateSubscriptionSettingsProto(config.Settings),
 	}
 }
 
