@@ -74,7 +74,10 @@ func GetEmptyDatabase() *Container {
 
 func GetPrePopulatedDatabase() *Container {
 	options := getDockerOptions()
-	options.Env = []string{"EVENTSTORE_DB=/data/integration-tests", "EVENTSTORE_MEM_DB=false"}
+	options.Env = []string{
+		"EVENTSTORE_DB=/data/integration-tests",
+		"EVENTSTORE_MEM_DB=false",
+	}
 	return getDatabase(options)
 }
 
@@ -89,10 +92,16 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Starting docker container...")
+
 	resource, err := pool.RunWithOptions(options)
 	if err != nil {
 		log.Fatalf("Could not start resource. Reason: %v", err)
 	}
+
+	fmt.Printf("Started container with id: %v, name: %s\n",
+		resource.Container.ID,
+		resource.Container.Name)
 
 	endpoint := fmt.Sprintf("localhost:%s", resource.GetPort("2113/tcp"))
 
@@ -100,8 +109,8 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	err = pool.Retry(func() error {
 		if resource != nil && resource.Container != nil {
-			c, e := pool.Client.InspectContainer(resource.Container.ID)
-			if e == nil && c.State.Running == false {
+			containerInfo, containerError := pool.Client.InspectContainer(resource.Container.ID)
+			if containerError == nil && containerInfo.State.Running == false {
 				return fmt.Errorf("unexpected exit of container check the container logs for more information, container ID: %v", resource.Container.ID)
 			}
 		}
@@ -112,7 +121,14 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 	})
 
 	if err != nil {
-		log.Fatalf("HealthCheck failed. Reason: %v", err)
+		log.Printf("HealthCheck failed. Reason: %v\n", err)
+
+		closeErr := resource.Close()
+
+		if closeErr != nil {
+			log.Fatalf("Failed to close docker resource. Reason: %v", err)
+		}
+		log.Fatalln("Stopping docker resource")
 	}
 
 	return &Container{
