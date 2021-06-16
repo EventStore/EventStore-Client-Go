@@ -119,6 +119,69 @@ func Test_UpdatePersistentSubscriptionAll(t *testing.T) {
 }
 
 func Test_DeletePersistentStreamSubscription(t *testing.T) {
+	containerInstance, clientInstance := initializeContainerAndClient(t)
+	defer func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}()
+	defer containerInstance.Close()
+
+	testEvent := messages.ProposedEvent{
+		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
+		EventType:    "TestEvent",
+		ContentType:  "application/octet-stream",
+		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
+		Data:         []byte{0xb, 0xe, 0xe, 0xf},
+	}
+	proposedEvents := []messages.ProposedEvent{
+		testEvent,
+	}
+	streamID := "someStream"
+	_, err := clientInstance.AppendToStream(
+		context.Background(),
+		streamID,
+		stream_revision.StreamRevisionNoStream,
+		proposedEvents)
+
+	require.NoError(t, err)
+
+	streamConfig := persistent.SubscriptionStreamConfig{
+		StreamOption: persistent.StreamSettings{
+			StreamName: []byte(streamID),
+			Revision:   persistent.Revision_Start,
+		},
+		GroupName: "Group 1",
+		Settings:  persistent.DefaultSubscriptionSettings,
+	}
+
+	err = clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+
+	require.NoError(t, err)
+
+	err = clientInstance.DeletePersistentSubscription(context.Background(),
+		persistent.DeleteOptions{
+			StreamName: streamConfig.StreamOption.StreamName,
+			GroupName:  streamConfig.GroupName,
+		})
+
+	require.NoError(t, err)
+}
+
+func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.T) {
+	containerInstance, clientInstance := initializeContainerAndClient(t)
+	defer func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}()
+	defer containerInstance.Close()
+
+	err := clientInstance.DeletePersistentSubscription(context.Background(),
+		persistent.DeleteOptions{
+			StreamName: []byte("a"),
+			GroupName:  "a",
+		})
+
+	require.Error(t, err)
 }
 
 func Test_DeletePersistentSubscriptionAll(t *testing.T) {
