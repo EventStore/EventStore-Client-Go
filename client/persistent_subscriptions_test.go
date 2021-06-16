@@ -20,26 +20,10 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	}()
 	defer containerInstance.Close()
 
-	testEvent := messages.ProposedEvent{
-		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
-		EventType:    "TestEvent",
-		ContentType:  "application/octet-stream",
-		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-	}
-	proposedEvents := []messages.ProposedEvent{
-		testEvent,
-	}
 	streamID := "someStream"
-	_, err := clientInstance.AppendToStream(
-		context.Background(),
-		streamID,
-		stream_revision.StreamRevisionNoStream,
-		proposedEvents)
+	pushMessageToStream(t, clientInstance, streamID)
 
-	require.NoError(t, err)
-
-	err = clientInstance.CreatePersistentSubscription(
+	err := clientInstance.CreatePersistentSubscription(
 		context.Background(),
 		persistent.SubscriptionStreamConfig{
 			StreamOption: persistent.StreamSettings{
@@ -65,24 +49,8 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 	}()
 	defer containerInstance.Close()
 
-	testEvent := messages.ProposedEvent{
-		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
-		EventType:    "TestEvent",
-		ContentType:  "application/octet-stream",
-		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-	}
-	proposedEvents := []messages.ProposedEvent{
-		testEvent,
-	}
 	streamID := "someStream"
-	_, err := clientInstance.AppendToStream(
-		context.Background(),
-		streamID,
-		stream_revision.StreamRevisionNoStream,
-		proposedEvents)
-
-	require.NoError(t, err)
+	pushMessageToStream(t, clientInstance, streamID)
 
 	streamConfig := persistent.SubscriptionStreamConfig{
 		StreamOption: persistent.StreamSettings{
@@ -93,7 +61,7 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 		Settings:  persistent.DefaultSubscriptionSettings,
 	}
 
-	err = clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+	err := clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
 
 	require.NoError(t, err)
 
@@ -150,24 +118,8 @@ func Test_DeletePersistentStreamSubscription(t *testing.T) {
 	}()
 	defer containerInstance.Close()
 
-	testEvent := messages.ProposedEvent{
-		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
-		EventType:    "TestEvent",
-		ContentType:  "application/octet-stream",
-		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-	}
-	proposedEvents := []messages.ProposedEvent{
-		testEvent,
-	}
 	streamID := "someStream"
-	_, err := clientInstance.AppendToStream(
-		context.Background(),
-		streamID,
-		stream_revision.StreamRevisionNoStream,
-		proposedEvents)
-
-	require.NoError(t, err)
+	pushMessageToStream(t, clientInstance, streamID)
 
 	streamConfig := persistent.SubscriptionStreamConfig{
 		StreamOption: persistent.StreamSettings{
@@ -178,7 +130,7 @@ func Test_DeletePersistentStreamSubscription(t *testing.T) {
 		Settings:  persistent.DefaultSubscriptionSettings,
 	}
 
-	err = clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+	err := clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
 
 	require.NoError(t, err)
 
@@ -217,4 +169,24 @@ func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
 	err := clientInstance.Connect()
 	require.NoError(t, err)
 	return container, clientInstance
+}
+
+func pushMessageToStream(t *testing.T, clientInstance *client.Client, streamID string) {
+	testEvent := messages.ProposedEvent{
+		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
+		EventType:    "TestEvent",
+		ContentType:  "application/octet-stream",
+		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
+		Data:         []byte{0xb, 0xe, 0xe, 0xf},
+	}
+	proposedEvents := []messages.ProposedEvent{
+		testEvent,
+	}
+	_, err := clientInstance.AppendToStream(
+		context.Background(),
+		streamID,
+		stream_revision.StreamRevisionNoStream,
+		proposedEvents)
+
+	require.NoError(t, err)
 }
