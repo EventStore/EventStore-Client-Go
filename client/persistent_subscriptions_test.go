@@ -58,6 +58,61 @@ func Test_CreatePersistentSubscriptionAll(t *testing.T) {
 }
 
 func Test_UpdatePersistentStreamSubscription(t *testing.T) {
+	containerInstance, clientInstance := initializeContainerAndClient(t)
+	defer func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}()
+	defer containerInstance.Close()
+
+	testEvent := messages.ProposedEvent{
+		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
+		EventType:    "TestEvent",
+		ContentType:  "application/octet-stream",
+		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
+		Data:         []byte{0xb, 0xe, 0xe, 0xf},
+	}
+	proposedEvents := []messages.ProposedEvent{
+		testEvent,
+	}
+	streamID := "someStream"
+	_, err := clientInstance.AppendToStream(
+		context.Background(),
+		streamID,
+		stream_revision.StreamRevisionNoStream,
+		proposedEvents)
+
+	require.NoError(t, err)
+
+	streamConfig := persistent.SubscriptionStreamConfig{
+		StreamOption: persistent.StreamSettings{
+			StreamName: []byte(streamID),
+			Revision:   persistent.Revision_Start,
+		},
+		GroupName: "Group 1",
+		Settings:  persistent.DefaultSubscriptionSettings,
+	}
+
+	err = clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+
+	require.NoError(t, err)
+
+	streamConfig.Settings.HistoryBufferSize = streamConfig.Settings.HistoryBufferSize + 1
+	streamConfig.Settings.NamedConsumerStrategy = persistent.ConsumerStrategy_DispatchToSingle
+	streamConfig.Settings.MaxSubscriberCount = streamConfig.Settings.MaxSubscriberCount + 1
+	streamConfig.Settings.ReadBatchSize = streamConfig.Settings.ReadBatchSize + 1
+	streamConfig.Settings.CheckpointAfterInMs = streamConfig.Settings.CheckpointAfterInMs + 1
+	streamConfig.Settings.MaxCheckpointCount = streamConfig.Settings.MaxCheckpointCount + 1
+	streamConfig.Settings.MinCheckpointCount = streamConfig.Settings.MinCheckpointCount + 1
+	streamConfig.Settings.LiveBufferSize = streamConfig.Settings.LiveBufferSize + 1
+	streamConfig.Settings.MaxRetryCount = streamConfig.Settings.MaxRetryCount + 1
+	streamConfig.Settings.MessageTimeoutInMs = streamConfig.Settings.MessageTimeoutInMs + 1
+	streamConfig.Settings.ExtraStatistics = !streamConfig.Settings.ExtraStatistics
+	streamConfig.Settings.ResolveLinks = !streamConfig.Settings.ResolveLinks
+
+	err = clientInstance.UpdatePersistentSubscription(context.Background(), streamConfig)
+
+	require.NoError(t, err)
 }
 
 func Test_UpdatePersistentSubscriptionAll(t *testing.T) {
