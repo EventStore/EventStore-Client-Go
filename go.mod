@@ -4,7 +4,9 @@ go 1.14
 
 require (
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gofrs/uuid v3.3.0+incompatible
+	github.com/golang/protobuf v1.5.0
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/ory/dockertest/v3 v3.6.3
