@@ -21,7 +21,7 @@ func newAsyncConnectionImpl(
 	subscriptionId string,
 ) AsyncReadConnection {
 	return &asyncConnectionImpl{
-		readConnection: newSubscriptionConnection(client, subscriptionId, messageAdapterImpl{}),
+		readConnection: newSyncReadConnection(client, subscriptionId, messageAdapterImpl{}),
 	}
 }
 
