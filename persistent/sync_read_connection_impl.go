@@ -20,13 +20,19 @@ type syncConnectionImpl struct {
 	messageAdapter messageAdapter
 }
 
+const (
+	Read_FailedToRead_Err                     ErrorCode = "Read_FailedToRead_Err"
+	Read_ReceivedSubscriptionConfirmation_Err ErrorCode = "Read_ReceivedSubscriptionConfirmation_Err"
+	Read_UnknownContentTypeReceived_Err       ErrorCode = "Read_UnknownContentTypeReceived_Err"
+)
+
 func (connection *syncConnectionImpl) Read() (*messages.RecordedEvent, error) {
 	readResult, err := connection.client.Recv()
 	if err == io.EOF {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.New(
+		return nil, NewErrorCodeMsg(Read_FailedToRead_Err,
 			fmt.Sprintf("failed to read from peristent connection. Subscription Id: %v Reason: %v",
 				connection.subscriptionId, err))
 	}
@@ -38,11 +44,12 @@ func (connection *syncConnectionImpl) Read() (*messages.RecordedEvent, error) {
 			return message, nil
 		}
 	case *persistent.ReadResp_SubscriptionConfirmation_:
-		return nil, errors.New("received subscription confirmation while reading for events")
+		return nil, NewErrorCode(Read_ReceivedSubscriptionConfirmation_Err)
 	}
 
 	contentType := reflect.TypeOf(readResult.Content).Name()
-	return nil, errors.New(fmt.Sprintf("unknown content type received %v", contentType))
+	return nil, NewErrorCodeMsg(Read_UnknownContentTypeReceived_Err,
+		fmt.Sprintf("Unknwon result content type %s", contentType))
 }
 
 var Exceeds_Max_Message_Count_Err = errors.New(fmt.Sprintf("max messageID count exceeds limit of %v", MAX_ACK_COUNT))
@@ -103,8 +110,8 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 	return result
 }
 
-func newSubscriptionConnection(
-	client persistent.PersistentSubscriptions_ReadClient,
+func newSyncReadConnection(
+	client protoClient,
 	subscriptionId string,
 	messageAdapter messageAdapter,
 ) SyncReadConnection {
