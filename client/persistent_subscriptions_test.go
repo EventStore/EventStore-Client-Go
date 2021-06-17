@@ -163,6 +163,11 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 func Test_DeletePersistentSubscriptionAll(t *testing.T) {
 }
 
+func Test_PersistentSubscription_ReadMessages(t *testing.T) {
+}
+
+func Test_PersistentSubscription_ContinueStreamReadAfterDisconnect(t *testing.T) {}
+
 func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
 	container := GetEmptyDatabase()
 	clientInstance := CreateTestClient(container, t)

@@ -3,7 +3,6 @@ package persistent
 import (
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
@@ -12,12 +11,12 @@ import (
 )
 
 type (
-	EventAppearedHandler       func(messages.RecordedEvent)
+	EventAppearedHandler       func(messages.RecordedEvent) error
 	SubscriptionDroppedHandler func(reason string)
 )
 
 type PersistentSubscriptionConnection struct {
-	client                     ProtoClient
+	client                     protoClient
 	subscriptionId             string
 	started                    bool
 	eventAppeared              EventAppearedHandler
@@ -41,21 +40,25 @@ func NewPersistentSubscriptionConnection(
 }
 
 func (subscription *PersistentSubscriptionConnection) Start() {
+}
+
+func (subscription *PersistentSubscriptionConnection) Stop() {
+	// subscription.client.Send()
+}
+
+func (subscription *PersistentSubscriptionConnection) Start2() {
 	subscription.started = true
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
 		defer func() {
 			err := recover()
 			if err != nil {
 				fmt.Println(err)
 			}
-			wg.Done()
+			// send quit signal
 		}()
 
 		subscription.readMessages()
 	}()
-	wg.Wait()
 }
 
 func (subscription *PersistentSubscriptionConnection) readMessages() {

@@ -29,10 +29,10 @@ import (
 
 // Client ...
 type Client struct {
-	Config                 *Configuration
-	Connection             *grpc.ClientConn
-	streamsClient          api.StreamsClient
-	persistentStreamClient persistentProto.PersistentSubscriptionsClient
+	Config                       *Configuration
+	Connection                   *grpc.ClientConn
+	streamsClient                api.StreamsClient
+	persistentSubscriptionClient persistent.Client
 }
 
 // NewClient ...
@@ -101,7 +101,8 @@ func (client *Client) Connect() error {
 	}
 	client.Connection = conn
 	client.streamsClient = api.NewStreamsClient(client.Connection)
-	client.persistentStreamClient = persistentProto.NewPersistentSubscriptionsClient(client.Connection)
+	client.persistentSubscriptionClient = persistent.NewClient(
+		persistentProto.NewPersistentSubscriptionsClient(client.Connection))
 
 	return nil
 }
@@ -351,124 +352,63 @@ func (client *Client) SubscribeToAllFiltered(
 
 // ConnectToPersistentSubscription ...
 func (client *Client) ConnectToPersistentSubscription(
-	context context.Context,
+	ctx context.Context,
 	bufferSize int32,
 	groupName string,
 	streamName []byte,
 	eventAppeared persistent.EventAppearedHandler,
 	subscriptionDropped persistent.SubscriptionDroppedHandler,
-) (*persistent.PersistentSubscriptionConnection, error) {
-	readClient, err := client.persistentStreamClient.Read(context)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init persisitent subscription client. Reason %v", err)
-	}
-
-	err = readClient.Send(persistent.ToPersistentReadRequest(bufferSize, groupName, streamName))
-	if err != nil {
-		return nil, fmt.Errorf("failed to send connection details for persisitent subscription. Reason %v", err)
-	}
-
-	readResult, err := readClient.Recv()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read from persisitent subscription. Reason %v", err)
-	}
-	switch readResult.Content.(type) {
-	case *persistentProto.ReadResp_SubscriptionConfirmation_:
-		{
-			return persistent.NewPersistentSubscriptionConnection(
-				readClient,
-				readResult.GetSubscriptionConfirmation().SubscriptionId,
-				eventAppeared,
-				subscriptionDropped), nil
-		}
-	}
-
-	return nil, fmt.Errorf("failed to connect to persistent subscription")
+) (persistent.Connection, error) {
+	return client.persistentSubscriptionClient.SubscribeToStreamAsync(
+		ctx,
+		bufferSize,
+		groupName,
+		streamName,
+		eventAppeared,
+		subscriptionDropped,
+	)
 }
 
 func (client *Client) CreatePersistentSubscription(
-	context context.Context,
+	ctx context.Context,
 	streamConfig persistent.SubscriptionStreamConfig,
 ) error {
-	createSubscriptionConfig := persistent.CreateRequestProto(streamConfig)
-	_, err := client.persistentStreamClient.Create(context, createSubscriptionConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription. Error: %v", err)
-	}
-
-	return nil
+	return client.persistentSubscriptionClient.CreateStreamSubscription(ctx, streamConfig)
 }
 
 func (client *Client) CreatePersistentSubscriptionAll(
-	context context.Context,
+	ctx context.Context,
 	allOptions persistent.SubscriptionAllOptionConfig,
 ) error {
-	protoConfig, err := persistent.CreateRequestAllOptionsProto(allOptions)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.persistentStreamClient.Create(context, protoConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create permanent subscription all. Error: %v", err)
-	}
-
-	return nil
+	return client.persistentSubscriptionClient.CreateAllSubscription(ctx, allOptions)
 }
 
-func (client *Client) UpdatePersistentSubscription(
-	context context.Context,
+func (client *Client) UpdatePersistentStreamSubscription(
+	ctx context.Context,
 	streamConfig persistent.SubscriptionStreamConfig,
 ) error {
-	updateSubscriptionConfig := persistent.UpdateRequestStreamProto(streamConfig)
-	_, err := client.persistentStreamClient.Update(context, updateSubscriptionConfig)
-	if err != nil {
-		return fmt.Errorf("failed to update permanent subscription. Error: %v", err)
-	}
-
-	return nil
+	return client.persistentSubscriptionClient.UpdateStreamSubscription(ctx, streamConfig)
 }
 
 func (client *Client) UpdatePersistentSubscriptionAll(
-	context context.Context,
+	ctx context.Context,
 	allOptions persistent.SubscriptionUpdateAllOptionConfig,
 ) error {
-	updateSubscriptionConfig, err := persistent.UpdateRequestAllOptionsProto(allOptions)
-	if err != nil {
-		return err
-	}
-	_, err = client.persistentStreamClient.Update(context, updateSubscriptionConfig)
-	if err != nil {
-		return fmt.Errorf("failed to update permanent subscription all. Error: %v", err)
-	}
-
-	return nil
+	return client.persistentSubscriptionClient.UpdateAllSubscription(ctx, allOptions)
 }
 
 func (client *Client) DeletePersistentSubscription(
-	context context.Context,
+	ctx context.Context,
 	deleteOptions persistent.DeleteOptions,
 ) error {
-	deleteSubscriptionOptions := persistent.DeleteRequestStreamProto(deleteOptions)
-	_, err := client.persistentStreamClient.Delete(context, deleteSubscriptionOptions)
-	if err != nil {
-		return fmt.Errorf("failed to delete permanent subscription. Error: %v", err)
-	}
-
-	return nil
+	return client.persistentSubscriptionClient.DeleteStreamSubscription(ctx, deleteOptions)
 }
 
 func (client *Client) DeletePersistentSubscriptionAll(
-	context context.Context,
+	ctx context.Context,
 	groupName string,
 ) error {
-	deleteSubscriptionOptions := persistent.DeleteRequestAllOptionsProto(groupName)
-	_, err := client.persistentStreamClient.Delete(context, deleteSubscriptionOptions)
-	if err != nil {
-		return fmt.Errorf("failed to delete permanent subscription all. Error: %v", err)
-	}
-
-	return nil
+	return client.persistentSubscriptionClient.DeleteAllSubscription(ctx, groupName)
 }
 
 func readInternal(

@@ -7,6 +7,7 @@ import (
 
 	"github.com/EventStore/EventStore-Client-Go/position"
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"github.com/gofrs/uuid"
 )
@@ -15,6 +16,14 @@ func eventIDFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent
 	id := recordedEvent.GetId()
 	idString := id.GetString_()
 	return uuid.FromStringOrNil(idString)
+}
+
+func toProtoUUID(id uuid.UUID) *shared.UUID {
+	return &shared.UUID{
+		Value: &shared.UUID_String_{
+			String_: id.String(),
+		},
+	}
 }
 
 func getContentTypeFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) string {
