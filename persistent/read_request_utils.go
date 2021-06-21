@@ -5,7 +5,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
 
-func ToPersistentReadRequest(
+func toPersistentReadRequest(
 	bufferSize int32,
 	groupName string,
 	streamName []byte,

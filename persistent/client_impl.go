@@ -30,7 +30,7 @@ func (client clientImpl) SubscribeToStreamSync(
 		return nil, NewError(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr, err)
 	}
 
-	err = readClient.Send(ToPersistentReadRequest(bufferSize, groupName, streamName))
+	err = readClient.Send(toPersistentReadRequest(bufferSize, groupName, streamName))
 	if err != nil {
 		return nil, NewError(SubscribeToStreamSync_FailedToSendStreamInitializationErr, err)
 	}
@@ -61,7 +61,7 @@ func (client clientImpl) SubscribeToAllAsync(ctx context.Context) (SyncReadConne
 const CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr ErrorCode = "CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr"
 
 func (client clientImpl) CreateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error {
-	createSubscriptionConfig := CreateRequestProto(streamConfig)
+	createSubscriptionConfig := createRequestProto(streamConfig)
 	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig)
 	if err != nil {
 		return NewError(CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr, err)
@@ -77,7 +77,7 @@ const (
 )
 
 func (client clientImpl) CreateAllSubscription(ctx context.Context, allOptions SubscriptionAllOptionConfig) error {
-	protoConfig, err := CreateRequestAllOptionsProto(allOptions)
+	protoConfig, err := createRequestAllOptionsProto(allOptions)
 	if err != nil {
 		errorCode, ok := err.(Error)
 
@@ -102,7 +102,7 @@ func (client clientImpl) CreateAllSubscription(ctx context.Context, allOptions S
 const UpdateStreamSubscription_FailedToUpdateErr ErrorCode = "UpdateStreamSubscription_FailedToUpdateErr"
 
 func (client clientImpl) UpdateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error {
-	updateSubscriptionConfig := UpdateRequestStreamProto(streamConfig)
+	updateSubscriptionConfig := updateRequestStreamProto(streamConfig)
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig)
 	if err != nil {
 		return NewError(UpdateStreamSubscription_FailedToUpdateErr, err)
@@ -127,7 +127,7 @@ func (client clientImpl) UpdateAllSubscription(ctx context.Context, allOptions S
 const DeleteStreamSubscription_FailedToDeleteErr ErrorCode = "DeleteStreamSubscription_FailedToDeleteErr"
 
 func (client clientImpl) DeleteStreamSubscription(ctx context.Context, deleteOptions DeleteOptions) error {
-	deleteSubscriptionOptions := DeleteRequestStreamProto(deleteOptions)
+	deleteSubscriptionOptions := deleteRequestStreamProto(deleteOptions)
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions)
 	if err != nil {
 		return NewError(DeleteStreamSubscription_FailedToDeleteErr, err)
@@ -139,7 +139,7 @@ func (client clientImpl) DeleteStreamSubscription(ctx context.Context, deleteOpt
 const DeleteAllSubscription_FailedToDeleteErr ErrorCode = "DeleteAllSubscription_FailedToDeleteErr"
 
 func (client clientImpl) DeleteAllSubscription(ctx context.Context, groupName string) error {
-	deleteSubscriptionOptions := DeleteRequestAllOptionsProto(groupName)
+	deleteSubscriptionOptions := deleteRequestAllOptionsProto(groupName)
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions)
 	if err != nil {
 		return NewError(DeleteAllSubscription_FailedToDeleteErr, err)

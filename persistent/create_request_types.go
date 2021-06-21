@@ -9,13 +9,13 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
 
-func CreateRequestProto(config SubscriptionStreamConfig) *persistent.CreateReq {
+func createRequestProto(config SubscriptionStreamConfig) *persistent.CreateReq {
 	return &persistent.CreateReq{
 		Options: CreateSubscriptionStreamConfigProto(config),
 	}
 }
 
-func CreateRequestAllOptionsProto(config SubscriptionAllOptionConfig) (*persistent.CreateReq, error) {
+func createRequestAllOptionsProto(config SubscriptionAllOptionConfig) (*persistent.CreateReq, error) {
 	options, err := createRequestAllOptionsSettingsProto(config.Position, config.Filter)
 	if err != nil {
 		return nil, err

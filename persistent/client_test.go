@@ -22,7 +22,7 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 	groupName := "group 1"
 	streamName := []byte("stream name")
 
-	protoSendRequest := ToPersistentReadRequest(bufferSize, groupName, streamName)
+	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
@@ -97,7 +97,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	groupName := "group 1"
 	streamName := []byte("stream name")
 
-	protoSendRequest := ToPersistentReadRequest(bufferSize, groupName, streamName)
+	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
@@ -127,7 +127,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 	groupName := "group 1"
 	streamName := []byte("stream name")
 
-	protoSendRequest := ToPersistentReadRequest(bufferSize, groupName, streamName)
+	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
@@ -158,7 +158,7 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 	groupName := "group 1"
 	streamName := []byte("stream name")
 
-	protoSendRequest := ToPersistentReadRequest(bufferSize, groupName, streamName)
+	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
@@ -197,7 +197,7 @@ func Test_Client_CreateStreamSubscription_Success(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest := CreateRequestProto(config)
+	expectedProtoRequest := createRequestProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	persistentSubscriptionClient.EXPECT().Create(ctx, expectedProtoRequest).Return(nil, nil)
@@ -226,7 +226,7 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest := CreateRequestProto(config)
+	expectedProtoRequest := createRequestProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	clientError := errors.New("some error")
@@ -266,7 +266,7 @@ func Test_Client_CreateAllSubscription_Success(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest, err := CreateRequestAllOptionsProto(config)
+	expectedProtoRequest, err := createRequestAllOptionsProto(config)
 	require.NoError(t, err)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
@@ -306,7 +306,7 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest, err := CreateRequestAllOptionsProto(config)
+	expectedProtoRequest, err := createRequestAllOptionsProto(config)
 	require.NoError(t, err)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
@@ -409,7 +409,7 @@ func Test_Client_UpdateStreamSubscription_Success(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest := UpdateRequestStreamProto(config)
+	expectedProtoRequest := updateRequestStreamProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest).Return(nil, nil)
@@ -438,7 +438,7 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest := UpdateRequestStreamProto(config)
+	expectedProtoRequest := updateRequestStreamProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	errorResult := errors.New("some error")
@@ -468,7 +468,7 @@ func Test_Client_UpdateAllSubscription_Success(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest := UpdateRequestStreamProto(config)
+	expectedProtoRequest := updateRequestStreamProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest).Return(nil, nil)
@@ -523,7 +523,7 @@ func Test_Client_DeleteStreamSubscription_Success(t *testing.T) {
 		GroupName:  "some group name",
 	}
 
-	expectedProtoRequest := DeleteRequestStreamProto(config)
+	expectedProtoRequest := deleteRequestStreamProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest).Return(nil, nil)
@@ -548,7 +548,7 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 		GroupName:  "some group name",
 	}
 
-	expectedProtoRequest := DeleteRequestStreamProto(config)
+	expectedProtoRequest := deleteRequestStreamProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	errorResult := errors.New("some error")
@@ -578,7 +578,7 @@ func Test_Client_DeleteAllSubscription_Success(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest := UpdateRequestStreamProto(config)
+	expectedProtoRequest := updateRequestStreamProto(config)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
 	persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest).Return(nil, nil)
@@ -599,7 +599,7 @@ func Test_Client_DeleteAllSubscription_UpdateFailure(t *testing.T) {
 	ctx := context.Background()
 
 	groupName := "group name"
-	expectedProtoRequest := DeleteRequestAllOptionsProto(groupName)
+	expectedProtoRequest := deleteRequestAllOptionsProto(groupName)
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 

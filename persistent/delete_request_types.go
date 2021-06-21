@@ -10,7 +10,7 @@ type DeleteOptions struct {
 	GroupName  string
 }
 
-func DeleteRequestStreamProto(options DeleteOptions) *persistent.DeleteReq {
+func deleteRequestStreamProto(options DeleteOptions) *persistent.DeleteReq {
 	return &persistent.DeleteReq{
 		Options: &persistent.DeleteReq_Options{
 			GroupName: options.GroupName,
@@ -23,7 +23,7 @@ func DeleteRequestStreamProto(options DeleteOptions) *persistent.DeleteReq {
 	}
 }
 
-func DeleteRequestAllOptionsProto(groupName string) *persistent.DeleteReq {
+func deleteRequestAllOptionsProto(groupName string) *persistent.DeleteReq {
 	return &persistent.DeleteReq{
 		Options: &persistent.DeleteReq_Options{
 			GroupName: groupName,

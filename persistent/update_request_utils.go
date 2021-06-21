@@ -8,7 +8,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
 
-func UpdateRequestStreamProto(config SubscriptionStreamConfig) *persistent.UpdateReq {
+func updateRequestStreamProto(config SubscriptionStreamConfig) *persistent.UpdateReq {
 	return &persistent.UpdateReq{
 		Options: updateSubscriptionStreamConfigProto(config),
 	}
