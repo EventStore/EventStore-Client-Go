@@ -11,7 +11,7 @@ import (
 
 func createRequestProto(config SubscriptionStreamConfig) *persistent.CreateReq {
 	return &persistent.CreateReq{
-		Options: CreateSubscriptionStreamConfigProto(config),
+		Options: createSubscriptionStreamConfigProto(config),
 	}
 }
 
@@ -68,7 +68,7 @@ func createRequestAllOptionsSettingsProto(
 	return options, nil
 }
 
-func CreateSubscriptionStreamConfigProto(config SubscriptionStreamConfig) *persistent.CreateReq_Options {
+func createSubscriptionStreamConfigProto(config SubscriptionStreamConfig) *persistent.CreateReq_Options {
 	return &persistent.CreateReq_Options{
 		StreamOption: createSubscriptionStreamSettingsProto(config.StreamOption),
 		// backward compatibility
