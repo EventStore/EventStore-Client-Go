@@ -46,9 +46,17 @@ var defaultEventStoreDockerConfig = EventStoreDockerConfig{
 }
 
 func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	config.Repository = os.Getenv(EVENTSTORE_DOCKER_REPOSITORY_ENV)
-	config.Tag = os.Getenv(EVENTSTORE_DOCKER_TAG_ENV)
-	config.Port = os.Getenv(EVENTSTORE_DOCKER_PORT_ENV)
+	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_REPOSITORY_ENV); exists {
+		config.Repository = value
+	}
+
+	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV); exists {
+		config.Tag = value
+	}
+
+	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_PORT_ENV); exists {
+		config.Port = value
+	}
 
 	fmt.Println(spew.Sdump(config))
 	return config

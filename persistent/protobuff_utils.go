@@ -47,6 +47,3 @@ func positionFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEven
 		Prepare: recordedEvent.GetPreparePosition(),
 	}
 }
-
-func NewDefaultPersistentConnectionConfig() {
-}
