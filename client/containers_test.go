@@ -72,7 +72,10 @@ func getDockerOptions() *dockertest.RunOptions {
 }
 
 func (container *Container) Close() {
-	container.Resource.Close()
+	err := container.Resource.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func GetEmptyDatabase() *Container {
