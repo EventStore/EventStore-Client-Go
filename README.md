@@ -29,22 +29,42 @@ Pull the required docker image:
 ```shell
 docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
 ```
+## Build the project
+On Windows, you need `Powershell`. The version that comes standard with Windows is enough.
+On a Unix system, any bash compatible shell should work.
 
-Run docker compose for generating the gRPC client and certificates:
+### Windows
+```powershell
+.\build.ps1
+```
+
+### Unix (Linux or OSX)
+```bash
+./build.sh
+```
+
+To also regenerate protobuf and gRPC files while building
+### Windows
+```powershell
+.\build.ps1 -generateProtos
+```
+
+### Unix (Linux or OSX)
+```bash
+./build.sh --generate-protos
+```
+
+## Run tests
+```shell
+go test ./client
+```
+
+Run docker compose for generating certificates:
 ```shell
 docker-compose up
 docker-compose down
 ```
 
-### Build from source
-```shell
-go build ./client
-```
-
-### Run tests
-```shell
-go test ./client
-```
 
 ## Contributing
 

@@ -1,30 +1,6 @@
 version: '3.5'
 
 services:
-  protos:
-    image: golang:1.15-buster
-    entrypoint: bash
-    environment:
-      PROTOBUF_VERSION: 3.14.0
-      PROTOBUF_LOCATION: https://github.com/protocolbuffers/protobuf/releases/download
-    command: >
-      -c "apt-get update
-      && apt install -y zip
-      && curl -LOs $${PROTOBUF_LOCATION}/v$${PROTOBUF_VERSION}/protoc-$${PROTOBUF_VERSION}-linux-x86_64.zip
-      && unzip -qu protoc-$${PROTOBUF_VERSION}-linux-x86_64.zip -d $$HOME/.local
-      && export PATH=$$PATH:$$HOME/.local/bin
-      && cd /src
-      && go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
-      && go get google.golang.org/protobuf/cmd/protoc-gen-go
-      && cd /src/protos/
-      && protoc --go_out=./shared/ --go_opt=paths=source_relative shared.proto
-      && protoc --go_out=./streams/ --go_opt=paths=source_relative \
-                --go-grpc_out=./streams/ --go-grpc_opt=paths=source_relative streams.proto \
-      && protoc --go_out=./persistent/ --go_opt=paths=source_relative \
-                --go-grpc_out=./persistent/ --go-grpc_opt=paths=source_relative persistent.proto"
-    volumes:
-      - .:/src
-
   volumes-provisioner:
     image: "hasnat/volumes-provisioner"
     environment:
