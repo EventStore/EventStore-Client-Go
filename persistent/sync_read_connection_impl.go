@@ -1,7 +1,6 @@
 package persistent
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -14,7 +13,7 @@ import (
 
 const MAX_ACK_COUNT = 2000
 
-type syncConnectionImpl struct {
+type syncReadConnectionImpl struct {
 	client         protoClient
 	subscriptionId string
 	messageAdapter messageAdapter
@@ -26,7 +25,7 @@ const (
 	Read_UnknownContentTypeReceived_Err       ErrorCode = "Read_UnknownContentTypeReceived_Err"
 )
 
-func (connection *syncConnectionImpl) Read() (*messages.RecordedEvent, error) {
+func (connection *syncReadConnectionImpl) Read() (*messages.RecordedEvent, error) {
 	readResult, err := connection.client.Recv()
 	if err == io.EOF {
 		return nil, nil
@@ -52,15 +51,15 @@ func (connection *syncConnectionImpl) Read() (*messages.RecordedEvent, error) {
 		fmt.Sprintf("Unknwon result content type %s", contentType))
 }
 
-var Exceeds_Max_Message_Count_Err = errors.New(fmt.Sprintf("max messageID count exceeds limit of %v", MAX_ACK_COUNT))
+var Exceeds_Max_Message_Count_Err ErrorCode = "Exceeds_Max_Message_Count_Err"
 
-func (connection *syncConnectionImpl) Ack(messageIds ...uuid.UUID) error {
+func (connection *syncReadConnectionImpl) Ack(messageIds ...uuid.UUID) error {
 	if len(messageIds) == 0 {
 		return nil
 	}
 
 	if len(messageIds) > MAX_ACK_COUNT {
-		return Exceeds_Max_Message_Count_Err
+		return NewErrorCode(Exceeds_Max_Message_Count_Err)
 	}
 
 	err := connection.client.Send(&persistent.ReadReq{
@@ -78,7 +77,7 @@ func (connection *syncConnectionImpl) Ack(messageIds ...uuid.UUID) error {
 	return nil
 }
 
-func (connection *syncConnectionImpl) Nack(reason string, action Nack_Action, messageIds ...uuid.UUID) error {
+func (connection *syncReadConnectionImpl) Nack(reason string, action Nack_Action, messageIds ...uuid.UUID) error {
 	if len(messageIds) == 0 {
 		return nil
 	}
@@ -115,7 +114,7 @@ func newSyncReadConnection(
 	subscriptionId string,
 	messageAdapter messageAdapter,
 ) SyncReadConnection {
-	return &syncConnectionImpl{
+	return &syncReadConnectionImpl{
 		client:         client,
 		subscriptionId: subscriptionId,
 		messageAdapter: messageAdapter,

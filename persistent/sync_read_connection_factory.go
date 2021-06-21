@@ -13,7 +13,7 @@ func (factory SyncReadConnectionFactoryImpl) NewSyncReadConnection(
 	client protoClient,
 	subscriptionId string,
 	messageAdapter messageAdapter) SyncReadConnection {
-	return &syncConnectionImpl{
+	return &syncReadConnectionImpl{
 		client:         client,
 		subscriptionId: subscriptionId,
 		messageAdapter: messageAdapter,
