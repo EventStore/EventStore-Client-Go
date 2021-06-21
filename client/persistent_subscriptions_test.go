@@ -164,6 +164,29 @@ func Test_DeletePersistentSubscriptionAll(t *testing.T) {
 }
 
 func Test_PersistentSubscription_ReadMessages(t *testing.T) {
+	containerInstance, clientInstance := initializeContainerAndClient(t)
+	defer func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}()
+	defer containerInstance.Close()
+
+	streamID := "someStream"
+	pushMessageToStream(t, clientInstance, streamID)
+
+	err := clientInstance.CreatePersistentSubscription(
+		context.Background(),
+		persistent.SubscriptionStreamConfig{
+			StreamOption: persistent.StreamSettings{
+				StreamName: []byte(streamID),
+				Revision:   persistent.Revision_Start,
+			},
+			GroupName: "Group 1",
+			Settings:  persistent.DefaultSubscriptionSettings,
+		},
+	)
+
+	require.NoError(t, err)
 }
 
 func Test_PersistentSubscription_ContinueStreamReadAfterDisconnect(t *testing.T) {}
@@ -176,14 +199,20 @@ func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
 	return container, clientInstance
 }
 
-func pushMessageToStream(t *testing.T, clientInstance *client.Client, streamID string) {
-	testEvent := messages.ProposedEvent{
-		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
+func createNewMessage(t *testing.T) messages.ProposedEvent {
+	messageId, err := uuid.NewV1()
+	require.NoError(t, err)
+	return messages.ProposedEvent{
+		EventID:      messageId,
 		EventType:    "TestEvent",
 		ContentType:  "application/octet-stream",
 		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
+}
+
+func pushMessageToStream(t *testing.T, clientInstance *client.Client, streamID string) {
+	testEvent := createNewMessage(t)
 	proposedEvents := []messages.ProposedEvent{
 		testEvent,
 	}
