@@ -1,6 +1,7 @@
 package persistent
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -10,18 +11,13 @@ import (
 	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 )
 
-type (
-	EventAppearedHandler       func(messages.RecordedEvent) error
-	SubscriptionDroppedHandler func(reason string)
-)
-
 type PersistentSubscriptionConnection struct {
 	client                     protoClient
 	subscriptionId             string
-	started                    bool
 	eventAppeared              EventAppearedHandler
 	subscriptionDropped        SubscriptionDroppedHandler
 	subscriptionHasBeenDropped bool
+	cancelFunc                 context.CancelFunc
 }
 
 func NewPersistentSubscriptionConnection(
@@ -43,11 +39,16 @@ func (subscription *PersistentSubscriptionConnection) Start() {
 }
 
 func (subscription *PersistentSubscriptionConnection) Stop() {
-	// subscription.client.Send()
+	if subscription.cancelFunc != nil {
+		subscription.cancelFunc()
+	}
+
+	subscription.cancelFunc = nil
 }
 
 func (subscription *PersistentSubscriptionConnection) Start2() {
-	subscription.started = true
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	subscription.cancelFunc = cancelFunc
 	go func() {
 		defer func() {
 			err := recover()
@@ -57,14 +58,18 @@ func (subscription *PersistentSubscriptionConnection) Start2() {
 			// send quit signal
 		}()
 
-		subscription.readMessages()
+		subscription.readMessages(ctx)
 	}()
 }
 
-func (subscription *PersistentSubscriptionConnection) readMessages() {
+func (subscription *PersistentSubscriptionConnection) readMessages(ctx context.Context) {
 SubscriptionRead:
-	for subscription.started {
+	for {
 		readResult, err := subscription.client.Recv()
+		if ctx.Err() != nil {
+			return
+		}
+
 		if err == io.EOF {
 			break SubscriptionRead
 		}
@@ -86,7 +91,7 @@ SubscriptionRead:
 				streamIdentifier := recordedEvent.GetStreamIdentifier()
 
 				if subscription.eventAppeared != nil {
-					subscription.eventAppeared(messages.RecordedEvent{
+					subscription.eventAppeared(ctx, messages.RecordedEvent{
 						EventID:        eventIDFromProto(recordedEvent),
 						EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
 						ContentType:    getContentTypeFromProto(recordedEvent),

@@ -16,7 +16,7 @@ const (
 )
 
 type SyncReadConnection interface {
-	Read() (*messages.RecordedEvent, error) // blocking call
+	Read() (*messages.RecordedEvent, error) // this call must block
 	Ack(messageIds ...uuid.UUID) error      // max 2000 messages can be acknowledged
 	Nack(reason string, action Nack_Action, messageIds ...uuid.UUID) error
 }

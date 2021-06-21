@@ -1,10 +1,17 @@
 package persistent
 
 import (
+	"context"
 	"math"
 
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
+	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/position"
+)
+
+type (
+	EventAppearedHandler       func(context.Context, messages.RecordedEvent) error
+	SubscriptionDroppedHandler func(reason string)
 )
 
 const SUBSCRIBER_COUNT_UNLIMITED = 0
