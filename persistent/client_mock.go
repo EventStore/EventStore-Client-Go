@@ -105,34 +105,19 @@ func (mr *MockClientMockRecorder) SubscribeToAllAsync(ctx interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToAllAsync", reflect.TypeOf((*MockClient)(nil).SubscribeToAllAsync), ctx)
 }
 
-// SubscribeToStreamAsync mocks base method.
-func (m *MockClient) SubscribeToStreamAsync(ctx context.Context, bufferSize int32, groupName string, streamName []byte, eventAppeared EventAppearedHandler, subscriptionDropped SubscriptionDroppedHandler) (AsyncReadConnection, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubscribeToStreamAsync", ctx, bufferSize, groupName, streamName, eventAppeared, subscriptionDropped)
-	ret0, _ := ret[0].(AsyncReadConnection)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SubscribeToStreamAsync indicates an expected call of SubscribeToStreamAsync.
-func (mr *MockClientMockRecorder) SubscribeToStreamAsync(ctx, bufferSize, groupName, streamName, eventAppeared, subscriptionDropped interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToStreamAsync", reflect.TypeOf((*MockClient)(nil).SubscribeToStreamAsync), ctx, bufferSize, groupName, streamName, eventAppeared, subscriptionDropped)
-}
-
 // SubscribeToStreamSync mocks base method.
-func (m *MockClient) SubscribeToStreamSync(ctx context.Context, bufferSize int32, groupName string, streamName []byte, eventAppeared EventAppearedHandler, subscriptionDropped SubscriptionDroppedHandler) (SyncReadConnection, error) {
+func (m *MockClient) SubscribeToStreamSync(ctx context.Context, bufferSize int32, groupName string, streamName []byte) (SyncReadConnection, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubscribeToStreamSync", ctx, bufferSize, groupName, streamName, eventAppeared, subscriptionDropped)
+	ret := m.ctrl.Call(m, "SubscribeToStreamSync", ctx, bufferSize, groupName, streamName)
 	ret0, _ := ret[0].(SyncReadConnection)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SubscribeToStreamSync indicates an expected call of SubscribeToStreamSync.
-func (mr *MockClientMockRecorder) SubscribeToStreamSync(ctx, bufferSize, groupName, streamName, eventAppeared, subscriptionDropped interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) SubscribeToStreamSync(ctx, bufferSize, groupName, streamName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToStreamSync", reflect.TypeOf((*MockClient)(nil).SubscribeToStreamSync), ctx, bufferSize, groupName, streamName, eventAppeared, subscriptionDropped)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToStreamSync", reflect.TypeOf((*MockClient)(nil).SubscribeToStreamSync), ctx, bufferSize, groupName, streamName)
 }
 
 // UpdateAllSubscription mocks base method.

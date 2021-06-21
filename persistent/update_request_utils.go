@@ -16,11 +16,8 @@ func UpdateRequestStreamProto(config SubscriptionStreamConfig) *persistent.Updat
 
 func UpdateRequestAllOptionsProto(
 	config SubscriptionUpdateAllOptionConfig,
-) (*persistent.UpdateReq, error) {
-	options, err := updateRequestAllOptionsSettingsProto(config.Position)
-	if err != nil {
-		return nil, err
-	}
+) *persistent.UpdateReq {
+	options := updateRequestAllOptionsSettingsProto(config.Position)
 
 	return &persistent.UpdateReq{
 		Options: &persistent.UpdateReq_Options{
@@ -28,12 +25,12 @@ func UpdateRequestAllOptionsProto(
 			GroupName:    config.GroupName,
 			Settings:     updateSubscriptionSettingsProto(config.Settings),
 		},
-	}, nil
+	}
 }
 
 func updateRequestAllOptionsSettingsProto(
 	pos position.Position,
-) (*persistent.UpdateReq_Options_All, error) {
+) *persistent.UpdateReq_Options_All {
 	options := &persistent.UpdateReq_Options_All{
 		All: &persistent.UpdateReq_AllOptions{
 			AllOption: nil,
@@ -52,7 +49,7 @@ func updateRequestAllOptionsSettingsProto(
 		options.All.AllOption = toUpdateRequestAllOptionsFromPosition(pos)
 	}
 
-	return options, nil
+	return options
 }
 
 func updateSubscriptionStreamConfigProto(config SubscriptionStreamConfig) *persistent.UpdateReq_Options {

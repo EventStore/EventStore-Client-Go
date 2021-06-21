@@ -58,7 +58,7 @@ func createRequestAllOptionsSettingsProto(
 	if filter != nil {
 		filter, err := createRequestFilterOptionsProto(*filter)
 		if err != nil {
-			return nil, fmt.Errorf("failed to construct filter for all option request. Reason: %v", err)
+			return nil, err
 		}
 		options.All.FilterOption = &persistent.CreateReq_AllOptions_Filter{
 			Filter: filter,
@@ -152,15 +152,22 @@ func checkpointAfterMsProto(checkpointAfterMs int32) *persistent.CreateReq_Setti
 	}
 }
 
+const (
+	createRequestFilterOptionsProto_MustProvideRegexOrPrefixErr ErrorCode = "createRequestFilterOptionsProto_MustProvideRegexOrPrefixErr"
+	createRequestFilterOptionsProto_CanSetOnlyRegexOrPrefixErr  ErrorCode = "createRequestFilterOptionsProto_CanSetOnlyRegexOrPrefixErr"
+)
+
 // createRequestFilterOptionsProto ...
 func createRequestFilterOptionsProto(
 	options filtering.SubscriptionFilterOptions,
 ) (*persistent.CreateReq_AllOptions_FilterOptions, error) {
 	if len(options.SubscriptionFilter.Prefixes) == 0 && len(options.SubscriptionFilter.Regex) == 0 {
-		return nil, fmt.Errorf("the subscription filter requires a set of prefixes or a regex")
+		return nil, NewErrorCodeMsg(createRequestFilterOptionsProto_MustProvideRegexOrPrefixErr,
+			"the subscription filter requires a set of prefixes or a regex")
 	}
 	if len(options.SubscriptionFilter.Prefixes) > 0 && len(options.SubscriptionFilter.Regex) > 0 {
-		return nil, fmt.Errorf("the subscription filter may only contain a regex or a set of prefixes, but not both")
+		return nil, NewErrorCodeMsg(createRequestFilterOptionsProto_CanSetOnlyRegexOrPrefixErr,
+			"the subscription filter may only contain a regex or a set of prefixes, but not both")
 	}
 	filterOptions := persistent.CreateReq_AllOptions_FilterOptions{
 		CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),
