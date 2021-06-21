@@ -54,10 +54,6 @@ func (client clientImpl) SubscribeToStreamSync(
 	return nil, NewError(SubscribeToStreamSync_NoSubscriptionConfirmationErr, err)
 }
 
-func (client clientImpl) SubscribeToAllAsync(ctx context.Context) (SyncReadConnection, error) {
-	panic("implement me")
-}
-
 const CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr ErrorCode = "CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr"
 
 func (client clientImpl) CreateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error {

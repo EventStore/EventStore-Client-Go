@@ -78,7 +78,7 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 	streamConfig.Settings.ExtraStatistics = !streamConfig.Settings.ExtraStatistics
 	streamConfig.Settings.ResolveLinks = !streamConfig.Settings.ResolveLinks
 
-	err = clientInstance.UpdatePersistentSubscription(context.Background(), streamConfig)
+	err = clientInstance.UpdatePersistentStreamSubscription(context.Background(), streamConfig)
 
 	require.NoError(t, err)
 }
@@ -102,7 +102,7 @@ func Test_UpdatePersistentStreamSubscription_ErrIfSubscriptionDoesNotExist(t *te
 		Settings:  persistent.DefaultSubscriptionSettings,
 	}
 
-	err := clientInstance.UpdatePersistentSubscription(context.Background(), streamConfig)
+	err := clientInstance.UpdatePersistentStreamSubscription(context.Background(), streamConfig)
 
 	require.Error(t, err)
 }

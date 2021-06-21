@@ -90,21 +90,6 @@ func (mr *MockClientMockRecorder) DeleteStreamSubscription(ctx, deleteOptions in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteStreamSubscription", reflect.TypeOf((*MockClient)(nil).DeleteStreamSubscription), ctx, deleteOptions)
 }
 
-// SubscribeToAllAsync mocks base method.
-func (m *MockClient) SubscribeToAllAsync(ctx context.Context) (SyncReadConnection, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SubscribeToAllAsync", ctx)
-	ret0, _ := ret[0].(SyncReadConnection)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SubscribeToAllAsync indicates an expected call of SubscribeToAllAsync.
-func (mr *MockClientMockRecorder) SubscribeToAllAsync(ctx interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToAllAsync", reflect.TypeOf((*MockClient)(nil).SubscribeToAllAsync), ctx)
-}
-
 // SubscribeToStreamSync mocks base method.
 func (m *MockClient) SubscribeToStreamSync(ctx context.Context, bufferSize int32, groupName string, streamName []byte) (SyncReadConnection, error) {
 	m.ctrl.T.Helper()

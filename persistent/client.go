@@ -10,7 +10,6 @@ type Client interface {
 		groupName string,
 		streamName []byte,
 	) (SyncReadConnection, error)
-	SubscribeToAllAsync(ctx context.Context) (SyncReadConnection, error)
 	CreateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error
 	CreateAllSubscription(ctx context.Context, allOptions SubscriptionAllOptionConfig) error
 	UpdateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error
