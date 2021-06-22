@@ -20,6 +20,11 @@ func toPersistentReadRequest(
 						StreamName: streamName,
 					},
 				},
+				UuidOption: &persistent.ReadReq_Options_UUIDOption{
+					Content: &persistent.ReadReq_Options_UUIDOption_String_{
+						String_: nil,
+					},
+				},
 			},
 		},
 	}

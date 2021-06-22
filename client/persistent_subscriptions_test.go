@@ -8,7 +8,6 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
-	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +20,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	defer containerInstance.Close()
 
 	streamID := "someStream"
-	pushMessageToStream(t, clientInstance, streamID)
+	pushEventToStream(t, clientInstance, streamID)
 
 	err := clientInstance.CreatePersistentSubscription(
 		context.Background(),
@@ -38,7 +37,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_CreatePersistentSubscriptionAll(t *testing.T) {
+func Test_CreatePersistentSubscriptionAll_NoFilter(t *testing.T) {
 }
 
 func Test_UpdatePersistentStreamSubscription(t *testing.T) {
@@ -50,7 +49,7 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 	defer containerInstance.Close()
 
 	streamID := "someStream"
-	pushMessageToStream(t, clientInstance, streamID)
+	pushEventToStream(t, clientInstance, streamID)
 
 	streamConfig := persistent.SubscriptionStreamConfig{
 		StreamOption: persistent.StreamSettings{
@@ -119,7 +118,7 @@ func Test_DeletePersistentStreamSubscription(t *testing.T) {
 	defer containerInstance.Close()
 
 	streamID := "someStream"
-	pushMessageToStream(t, clientInstance, streamID)
+	pushEventToStream(t, clientInstance, streamID)
 
 	streamConfig := persistent.SubscriptionStreamConfig{
 		StreamOption: persistent.StreamSettings{
@@ -163,32 +162,6 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 func Test_DeletePersistentSubscriptionAll(t *testing.T) {
 }
 
-func Test_PersistentSubscription_ReadMessages(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
-	defer containerInstance.Close()
-
-	streamID := "someStream"
-	pushMessageToStream(t, clientInstance, streamID)
-
-	err := clientInstance.CreatePersistentSubscription(
-		context.Background(),
-		persistent.SubscriptionStreamConfig{
-			StreamOption: persistent.StreamSettings{
-				StreamName: []byte(streamID),
-				Revision:   persistent.Revision_Start,
-			},
-			GroupName: "Group 1",
-			Settings:  persistent.DefaultSubscriptionSettings,
-		},
-	)
-
-	require.NoError(t, err)
-}
-
 func Test_PersistentSubscription_ContinueStreamReadAfterDisconnect(t *testing.T) {}
 
 func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
@@ -199,28 +172,20 @@ func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
 	return container, clientInstance
 }
 
-func createNewMessage(t *testing.T) messages.ProposedEvent {
-	messageId, err := uuid.NewV1()
-	require.NoError(t, err)
-	return messages.ProposedEvent{
-		EventID:      messageId,
-		EventType:    "TestEvent",
-		ContentType:  "application/octet-stream",
-		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-	}
+func pushEventToStream(t *testing.T, clientInstance *client.Client, streamID string) {
+	testEvent := createTestEvent()
+	pushEventsToStream(t, clientInstance, streamID, []messages.ProposedEvent{testEvent})
 }
 
-func pushMessageToStream(t *testing.T, clientInstance *client.Client, streamID string) {
-	testEvent := createNewMessage(t)
-	proposedEvents := []messages.ProposedEvent{
-		testEvent,
-	}
+func pushEventsToStream(t *testing.T,
+	clientInstance *client.Client,
+	streamID string,
+	events []messages.ProposedEvent) {
 	_, err := clientInstance.AppendToStream(
 		context.Background(),
 		streamID,
 		stream_revision.StreamRevisionNoStream,
-		proposedEvents)
+		events)
 
 	require.NoError(t, err)
 }
