@@ -37,9 +37,6 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_CreatePersistentSubscriptionAll_NoFilter(t *testing.T) {
-}
-
 func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 	containerInstance, clientInstance := initializeContainerAndClient(t)
 	defer func() {
@@ -106,9 +103,6 @@ func Test_UpdatePersistentStreamSubscription_ErrIfSubscriptionDoesNotExist(t *te
 	require.Error(t, err)
 }
 
-func Test_UpdatePersistentSubscriptionAll(t *testing.T) {
-}
-
 func Test_DeletePersistentStreamSubscription(t *testing.T) {
 	containerInstance, clientInstance := initializeContainerAndClient(t)
 	defer func() {
@@ -158,11 +152,6 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 
 	require.Error(t, err)
 }
-
-func Test_DeletePersistentSubscriptionAll(t *testing.T) {
-}
-
-func Test_PersistentSubscription_ContinueStreamReadAfterDisconnect(t *testing.T) {}
 
 func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
 	container := GetEmptyDatabase()
