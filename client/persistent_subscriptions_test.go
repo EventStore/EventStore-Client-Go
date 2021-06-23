@@ -37,6 +37,31 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func Test_CreatePersistentStreamSubscription_StreamNotExits(t *testing.T) {
+	containerInstance, clientInstance := initializeContainerAndClient(t)
+	defer func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}()
+	defer containerInstance.Close()
+
+	streamID := "someStream"
+
+	err := clientInstance.CreatePersistentSubscription(
+		context.Background(),
+		persistent.SubscriptionStreamConfig{
+			StreamOption: persistent.StreamSettings{
+				StreamName: []byte(streamID),
+				Revision:   persistent.Revision_Start,
+			},
+			GroupName: "Group 1",
+			Settings:  persistent.DefaultSubscriptionSettings,
+		},
+	)
+
+	require.NoError(t, err)
+}
+
 func Test_CreatePersistentStreamSubscription_FailsIfAlreadyExists(t *testing.T) {
 	containerInstance, clientInstance := initializeContainerAndClient(t)
 	defer func() {
