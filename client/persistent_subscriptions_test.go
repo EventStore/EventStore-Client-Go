@@ -37,6 +37,35 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func Test_CreatePersistentStreamSubscription_MessageTimeoutZero(t *testing.T) {
+	containerInstance, clientInstance := initializeContainerAndClient(t)
+	defer func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}()
+	defer containerInstance.Close()
+
+	streamID := "someStream"
+	pushEventToStream(t, clientInstance, streamID)
+
+	settings := persistent.DefaultSubscriptionSettings
+	settings.MessageTimeoutInMs = 0
+
+	err := clientInstance.CreatePersistentSubscription(
+		context.Background(),
+		persistent.SubscriptionStreamConfig{
+			StreamOption: persistent.StreamSettings{
+				StreamName: []byte(streamID),
+				Revision:   persistent.Revision_Start,
+			},
+			GroupName: "Group 1",
+			Settings:  settings,
+		},
+	)
+
+	require.NoError(t, err)
+}
+
 func Test_CreatePersistentStreamSubscription_StreamNotExits(t *testing.T) {
 	containerInstance, clientInstance := initializeContainerAndClient(t)
 	defer func() {
