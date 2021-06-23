@@ -19,6 +19,11 @@ func Test_toPersistentReadRequest(t *testing.T) {
 						StreamName: []byte("stream name"),
 					},
 				},
+				UuidOption: &persistent.ReadReq_Options_UUIDOption{
+					Content: &persistent.ReadReq_Options_UUIDOption_String_{
+						String_: nil,
+					},
+				},
 			},
 		},
 	}
