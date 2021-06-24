@@ -76,7 +76,7 @@ func Test_updateSubscriptionStreamConfigProto(t *testing.T) {
 	require.Equal(t, expectedResult, result)
 }
 
-func Test_updateSubscriptionStreamSettingsProto_NonStartOrEndRevision(t *testing.T) {
+func Test_updateSubscriptionStreamSettingsProto(t *testing.T) {
 	t.Run("No start nor end revision", func(t *testing.T) {
 		streamConfig := StreamSettings{
 			StreamName: []byte("stream name"),
@@ -139,9 +139,6 @@ func Test_updateSubscriptionStreamSettingsProto_NonStartOrEndRevision(t *testing
 		result := updateSubscriptionStreamSettingsProto(streamConfig)
 		require.Equal(t, expectedResult, result)
 	})
-}
-
-func Test_updateSubscriptionStreamSettingsProto_StartRevision(t *testing.T) {
 }
 
 func Test_updateSubscriptionSettingsProto(t *testing.T) {
