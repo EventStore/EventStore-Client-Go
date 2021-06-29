@@ -78,12 +78,12 @@ func TestConnectionStringWithInvalidHost(t *testing.T) {
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1:abc:def")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "Too many colons")
+	assert.Contains(t, err.Error(), "too many colons")
 
 	config, err = client.ParseConnectionString("esdb://user:pass@localhost:1234,127.0.0.2:abc:def,127.0.0.3:4321")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "Too many colons")
+	assert.Contains(t, err.Error(), "too many colons")
 
 	config, err = client.ParseConnectionString("esdb://user:pass@localhost:1234,,127.0.0.3:4321")
 	require.Error(t, err)
@@ -322,24 +322,29 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, false, config.SkipCertificateVerification)
 }
 
+func endpointParse(addr string) *client.EndPoint {
+	value, _ := client.ParseEndPoint(addr)
+	return value
+}
+
 func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	config, err := client.ParseConnectionString("esdb://host1,host2,host3")
 	assert.NoError(t, err)
 	assert.Empty(t, config.Address)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "host1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "host2:2113", config.GossipSeeds[1])
-	assert.Equal(t, "host3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("host1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("host2:2113"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("host3:2113"), config.GossipSeeds[2])
 
 	config, err = client.ParseConnectionString("esdb://host1:1234,host2:4321,host3:3231")
 	assert.NoError(t, err)
 	assert.Empty(t, config.Address)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "host1:1234", config.GossipSeeds[0])
-	assert.Equal(t, "host2:4321", config.GossipSeeds[1])
-	assert.Equal(t, "host3:3231", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("host1:1234"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("host2:4321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("host3:3231"), config.GossipSeeds[2])
 
 	config, err = client.ParseConnectionString("esdb://user:pass@host1:1234,host2:4321,host3:3231?nodePreference=follower")
 	assert.NoError(t, err)
@@ -348,9 +353,9 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Empty(t, config.Address)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "host1:1234", config.GossipSeeds[0])
-	assert.Equal(t, "host2:4321", config.GossipSeeds[1])
-	assert.Equal(t, "host3:3231", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("host1:1234"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("host2:4321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("host3:3231"), config.GossipSeeds[2])
 	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
 
 	config, err = client.ParseConnectionString("esdb://host1,host2,host3?tls=false")
@@ -358,18 +363,18 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Empty(t, config.Address)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "host1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "host2:2113", config.GossipSeeds[1])
-	assert.Equal(t, "host3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("host1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("host2:2113"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("host3:2113"), config.GossipSeeds[2])
 
 	config, err = client.ParseConnectionString("esdb://host1,host2,host3?tlsVerifyCert=false")
 	assert.NoError(t, err)
 	assert.Empty(t, config.Address)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "host1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "host2:2113", config.GossipSeeds[1])
-	assert.Equal(t, "host3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("host1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("host2:2113"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("host3:2113"), config.GossipSeeds[2])
 	assert.Equal(t, true, config.SkipCertificateVerification)
 
 	config, err = client.ParseConnectionString("esdb://user:pass@127.0.0.1,127.0.0.2:3321,127.0.0.3/?maxDiscoverAttempts=13&DiscoveryInterval=37&nOdEPrEfErence=FoLLoWer&tlsVerifyCert=false")
@@ -382,9 +387,9 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "127.0.0.1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "127.0.0.2:3321", config.GossipSeeds[1])
-	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("127.0.0.1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("127.0.0.2:3321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("127.0.0.3:2113"), config.GossipSeeds[2])
 
 	config, err = client.ParseConnectionString("esdb://user:pass@host1,host2:3321,127.0.0.3/?tls=false&maxDiscoverAttempts=13&DiscoveryInterval=37&nOdEPrEfErence=FoLLoWer&tlsVerifyCert=false")
 	assert.NoError(t, err)
@@ -396,9 +401,9 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, client.NodePreference_Follower, config.NodePreference)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
-	assert.Equal(t, "host1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "host2:3321", config.GossipSeeds[1])
-	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("host1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("host2:3321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("127.0.0.3:2113"), config.GossipSeeds[2])
 }
 
 func TestConnectionStringWithDifferentTLSSettings(t *testing.T) {
@@ -412,19 +417,19 @@ func TestConnectionStringWithDifferentTLSSettings(t *testing.T) {
 	assert.Equal(t, "127.0.0.1:2113", config.Address)
 
 	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/")
-	assert.Equal(t, "127.0.0.1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "127.0.0.2:3321", config.GossipSeeds[1])
-	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("127.0.0.1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("127.0.0.2:3321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("127.0.0.3:2113"), config.GossipSeeds[2])
 
 	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3?tls=true")
-	assert.Equal(t, "127.0.0.1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "127.0.0.2:3321", config.GossipSeeds[1])
-	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("127.0.0.1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("127.0.0.2:3321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("127.0.0.3:2113"), config.GossipSeeds[2])
 
 	config, _ = client.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/?tls=fAlSe")
-	assert.Equal(t, "127.0.0.1:2113", config.GossipSeeds[0])
-	assert.Equal(t, "127.0.0.2:3321", config.GossipSeeds[1])
-	assert.Equal(t, "127.0.0.3:2113", config.GossipSeeds[2])
+	assert.Equal(t, endpointParse("127.0.0.1:2113"), config.GossipSeeds[0])
+	assert.Equal(t, endpointParse("127.0.0.2:3321"), config.GossipSeeds[1])
+	assert.Equal(t, endpointParse("127.0.0.3:2113"), config.GossipSeeds[2])
 }
 
 func TestConnectionStringWithDifferentTLSVerifySettings(t *testing.T) {
