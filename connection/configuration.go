@@ -1,4 +1,4 @@
-package client
+package connection
 
 import (
 	"crypto/x509"
@@ -357,4 +357,17 @@ func parseKeepAliveSetting(k, v string, d *time.Duration) error {
 	}
 
 	return nil
+}
+
+type NodePreference string
+
+const (
+	NodePreference_Leader          NodePreference = "Leader"
+	NodePreference_Follower        NodePreference = "Follower"
+	NodePreference_ReadOnlyReplica NodePreference = "ReadOnlyReplica"
+	NodePreference_Random          NodePreference = "Random"
+)
+
+func (nodePreference NodePreference) String() string {
+	return string(nodePreference)
 }

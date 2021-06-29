@@ -3,10 +3,14 @@ package persistent
 import (
 	"context"
 
+	"github.com/EventStore/EventStore-Client-Go/connection"
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type clientImpl struct {
+	inner                        connection.GrpcClient
 	persistentSubscriptionClient persistentProto.PersistentSubscriptionsClient
 	syncReadConnectionFactory    SyncReadConnectionFactory
 	messageAdapterProvider       messageAdapterProvider
@@ -21,12 +25,15 @@ const (
 
 func (client clientImpl) SubscribeToStreamSync(
 	ctx context.Context,
+	handle connection.ConnectionHandle,
 	bufferSize int32,
 	groupName string,
 	streamName []byte,
 ) (SyncReadConnection, error) {
-	readClient, err := client.persistentSubscriptionClient.Read(ctx)
+	var headers, trailers metadata.MD
+	readClient, err := client.persistentSubscriptionClient.Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return nil, NewError(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr, err)
 	}
 
@@ -56,10 +63,12 @@ func (client clientImpl) SubscribeToStreamSync(
 
 const CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr ErrorCode = "CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr"
 
-func (client clientImpl) CreateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error {
+func (client clientImpl) CreateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) error {
 	createSubscriptionConfig := createRequestProto(streamConfig)
-	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig)
+	var headers, trailers metadata.MD
+	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return NewError(CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr, err)
 	}
 
@@ -72,7 +81,7 @@ const (
 	CreateAllSubscription_CanSetOnlyRegexOrPrefixErr             ErrorCode = "CreateAllSubscription_CanSetOnlyRegexOrPrefixErr"
 )
 
-func (client clientImpl) CreateAllSubscription(ctx context.Context, allOptions SubscriptionAllOptionConfig) error {
+func (client clientImpl) CreateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionAllOptionConfig) error {
 	protoConfig, err := createRequestAllOptionsProto(allOptions)
 	if err != nil {
 		errorCode, ok := err.(Error)
@@ -87,8 +96,10 @@ func (client clientImpl) CreateAllSubscription(ctx context.Context, allOptions S
 		return err
 	}
 
-	_, err = client.persistentSubscriptionClient.Create(ctx, protoConfig)
+	var headers, trailers metadata.MD
+	_, err = client.persistentSubscriptionClient.Create(ctx, protoConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return NewError(CreateAllSubscription_FailedToCreatePermanentSubscriptionErr, err)
 	}
 
@@ -97,10 +108,12 @@ func (client clientImpl) CreateAllSubscription(ctx context.Context, allOptions S
 
 const UpdateStreamSubscription_FailedToUpdateErr ErrorCode = "UpdateStreamSubscription_FailedToUpdateErr"
 
-func (client clientImpl) UpdateStreamSubscription(ctx context.Context, streamConfig SubscriptionStreamConfig) error {
+func (client clientImpl) UpdateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) error {
 	updateSubscriptionConfig := updateRequestStreamProto(streamConfig)
-	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig)
+	var headers, trailers metadata.MD
+	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return NewError(UpdateStreamSubscription_FailedToUpdateErr, err)
 	}
 
@@ -109,11 +122,13 @@ func (client clientImpl) UpdateStreamSubscription(ctx context.Context, streamCon
 
 const UpdateAllSubscription_FailedToUpdateErr ErrorCode = "UpdateAllSubscription_FailedToUpdateErr"
 
-func (client clientImpl) UpdateAllSubscription(ctx context.Context, allOptions SubscriptionUpdateAllOptionConfig) error {
+func (client clientImpl) UpdateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionUpdateAllOptionConfig) error {
 	updateSubscriptionConfig := UpdateRequestAllOptionsProto(allOptions)
 
-	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig)
+	var headers, trailers metadata.MD
+	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return NewError(UpdateAllSubscription_FailedToUpdateErr, err)
 	}
 
@@ -122,10 +137,12 @@ func (client clientImpl) UpdateAllSubscription(ctx context.Context, allOptions S
 
 const DeleteStreamSubscription_FailedToDeleteErr ErrorCode = "DeleteStreamSubscription_FailedToDeleteErr"
 
-func (client clientImpl) DeleteStreamSubscription(ctx context.Context, deleteOptions DeleteOptions) error {
+func (client clientImpl) DeleteStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, deleteOptions DeleteOptions) error {
 	deleteSubscriptionOptions := deleteRequestStreamProto(deleteOptions)
-	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions)
+	var headers, trailers metadata.MD
+	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return NewError(DeleteStreamSubscription_FailedToDeleteErr, err)
 	}
 
@@ -134,18 +151,21 @@ func (client clientImpl) DeleteStreamSubscription(ctx context.Context, deleteOpt
 
 const DeleteAllSubscription_FailedToDeleteErr ErrorCode = "DeleteAllSubscription_FailedToDeleteErr"
 
-func (client clientImpl) DeleteAllSubscription(ctx context.Context, groupName string) error {
+func (client clientImpl) DeleteAllSubscription(ctx context.Context, handle connection.ConnectionHandle, groupName string) error {
 	deleteSubscriptionOptions := deleteRequestAllOptionsProto(groupName)
-	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions)
+	var headers, trailers metadata.MD
+	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		err = client.inner.HandleError(handle, headers, trailers, err)
 		return NewError(DeleteAllSubscription_FailedToDeleteErr, err)
 	}
 
 	return nil
 }
 
-func NewClient(client persistentProto.PersistentSubscriptionsClient) Client {
-	return &clientImpl{
+func NewClient(inner connection.GrpcClient, client persistentProto.PersistentSubscriptionsClient) Client {
+	return clientImpl{
+		inner:                        inner,
 		persistentSubscriptionClient: client,
 		syncReadConnectionFactory:    SyncReadConnectionFactoryImpl{},
 		messageAdapterProvider:       messageAdapterProviderImpl{},

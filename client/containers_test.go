@@ -218,10 +218,6 @@ func CreateTestClient(container *Container, t *testing.T) *client.Client {
 	if err != nil {
 		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
 	}
-	err = client.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected failure connecting: %s", err.Error())
-	}
 
 	return client
 }

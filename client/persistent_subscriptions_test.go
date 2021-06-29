@@ -287,8 +287,6 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
 	container := GetEmptyDatabase()
 	clientInstance := CreateTestClient(container, t)
-	err := clientInstance.Connect()
-	require.NoError(t, err)
 	return container, clientInstance
 }
 

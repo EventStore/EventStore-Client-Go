@@ -99,10 +99,6 @@ func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
 	}
-	err = client.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected failure connecting: %s", err.Error())
-	}
 
 	defer client.Close()
 	events := []messages.ProposedEvent{
