@@ -6,33 +6,53 @@ on:
       - master
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Code generation & compile
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, windows-2019, macos-10.15]
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - name: Set up Go 1.13
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.13
-        id: go
+    - uses: actions/checkout@v1
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v1
+    - name: Generate protos and build project (Powershell)
+      if: ${{ matrix.os == 'windows-2019' }}
+      run: .\build.ps1 -generateProtos
+      shell: pwsh
 
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
+    - name: Generate protos and build project (Bash)
+      if: ${{ matrix.os != 'windows-2019' }}
+      run: ./build.sh --generate-protos
 
-      - name: Build
-        run: |
-          go build -v ./...
+  tests:
+    needs: build
+    name: Tests
+    runs-on: ubuntu-18.04
 
-      - name: Docker Login
-        shell: bash
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login -u EventStore --password-stdin docker.pkg.github.com
-          docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
+    steps:
+    - uses: actions/checkout@v1
 
-      - name: Tests
-        run: |
-          docker-compose up
-          go test -v ./...
+    - name: Docker Login
+      run: |
+        echo ${{ secrets.GITHUB_TOKEN }} | docker login -u EventStore --password-stdin docker.pkg.github.com
+        docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
+
+    - name: Tests
+      run: |
+        docker-compose up
+        go test -v ./...
+
+  linting:
+    needs: tests
+    name: Linting
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Linting
+      run: go vet ./...
+
+    - name: Code formatting checks
+      run: diff -u <(echo -n) <(goimports -d ./)
