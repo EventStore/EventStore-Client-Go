@@ -1,17 +1,27 @@
-package client
+package connection
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/gofrs/uuid"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 )
+
+type ConnectionHandle interface {
+	Id() uuid.UUID
+	Connection() *grpc.ClientConn
+}
+
+type GrpcClient interface {
+	HandleError(handle ConnectionHandle, headers metadata.MD, trailers metadata.MD, err error) error
+	GetConnectionHandle() (ConnectionHandle, error)
+	Close()
+}
 
 type EndPoint struct {
 	Host string
@@ -74,37 +84,12 @@ func ParseEndPoint(s string) (*EndPoint, error) {
 	return endpoint, nil
 }
 
-func CreateGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
-	var opts []grpc.DialOption
+func NewGrpcClient(config Configuration) GrpcClient {
+	channel := make(chan msg)
 
-	if conf.DisableTLS {
-		opts = append(opts, grpc.WithInsecure())
-	} else {
-		opts = append(opts,
-			grpc.WithTransportCredentials(credentials.NewTLS(
-				&tls.Config{
-					InsecureSkipVerify: conf.SkipCertificateVerification,
-					RootCAs:            conf.RootCAs,
-				})))
+	go connectionStateMachine(config, channel)
+
+	return &grpcClientImpl{
+		channel: channel,
 	}
-
-	opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
-		username: conf.Username,
-		password: conf.Password,
-	}))
-
-	if conf.KeepAliveInterval >= 0 {
-		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                conf.KeepAliveInterval,
-			Timeout:             conf.KeepAliveTimeout,
-			PermitWithoutStream: true,
-		}))
-	}
-
-	conn, err := grpc.Dial(address, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", conf, err)
-	}
-
-	return conn, nil
 }
