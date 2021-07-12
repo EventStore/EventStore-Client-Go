@@ -1,75 +1,116 @@
 package client
 
 import (
-	"crypto/tls"
-	"encoding/json"
-	"errors"
+	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
-	"net/url"
+	"time"
+
+	gossipApi "github.com/EventStore/EventStore-Client-Go/protos/gossip"
+	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"google.golang.org/grpc"
 )
 
-// GossipEndpointDiscoverer used for discovering and picking the most appropriate node in a cluster
-type GossipEndpointDiscoverer struct {
-	MaxDiscoverAttempts       int
-	GossipSeeds               []*url.URL
-	NodePreference            NodePreference
-	SkipCertificateValidation bool
-	httpClient                *http.Client
-}
-
-func NewGossipEndpointDiscoverer() *GossipEndpointDiscoverer {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: transport}
-	return &GossipEndpointDiscoverer{
-		MaxDiscoverAttempts:       10,
-		NodePreference:            NodePreference_Leader,
-		SkipCertificateValidation: false,
-		httpClient:                client,
+func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
+	return []gossipApi.MemberInfo_VNodeState{
+		gossipApi.MemberInfo_Follower,
+		gossipApi.MemberInfo_Leader,
+		gossipApi.MemberInfo_ReadOnlyLeaderless,
+		gossipApi.MemberInfo_PreReadOnlyReplica,
 	}
 }
 
-// Discover will discover nodes via performing a gossip over HTTP and then picking the best candidate to connect to
-func (discoverer *GossipEndpointDiscoverer) Discover() (*MemberInfo, error) {
-	if len(discoverer.GossipSeeds) == 0 {
-		return nil, errors.New("There are no gossip seeds")
-	}
-	discoverer.GossipSeeds = shuffleGossipSeeds(discoverer.GossipSeeds)
-	gossipIndex := 0
-	for attempt := 1; attempt <= discoverer.MaxDiscoverAttempts; attempt++ {
-		if gossipIndex >= len(discoverer.GossipSeeds) {
-			gossipIndex = 0
-		}
-		gossipSeed := discoverer.GossipSeeds[gossipIndex]
-		gossipIndex++
-		log.Printf("[info] attempting to gossip via %+v", gossipSeed)
-		member, err := discoverEndPoint(gossipSeed, discoverer.httpClient, discoverer.NodePreference)
-		if err != nil {
-			if attempt == discoverer.MaxDiscoverAttempts {
-				return nil, fmt.Errorf("Failed to discover any cluster node members via gossip. Maximum number of attempts reached. %s", err.Error())
+func DiscoverNode(conf *Configuration) (*grpc.ClientConn, error) {
+	var connection *grpc.ClientConn = nil
+	attempt := 1
+
+	if conf.DnsDiscover || len(conf.GossipSeeds) > 0 {
+		var candidates []string
+
+		if conf.DnsDiscover {
+			candidates = append(candidates, conf.Address)
+		} else {
+			for _, seed := range conf.GossipSeeds {
+				candidates = append(candidates, seed.String())
 			}
-			continue
 		}
-		return member, nil
+
+		shuffleCandidates(candidates)
+
+		for attempt <= conf.MaxDiscoverAttempts {
+			log.Printf("[info] discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
+			for _, candidate := range candidates {
+				log.Printf("[info] Attempting to gossip via %s", candidate)
+				connection, err := CreateGrpcConnection(conf, candidate)
+				if err != nil {
+					log.Printf("[warn] Error when creating a grpc connection for candidate %s", candidate)
+
+					continue
+				}
+
+				client := gossipApi.NewGossipClient(connection)
+				context, cancel := context.WithTimeout(context.Background(), time.Duration(conf.GossipTimeout)*time.Second)
+				defer cancel()
+				info, err := client.Read(context, &shared.Empty{})
+
+				if err != nil {
+					log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
+					continue
+				}
+
+				info.Members = shuffleMembers(info.Members)
+				selected, err := pickBestCandidate(info, conf.NodePreference)
+
+				if err != nil {
+					log.Printf("[warn] Eror when picking best candidate out of %s gossip response: %v", candidate, err)
+					continue
+				}
+
+				selectedAddress := fmt.Sprintf("%s:%d", selected.GetHttpEndPoint().GetAddress(), selected.GetHttpEndPoint().GetPort())
+
+				if candidate != selectedAddress {
+					connection, err = CreateGrpcConnection(conf, selectedAddress)
+
+					if err != nil {
+						log.Printf("[warn] Error when creating gRPC connection for best candidate %v", err)
+						continue
+					}
+				}
+
+				return connection, nil
+			}
+
+			attempt += 1
+			time.Sleep(time.Duration(conf.DiscoveryInterval))
+		}
+
+		return nil, fmt.Errorf("maximum discovery attempt count reached")
+
+	} else {
+		for attempt <= conf.MaxDiscoverAttempts {
+			grpcConn, err := CreateGrpcConnection(conf, conf.Address)
+
+			if err == nil {
+				connection = grpcConn
+				break
+			}
+
+			log.Printf("[warn] error when creating a single node connection to %s", conf.Address)
+
+			attempt += 1
+			time.Sleep(time.Duration(conf.DiscoveryInterval))
+		}
+
+		if connection == nil {
+			return nil, fmt.Errorf("unable to connect to single node %s", conf.Address)
+		}
 	}
-	return nil, nil
+
+	return connection, nil
 }
 
-func discoverEndPoint(gossipSeed *url.URL, httpClient *http.Client, nodePreference NodePreference) (*MemberInfo, error) {
-	gossipResponse, err := gossip(gossipSeed, httpClient)
-	if err != nil {
-		return nil, err
-	}
-	candidate, _ := getBestCandidate(gossipResponse, nodePreference)
-	return candidate, nil
-}
-
-func shuffleGossipSeeds(src []*url.URL) []*url.URL {
+func shuffleCandidates(src []string) []string {
 	for i := range src {
 		j := rand.Intn(i + 1)
 		src[i], src[j] = src[j], src[i]
@@ -77,8 +118,16 @@ func shuffleGossipSeeds(src []*url.URL) []*url.URL {
 	return src
 }
 
-func sortByNodeState(members []MemberInfo, nodeState NodeState) []MemberInfo {
-	sorted := make([]MemberInfo, 0)
+func shuffleMembers(src []*gossipApi.MemberInfo) []*gossipApi.MemberInfo {
+	for i := range src {
+		j := rand.Intn(i + 1)
+		src[i], src[j] = src[j], src[i]
+	}
+	return src
+}
+
+func sortByState(members []*gossipApi.MemberInfo, nodeState gossipApi.MemberInfo_VNodeState) []*gossipApi.MemberInfo {
+	sorted := make([]*gossipApi.MemberInfo, 0)
 	for _, member := range members {
 		if member.State == nodeState {
 			sorted = append(sorted, member)
@@ -92,70 +141,35 @@ func sortByNodeState(members []MemberInfo, nodeState NodeState) []MemberInfo {
 	return sorted
 }
 
-func getBestCandidate(response GossipResponse, nodePreference NodePreference) (*MemberInfo, error) {
+func pickBestCandidate(response *gossipApi.ClusterInfo, nodePreference NodePreference) (*gossipApi.MemberInfo, error) {
 	if len(response.Members) == 0 {
-		return nil, errors.New("There are no members to determine the best candidate from")
+		return nil, fmt.Errorf("there are no members to determine the best candidate from")
 	}
-	allowedMembers := make([]MemberInfo, 0)
+	allowedMembers := make([]*gossipApi.MemberInfo, 0)
 	for _, member := range response.Members {
-		for _, allowedState := range allowedStates() {
-			if member.State == allowedState && member.IsAlive {
+		for _, allowedState := range allowedNodeState() {
+			if member.State == allowedState && member.GetIsAlive() {
 				allowedMembers = append(allowedMembers, member)
 			}
 		}
 	}
 	if len(allowedMembers) == 0 {
-		return nil, fmt.Errorf("No nodes are eligable to be a candidate")
+		return nil, fmt.Errorf("no nodes are eligable to be a candidate")
 	}
 	switch nodePreference {
 	case NodePreference_Leader:
 		{
-			allowedMembers = sortByNodeState(allowedMembers, Leader)
+			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_Leader)
 		}
 	case NodePreference_Follower:
 		{
-			allowedMembers = sortByNodeState(allowedMembers, Follower)
+			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_Follower)
 		}
 	case NodePreference_ReadOnlyReplica:
 		{
-			allowedMembers = sortByNodeState(allowedMembers, ReadOnlyLeaderless)
-			allowedMembers = sortByNodeState(allowedMembers, ReadOnlyReplica)
+			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_ReadOnlyLeaderless)
+			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_ReadOnlyReplica)
 		}
 	}
-	return &allowedMembers[0], nil
-}
-
-func gossip(gossipSeed *url.URL, httpClient *http.Client) (GossipResponse, error) {
-	response, err := httpClient.Get(fmt.Sprintf("%s/gossip", gossipSeed.String()))
-	if err != nil || response.StatusCode != http.StatusOK {
-		return GossipResponse{}, err
-	}
-	defer response.Body.Close()
-	body, _ := ioutil.ReadAll(response.Body)
-	var gossipResponse GossipResponse
-	err = json.Unmarshal(body, &gossipResponse)
-	if err != nil {
-		return GossipResponse{}, err
-	}
-	return gossipResponse, nil
-}
-
-func allowedStates() []NodeState {
-	return []NodeState{
-		Follower,
-		Leader,
-		ReadOnlyLeaderless,
-		ReadOnlyReplica,
-	}
-}
-
-// GossipSeed represents and endpoint where a gossip can be issued and nodes in a cluster discovered
-type GossipSeed struct {
-	ExternalTCPIP    string
-	ExternalHTTPPort int
-}
-
-//GossipResponse represents the response from a gossip request
-type GossipResponse struct {
-	Members []MemberInfo `json:"members"`
+	return allowedMembers[0], nil
 }

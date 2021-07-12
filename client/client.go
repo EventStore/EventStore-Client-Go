@@ -2,18 +2,14 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
-	"net/url"
 
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
@@ -44,62 +40,13 @@ func NewClient(configuration *Configuration) (*Client, error) {
 
 // Connect ...
 func (client *Client) Connect() error {
-	if len(client.Config.GossipSeeds) > 0 {
-		discoverer := NewGossipEndpointDiscoverer()
+	connection, err := DiscoverNode(client.Config)
 
-		seeds := make([]*url.URL, 0)
-		for _, seed := range client.Config.GossipSeeds {
-			seedUrl, err := url.Parse(seed)
-			if err != nil {
-				return fmt.Errorf("The gossip seed (%s) is invalid and is required to be in the format of {host}:{port}, details: %s", seed, err.Error())
-			}
-			seeds = append(seeds, seedUrl)
-		}
-		discoverer.GossipSeeds = seeds
-		discoverer.MaxDiscoverAttempts = client.Config.MaxDiscoverAttempts
-		discoverer.NodePreference = client.Config.NodePreference
-		discoverer.SkipCertificateValidation = client.Config.SkipCertificateVerification
-
-		preferedNode, err := discoverer.Discover()
-		if err != nil {
-			return fmt.Errorf("Failed to connect due to discovery failure, details: %s", err.Error())
-		}
-		preferedNodeAddress := fmt.Sprintf("%s:%d", preferedNode.HttpEndPointIP, preferedNode.HttpEndPointPort)
-		if err != nil {
-			return fmt.Errorf("Failed to transform prefered node (%+v) into address returned from discovery: details: %+v", preferedNode, err)
-		}
-		client.Config.Address = preferedNodeAddress
-	}
-
-	var opts []grpc.DialOption
-	if client.Config.DisableTLS {
-		opts = append(opts, grpc.WithInsecure())
-	} else {
-		opts = append(opts,
-			grpc.WithTransportCredentials(credentials.NewTLS(
-				&tls.Config{
-					InsecureSkipVerify: client.Config.SkipCertificateVerification,
-					RootCAs:            client.Config.RootCAs,
-				})))
-	}
-	opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
-		username: client.Config.Username,
-		password: client.Config.Password,
-	}))
-
-	if client.Config.KeepAliveInterval >= 0 {
-		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                client.Config.KeepAliveInterval,
-			Timeout:             client.Config.KeepAliveTimeout,
-			PermitWithoutStream: true,
-		}))
-	}
-
-	conn, err := grpc.Dial(client.Config.Address, opts...)
 	if err != nil {
-		return fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", client.Config, err)
+		return err
 	}
-	client.Connection = conn
+
+	client.Connection = connection
 	client.streamsClient = api.NewStreamsClient(client.Connection)
 	client.persistentSubscriptionClient = persistent.NewClient(
 		persistentProto.NewPersistentSubscriptionsClient(client.Connection))

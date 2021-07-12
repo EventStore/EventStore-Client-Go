@@ -30,7 +30,7 @@ type Configuration struct {
 	Address string
 
 	// An array of end points used to seed gossip.
-	GossipSeeds []string
+	GossipSeeds []*EndPoint
 
 	// Disable communicating over a secure channel.
 	DisableTLS bool // Defaults to false.
@@ -323,37 +323,22 @@ func parseNodePreference(v string, config *Configuration) error {
 }
 
 func parseHost(host string, config *Configuration) error {
-	parsedHosts := make([]string, 0)
+	endpoints := make([]*EndPoint, 0)
 	hosts := strings.Split(host, SchemaHostsSeparator)
 	for _, host := range hosts {
-		if host == "" {
-			return fmt.Errorf("An empty host is specified")
+		endpoint, err := ParseEndPoint(host)
+
+		if err != nil {
+			return err
 		}
 
-		hostName := host
-		port := SchemeDefaultPort
-		if strings.Contains(host, SchemePortSeparator) {
-			tokens := strings.Split(host, SchemePortSeparator)
-			if len(tokens) != 2 {
-				return fmt.Errorf("Too many colons specified in host, expecting {host}:{port}")
-			}
-
-			var err error
-			port, err = strconv.Atoi(tokens[1])
-			if err != nil {
-				return fmt.Errorf("Invalid port specified, expecting an integer value")
-			}
-
-			hostName = tokens[0]
-		}
-
-		parsedHosts = append(parsedHosts, fmt.Sprintf("%s:%d", hostName, port))
+		endpoints = append(endpoints, endpoint)
 	}
 
-	if len(parsedHosts) == 1 {
-		config.Address = parsedHosts[0]
+	if len(endpoints) == 1 {
+		config.Address = endpoints[0].String()
 	} else {
-		config.GossipSeeds = parsedHosts
+		config.GossipSeeds = endpoints
 	}
 
 	return nil
