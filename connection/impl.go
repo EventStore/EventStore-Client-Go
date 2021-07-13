@@ -386,18 +386,20 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 }
 
 func shuffleCandidates(src []string) []string {
-	for i := range src {
-		j := rand.Intn(i + 1)
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(src), func(i, j int) {
 		src[i], src[j] = src[j], src[i]
-	}
+	})
+
 	return src
 }
 
 func shuffleMembers(src []*gossipApi.MemberInfo) []*gossipApi.MemberInfo {
-	for i := range src {
-		j := rand.Intn(i + 1)
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(src), func(i, j int) {
 		src[i], src[j] = src[j], src[i]
-	}
+	})
+
 	return src
 }
 
