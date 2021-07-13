@@ -27,11 +27,11 @@ type grpcClientImpl struct {
 }
 
 func (self grpcClientImpl) HandleError(handle ConnectionHandle, headers metadata.MD, trailers metadata.MD, err error) error {
-	values := headers.Get("exception")
+	values := trailers.Get("exception")
 
 	if values != nil && values[0] == "not-leader" {
-		hostValues := headers.Get("leader-endpoint-host")
-		portValues := headers.Get("leader-endpoint-port")
+		hostValues := trailers.Get("leader-endpoint-host")
+		portValues := trailers.Get("leader-endpoint-port")
 
 		if hostValues != nil && portValues != nil {
 			host := hostValues[0]
@@ -188,12 +188,14 @@ type reconnect struct {
 
 func (msg reconnect) handle(state *connectionState) {
 	if msg.correlation == state.correlation {
-		if msg.endpoint != nil {
+		if msg.endpoint == nil {
 			// Means that in the next iteration cycle, the discovery process will start.
 			state.correlation = uuid.Nil
+			log.Printf("[info] Starting a new discovery process")
 			return
 		}
 
+		log.Printf("[info] Connecting to leader node %s ...", msg.endpoint.String())
 		conn, err := createGrpcConnection(&state.config, msg.endpoint.String())
 
 		if err != nil {
@@ -212,6 +214,8 @@ func (msg reconnect) handle(state *connectionState) {
 
 		state.correlation = id
 		state.connection = conn
+
+		log.Printf("[info] Successfully connected to leader node %s", msg.endpoint.String())
 	}
 }
 
@@ -336,6 +340,7 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 				}
 
 				selectedAddress := fmt.Sprintf("%s:%d", selected.GetHttpEndPoint().GetAddress(), selected.GetHttpEndPoint().GetPort())
+				log.Printf("[info] Best candidate found. %s (%s)", selectedAddress, selected.State.String())
 
 				if candidate != selectedAddress {
 					connection, err = createGrpcConnection(&conf, selectedAddress)
@@ -345,6 +350,8 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 						continue
 					}
 				}
+
+				log.Printf("[info] Successfully connected to best candidate %s (%s)", selectedAddress, selected.State.String())
 
 				return connection, nil
 			}
