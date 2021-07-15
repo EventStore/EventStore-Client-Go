@@ -41,14 +41,11 @@ jobs:
     - name: Tests Cluster
       run: |
         touch vars.env
-        docker-compose --file=cluster-docker-compose.yml up -d
-        go test -v ./client/cluster_test.go
-        docker-compose --file=cluster-docker-compose.yml down
-
-    - name: Tests
-      run: |
         docker-compose up
+        docker-compose --file=cluster-docker-compose.yml up -d
         go test -v ./...
+        docker-compose down
+        docker-compose --file=cluster-docker-compose.yml down
 
   linting:
     needs: tests
