@@ -15,7 +15,7 @@ func Test_NotLeaderExceptionButWorkAfterRetry(t *testing.T) {
 	client := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=follower&tlsverifycert=false", t)
 	config := persistent.SubscriptionStreamConfig{
 		StreamOption: persistent.StreamSettings{
-			StreamName: []byte("my_stream"),
+			StreamName: []byte("myfoobar_123456"),
 			Revision:   0,
 		},
 		GroupName: "a_group",
