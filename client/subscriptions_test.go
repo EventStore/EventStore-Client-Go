@@ -132,7 +132,6 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
-	client.Connect()
 	defer client.Close()
 
 	var receivedEvents sync.WaitGroup

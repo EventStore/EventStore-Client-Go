@@ -38,10 +38,14 @@ jobs:
         echo ${{ secrets.GITHUB_TOKEN }} | docker login -u EventStore --password-stdin docker.pkg.github.com
         docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
 
-    - name: Tests
+    - name: Tests Cluster
       run: |
+        touch vars.env
         docker-compose up
+        docker-compose --file=cluster-docker-compose.yml up -d
         go test -v ./...
+        docker-compose down
+        docker-compose --file=cluster-docker-compose.yml down
 
   linting:
     needs: tests
