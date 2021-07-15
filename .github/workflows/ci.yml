@@ -42,7 +42,7 @@ jobs:
       run: |
         touch vars.env
         docker-compose --file=cluster-docker-compose.yml up -d
-        go test -v ./cluster_test.go
+        go test -v ./client/cluster_test.go
         docker-compose --file=cluster-docker-compose.yml down
 
     - name: Tests
