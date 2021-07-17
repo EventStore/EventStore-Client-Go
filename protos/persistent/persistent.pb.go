@@ -7,13 +7,11 @@
 package persistent
 
 import (
-	sync "sync"
-
-	reflect "reflect"
-
 	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
