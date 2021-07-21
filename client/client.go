@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/EventStore/EventStore-Client-Go/stream_position"
+
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
@@ -16,10 +18,8 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/EventStore/EventStore-Client-Go/position"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
-	"github.com/EventStore/EventStore-Client-Go/subscription"
 )
 
 type Configuration = connection.Configuration
@@ -184,7 +184,7 @@ func (client *Client) ReadStreamEvents(
 	context context.Context,
 	direction direction.Direction,
 	streamID string,
-	from uint64,
+	from stream_position.StreamPosition,
 	count uint64,
 	resolveLinks bool) ([]messages.RecordedEvent, error) {
 	readRequest := protoutils.ToReadStreamRequest(streamID, direction, from, count, resolveLinks)
@@ -201,7 +201,7 @@ func (client *Client) ReadStreamEvents(
 func (client *Client) ReadAllEvents(
 	context context.Context,
 	direction direction.Direction,
-	from position.Position,
+	from stream_position.AllStreamPosition,
 	count uint64,
 	resolveLinks bool,
 ) ([]messages.RecordedEvent, error) {
@@ -216,14 +216,11 @@ func (client *Client) ReadAllEvents(
 
 // SubscribeToStream ...
 func (client *Client) SubscribeToStream(
-	context context.Context,
+	ctx context.Context,
 	streamID string,
-	from uint64,
+	from stream_position.StreamPosition,
 	resolveLinks bool,
-	eventAppeared func(messages.RecordedEvent),
-	checkpointReached func(position.Position),
-	subscriptionDropped func(reason string),
-) (*subscription.Subscription, error) {
+) (*Subscription, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -234,13 +231,16 @@ func (client *Client) SubscribeToStream(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
-	readClient, err := streamsClient.Read(context, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
+	ctx, cancel := context.WithCancel(ctx)
+	readClient, err := streamsClient.Read(ctx, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		defer cancel()
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
 	readResult, err := readClient.Recv()
 	if err != nil {
+		defer cancel()
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
 	}
@@ -248,26 +248,24 @@ func (client *Client) SubscribeToStream(
 	case *api.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared,
-				checkpointReached, subscriptionDropped), nil
+			return NewSubscription(client, cancel, readClient, confirmation.SubscriptionId), nil
 		}
 	case *api.ReadResp_StreamNotFound_:
 		{
+			defer cancel()
 			return nil, fmt.Errorf("Failed to initiate subscription because the stream (%s) was not found.", streamID)
 		}
 	}
+	defer cancel()
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
 // SubscribeToAll ...
 func (client *Client) SubscribeToAll(
-	context context.Context,
-	from position.Position,
+	ctx context.Context,
+	from stream_position.AllStreamPosition,
 	resolveLinks bool,
-	eventAppeared func(messages.RecordedEvent),
-	checkpointReached func(position.Position),
-	subscriptionDropped func(reason string),
-) (*subscription.Subscription, error) {
+) (*Subscription, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -275,13 +273,16 @@ func (client *Client) SubscribeToAll(
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	subscriptionRequest, err := protoutils.ToAllSubscriptionRequest(from, resolveLinks, nil)
-	readClient, err := streamsClient.Read(context, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
+	ctx, cancel := context.WithCancel(ctx)
+	readClient, err := streamsClient.Read(ctx, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		defer cancel()
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
 	readResult, err := readClient.Recv()
 	if err != nil {
+		defer cancel()
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
 	}
@@ -289,23 +290,20 @@ func (client *Client) SubscribeToAll(
 	case *api.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId,
-				eventAppeared, checkpointReached, subscriptionDropped), nil
+			return NewSubscription(client, cancel, readClient, confirmation.SubscriptionId), nil
 		}
 	}
+	defer cancel()
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
 // SubscribeToAllFiltered ...
 func (client *Client) SubscribeToAllFiltered(
-	context context.Context,
-	from position.Position,
+	ctx context.Context,
+	from stream_position.AllStreamPosition,
 	resolveLinks bool,
 	filterOptions filtering.SubscriptionFilterOptions,
-	eventAppeared func(messages.RecordedEvent),
-	checkpointReached func(position.Position),
-	subscriptionDropped func(reason string),
-) (*subscription.Subscription, error) {
+) (*Subscription, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -316,13 +314,16 @@ func (client *Client) SubscribeToAllFiltered(
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
 	var headers, trailers metadata.MD
-	readClient, err := streamsClient.Read(context, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
+	ctx, cancel := context.WithCancel(ctx)
+	readClient, err := streamsClient.Read(ctx, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		defer cancel()
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to initiate subscription. Reason: %v", err)
 	}
 	readResult, err := readClient.Recv()
 	if err != nil {
+		defer cancel()
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to read from subscription. Reason: %v", err)
 	}
@@ -330,10 +331,10 @@ func (client *Client) SubscribeToAllFiltered(
 	case *api.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			return subscription.NewSubscription(readClient, confirmation.SubscriptionId, eventAppeared,
-				checkpointReached, subscriptionDropped), nil
+			return NewSubscription(client, cancel, readClient, confirmation.SubscriptionId), nil
 		}
 	}
+	defer cancel()
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 

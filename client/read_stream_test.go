@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/stream_position"
+
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
-	"github.com/EventStore/EventStore-Client-Go/streamrevision"
 	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +62,7 @@ func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {
 
 	streamId := "dataset20M-1800"
 
-	events, err := client.ReadStreamEvents(context, direction.Forwards, streamId, streamrevision.StreamRevisionStart, numberOfEvents, true)
+	events, err := client.ReadStreamEvents(context, direction.Forwards, streamId, stream_position.Start{}, numberOfEvents, true)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
@@ -104,7 +105,7 @@ func TestReadStreamEventsBackwardsFromEndPosition(t *testing.T) {
 
 	streamId := "dataset20M-1800"
 
-	events, err := client.ReadStreamEvents(context, direction.Backwards, streamId, streamrevision.StreamRevisionEnd, numberOfEvents, true)
+	events, err := client.ReadStreamEvents(context, direction.Backwards, streamId, stream_position.End{}, numberOfEvents, true)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)

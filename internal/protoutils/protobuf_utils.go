@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/stream_position"
+
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
@@ -79,29 +81,80 @@ func toReadDirectionFromDirection(dir direction.Direction) api.ReadReq_Options_R
 }
 
 // toAllReadOptionsFromPosition ...
-func toAllReadOptionsFromPosition(position position.Position) *api.ReadReq_Options_All {
+func toAllReadOptionsFromPosition(position stream_position.AllStreamPosition) *api.ReadReq_Options_All {
+	all := &allStream{
+		options: &api.ReadReq_Options_AllOptions{},
+	}
+
+	position.AcceptAllVisitor(all)
+
 	return &api.ReadReq_Options_All{
-		All: &api.ReadReq_Options_AllOptions{
-			AllOption: &api.ReadReq_Options_AllOptions_Position{
-				Position: &api.ReadReq_Options_Position{
-					PreparePosition: position.Prepare,
-					CommitPosition:  position.Commit,
-				},
-			},
+		All: all.options,
+	}
+}
+
+type allStream struct {
+	options *api.ReadReq_Options_AllOptions
+}
+
+func (all *allStream) VisitStart() {
+	all.options.AllOption = &api.ReadReq_Options_AllOptions_Start{
+		Start: &shared.Empty{},
+	}
+}
+
+func (all *allStream) VisitEnd() {
+	all.options.AllOption = &api.ReadReq_Options_AllOptions_End{
+		End: &shared.Empty{},
+	}
+}
+
+func (all *allStream) VisitPosition(value position.Position) {
+	all.options.AllOption = &api.ReadReq_Options_AllOptions_Position{
+		Position: &api.ReadReq_Options_Position{
+			PreparePosition: value.Prepare,
+			CommitPosition:  value.Commit,
 		},
 	}
 }
 
-func toReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamRevision uint64) *api.ReadReq_Options_Stream {
-	return &api.ReadReq_Options_Stream{
-		Stream: &api.ReadReq_Options_StreamOptions{
-			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: []byte(streamID),
-			},
-			RevisionOption: &api.ReadReq_Options_StreamOptions_Revision{
-				Revision: streamRevision,
-			},
+func toReadStreamOptionsFromStreamAndStreamRevision(streamID string, streamPosition stream_position.StreamPosition) *api.ReadReq_Options_Stream {
+	options := &api.ReadReq_Options_StreamOptions{
+		StreamIdentifier: &shared.StreamIdentifier{
+			StreamName: []byte(streamID),
 		},
+	}
+
+	regular := &regularStream{
+		options: options,
+	}
+
+	streamPosition.AcceptRegularVisitor(regular)
+
+	return &api.ReadReq_Options_Stream{
+		Stream: regular.options,
+	}
+}
+
+type regularStream struct {
+	options *api.ReadReq_Options_StreamOptions
+}
+
+func (reg *regularStream) VisitRevision(value uint64) {
+	reg.options.RevisionOption = &api.ReadReq_Options_StreamOptions_Revision{
+		Revision: value,
+	}
+}
+
+func (reg *regularStream) VisitStart() {
+	reg.options.RevisionOption = &api.ReadReq_Options_StreamOptions_Start{
+		Start: &shared.Empty{},
+	}
+}
+
+func (reg *regularStream) VisitEnd() {
+	reg.options.RevisionOption = &api.ReadReq_Options_StreamOptions_End{
+		End: &shared.Empty{},
 	}
 }
 
@@ -201,7 +254,7 @@ func ToTombstoneRequest(streamID string, streamRevision streamrevision.StreamRev
 	return tombstoneReq
 }
 
-func ToReadStreamRequest(streamID string, direction direction.Direction, from uint64, count uint64, resolveLinks bool) *api.ReadReq {
+func ToReadStreamRequest(streamID string, direction direction.Direction, from stream_position.StreamPosition, count uint64, resolveLinks bool) *api.ReadReq {
 	return &api.ReadReq{
 		Options: &api.ReadReq_Options{
 			CountOption: &api.ReadReq_Options_Count{
@@ -222,7 +275,7 @@ func ToReadStreamRequest(streamID string, direction direction.Direction, from ui
 	}
 }
 
-func ToReadAllRequest(direction direction.Direction, from position.Position, count uint64, resolveLinks bool) *api.ReadReq {
+func ToReadAllRequest(direction direction.Direction, from stream_position.AllStreamPosition, count uint64, resolveLinks bool) *api.ReadReq {
 	return &api.ReadReq{
 		Options: &api.ReadReq_Options{
 			CountOption: &api.ReadReq_Options_Count{
@@ -243,7 +296,7 @@ func ToReadAllRequest(direction direction.Direction, from position.Position, cou
 	}
 }
 
-func ToStreamSubscriptionRequest(streamID string, from uint64, resolveLinks bool, filterOptions *filtering.SubscriptionFilterOptions) (*api.ReadReq, error) {
+func ToStreamSubscriptionRequest(streamID string, from stream_position.StreamPosition, resolveLinks bool, filterOptions *filtering.SubscriptionFilterOptions) (*api.ReadReq, error) {
 	readReq := &api.ReadReq{
 		Options: &api.ReadReq_Options{
 			CountOption: &api.ReadReq_Options_Subscription{
@@ -274,7 +327,7 @@ func ToStreamSubscriptionRequest(streamID string, from uint64, resolveLinks bool
 	return readReq, nil
 }
 
-func ToAllSubscriptionRequest(from position.Position, resolveLinks bool, filterOptions *filtering.SubscriptionFilterOptions) (*api.ReadReq, error) {
+func ToAllSubscriptionRequest(from stream_position.AllStreamPosition, resolveLinks bool, filterOptions *filtering.SubscriptionFilterOptions) (*api.ReadReq, error) {
 	readReq := &api.ReadReq{
 		Options: &api.ReadReq_Options{
 			CountOption: &api.ReadReq_Options_Subscription{

@@ -48,7 +48,6 @@ func Test_createRequestAllOptionsProto(t *testing.T) {
 		Filter: &filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.EventFilter,
 				Prefixes:   nil,
@@ -288,7 +287,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.EventFilter,
 				Prefixes:   nil,
@@ -318,7 +316,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.EventFilter,
 				Prefixes:   nil,
@@ -334,7 +331,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.EventFilter,
 				Prefixes:   []string{"a", "b"},
@@ -350,7 +346,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.StreamFilter,
 				Prefixes:   nil,
@@ -380,7 +375,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.StreamFilter,
 				Prefixes:   nil,
@@ -396,7 +390,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    10,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.StreamFilter,
 				Prefixes:   []string{"a", "b"},
@@ -412,7 +405,6 @@ func Test_createRequestFilterOptionsProto(t *testing.T) {
 		config := filtering.SubscriptionFilterOptions{
 			MaxSearchWindow:    filtering.NoMaxSearchWindow,
 			CheckpointInterval: 20,
-			CheckpointReached:  nil,
 			SubscriptionFilter: filtering.SubscriptionFilter{
 				FilterType: filtering.StreamFilter,
 				Prefixes:   nil,
