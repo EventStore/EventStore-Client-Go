@@ -218,9 +218,21 @@ func CreateTestClient(container *Container, t *testing.T) *client.Client {
 	if err != nil {
 		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
 	}
-	err = client.Connect()
+
+	return client
+}
+
+func CreateClient(connStr string, t *testing.T) *client.Client {
+	config, err := client.ParseConnectionString(connStr)
+
 	if err != nil {
-		t.Fatalf("Unexpected failure connecting: %s", err.Error())
+		t.Fatalf("Error when parsin connection string: %v", err)
+	}
+
+	client, err := client.NewClient(config)
+
+	if err != nil {
+		t.Fatalf("Error when creating an ESDB client: %v", err)
 	}
 
 	return client

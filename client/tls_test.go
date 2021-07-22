@@ -30,11 +30,6 @@ func TestTLSDefaults(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
-	err = c.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
 	numberOfEventsToRead := 1
 	numberOfEvents := uint64(numberOfEventsToRead)
 	_, err = c.ReadAllEvents(context.Background(), direction.Backwards, position.StartPosition, numberOfEvents, true)
@@ -66,11 +61,6 @@ func TestTLSDefaultsWithCertificate(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
-	err = c.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
 	numberOfEventsToRead := 1
 	numberOfEvents := uint64(numberOfEventsToRead)
 	_, err = c.ReadAllEvents(context.Background(), direction.Backwards, position.StartPosition, numberOfEvents, true)
@@ -91,11 +81,6 @@ func TestTLSWithoutCertificateAndVerify(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
-	err = c.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
 	numberOfEventsToRead := 1
 	numberOfEvents := uint64(numberOfEventsToRead)
 	_, err = c.ReadAllEvents(context.Background(), direction.Backwards, position.StartPosition, numberOfEvents, true)
@@ -112,11 +97,6 @@ func TestTLSWithoutCertificate(t *testing.T) {
 	}
 
 	c, err := client.NewClient(config)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
-	err = c.Connect()
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
@@ -152,11 +132,6 @@ func TestTLSWithCertificate(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
-	err = c.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
 	numberOfEventsToRead := 1
 	numberOfEvents := uint64(numberOfEventsToRead)
 	_, err = c.ReadAllEvents(context.Background(), direction.Backwards, position.StartPosition, numberOfEvents, true)
@@ -183,11 +158,6 @@ func TestTLSWithCertificateFromAbsoluteFile(t *testing.T) {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
 
-	err = c.Connect()
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
 	numberOfEventsToRead := 1
 	numberOfEvents := uint64(numberOfEventsToRead)
 	_, err = c.ReadAllEvents(context.Background(), direction.Backwards, position.StartPosition, numberOfEvents, true)
@@ -204,11 +174,6 @@ func TestTLSWithCertificateFromRelativeFile(t *testing.T) {
 	}
 
 	c, err := client.NewClient(config)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
-	err = c.Connect()
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
@@ -239,11 +204,6 @@ func TestTLSWithInvalidCertificate(t *testing.T) {
 	config.RootCAs = cp
 
 	c, err := client.NewClient(config)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
-	}
-
-	err = c.Connect()
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err.Error())
 	}
