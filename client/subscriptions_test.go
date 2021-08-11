@@ -49,11 +49,11 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 				}
 
 				event := subEvent.EventAppeared
-				require.Equal(t, testEvent.EventID, event.EventID)
-				require.Equal(t, uint64(6_000), event.EventNumber)
-				require.Equal(t, streamID, event.StreamID)
-				require.Equal(t, testEvent.Data, event.Data)
-				require.Equal(t, testEvent.UserMetadata, event.UserMetadata)
+				require.Equal(t, testEvent.EventID, event.GetOriginalEvent().EventID)
+				require.Equal(t, uint64(6_000), event.GetOriginalEvent().EventNumber)
+				require.Equal(t, streamID, event.GetOriginalEvent().StreamID)
+				require.Equal(t, testEvent.Data, event.GetOriginalEvent().Data)
+				require.Equal(t, testEvent.UserMetadata, event.GetOriginalEvent().UserMetadata)
 				appendedEvents.Done()
 				break
 			}
@@ -119,9 +119,9 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 			if subEvent.EventAppeared != nil {
 				event := subEvent.EventAppeared
 
-				require.Equal(t, versions[current], event.EventNumber)
-				require.Equal(t, positions[current].Commit, event.Position.Commit)
-				require.Equal(t, positions[current].Prepare, event.Position.Prepare)
+				require.Equal(t, versions[current], event.GetOriginalEvent().EventNumber)
+				require.Equal(t, positions[current].Commit, event.GetOriginalEvent().Position.Commit)
+				require.Equal(t, positions[current].Prepare, event.GetOriginalEvent().Position.Prepare)
 				current++
 				receivedEvents.Done()
 			}

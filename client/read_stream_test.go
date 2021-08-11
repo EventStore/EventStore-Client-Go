@@ -71,15 +71,15 @@ func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {
 	assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
 
 	for i := 0; i < numberOfEventsToRead; i++ {
-		assert.Equal(t, testEvents[i].Event.EventID, events[i].EventID)
-		assert.Equal(t, testEvents[i].Event.EventType, events[i].EventType)
-		assert.Equal(t, testEvents[i].Event.StreamID, events[i].StreamID)
-		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].EventNumber)
-		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].CreatedDate.Nanosecond())
-		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].CreatedDate.Unix())
-		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].Position.Commit)
-		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].Position.Prepare)
-		assert.Equal(t, testEvents[i].Event.ContentType, events[i].ContentType)
+		assert.Equal(t, testEvents[i].Event.EventID, events[i].GetOriginalEvent().EventID)
+		assert.Equal(t, testEvents[i].Event.EventType, events[i].GetOriginalEvent().EventType)
+		assert.Equal(t, testEvents[i].Event.StreamID, events[i].GetOriginalEvent().StreamID)
+		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].GetOriginalEvent().EventNumber)
+		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].GetOriginalEvent().CreatedDate.Nanosecond())
+		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].GetOriginalEvent().CreatedDate.Unix())
+		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].GetOriginalEvent().Position.Commit)
+		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].GetOriginalEvent().Position.Prepare)
+		assert.Equal(t, testEvents[i].Event.ContentType, events[i].GetOriginalEvent().ContentType)
 	}
 }
 
@@ -114,14 +114,14 @@ func TestReadStreamEventsBackwardsFromEndPosition(t *testing.T) {
 	assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
 
 	for i := 0; i < numberOfEventsToRead; i++ {
-		assert.Equal(t, testEvents[i].Event.EventID, events[i].EventID)
-		assert.Equal(t, testEvents[i].Event.EventType, events[i].EventType)
-		assert.Equal(t, testEvents[i].Event.StreamID, events[i].StreamID)
-		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].EventNumber)
-		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].CreatedDate.Nanosecond())
-		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].CreatedDate.Unix())
-		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].Position.Commit)
-		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].Position.Prepare)
-		assert.Equal(t, testEvents[i].Event.ContentType, events[i].ContentType)
+		assert.Equal(t, testEvents[i].Event.EventID, events[i].GetOriginalEvent().EventID)
+		assert.Equal(t, testEvents[i].Event.EventType, events[i].GetOriginalEvent().EventType)
+		assert.Equal(t, testEvents[i].Event.StreamID, events[i].GetOriginalEvent().StreamID)
+		assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].GetOriginalEvent().EventNumber)
+		assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].GetOriginalEvent().CreatedDate.Nanosecond())
+		assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].GetOriginalEvent().CreatedDate.Unix())
+		assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].GetOriginalEvent().Position.Commit)
+		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].GetOriginalEvent().Position.Prepare)
+		assert.Equal(t, testEvents[i].Event.ContentType, events[i].GetOriginalEvent().ContentType)
 	}
 }

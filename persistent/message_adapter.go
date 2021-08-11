@@ -7,17 +7,49 @@ import (
 )
 
 type messageAdapter interface {
-	FromProtoResponse(resp *persistent.ReadResp) *messages.RecordedEvent
+	FromProtoResponse(resp *persistent.ReadResp) *messages.ResolvedEvent
 }
 
 type messageAdapterImpl struct{}
 
-func (adapter messageAdapterImpl) FromProtoResponse(resp *persistent.ReadResp) *messages.RecordedEvent {
-	event := resp.GetEvent()
-	recordedEvent := event.GetEvent()
+func (adapter messageAdapterImpl) FromProtoResponse(resp *persistent.ReadResp) *messages.ResolvedEvent {
+	readEvent := resp.GetEvent()
+	positionWire := readEvent.GetPosition()
+	eventWire := readEvent.GetEvent()
+	linkWire := readEvent.GetLink()
 
-	message := newMessageFromProto(recordedEvent)
-	return &message
+	var event *messages.RecordedEvent = nil
+	var link *messages.RecordedEvent = nil
+	var commit *uint64
+
+	if positionWire != nil {
+		switch value := positionWire.(type) {
+		case *persistent.ReadResp_ReadEvent_CommitPosition:
+			{
+				commit = &value.CommitPosition
+			}
+		case *persistent.ReadResp_ReadEvent_NoPosition:
+			{
+				commit = nil
+			}
+		}
+	}
+
+	if eventWire != nil {
+		recordedEvent := newMessageFromProto(eventWire)
+		event = &recordedEvent
+	}
+
+	if linkWire != nil {
+		recordedEvent := newMessageFromProto(linkWire)
+		link = &recordedEvent
+	}
+
+	return &messages.ResolvedEvent{
+		Event:  event,
+		Link:   link,
+		Commit: commit,
+	}
 }
 
 func newMessageFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) messages.RecordedEvent {

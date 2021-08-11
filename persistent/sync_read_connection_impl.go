@@ -25,7 +25,7 @@ const (
 	Read_UnknownContentTypeReceived_Err       ErrorCode = "Read_UnknownContentTypeReceived_Err"
 )
 
-func (connection *syncReadConnectionImpl) Read() (*messages.RecordedEvent, error) {
+func (connection *syncReadConnectionImpl) Read() (*messages.ResolvedEvent, error) {
 	readResult, err := connection.client.Recv()
 	if err == io.EOF {
 		return nil, nil
