@@ -87,7 +87,9 @@ func (client grpcClientImpl) GetConnectionHandle() (ConnectionHandle, error) {
 }
 
 func (client grpcClientImpl) Close() {
-	client.channel <- close{}
+	channel := make(chan bool)
+	client.channel <- close{channel}
+	<-channel
 }
 
 type getConnection struct {
@@ -101,18 +103,6 @@ func newGetConnectionMsg() getConnection {
 }
 
 func (msg getConnection) handle(state *connectionState) {
-	if state.closed {
-		resp := connectionHandle{
-			id:         state.correlation,
-			connection: nil,
-			err:        fmt.Errorf("esdb connection is closed"),
-		}
-
-		msg.channel <- resp
-
-		return
-	}
-
 	// Means we need to create a grpc connection.
 	if state.correlation == uuid.Nil {
 		conn, err := discoverNode(state.config)
@@ -204,6 +194,25 @@ func connectionStateMachine(config Configuration, channel chan msg) {
 
 	for {
 		msg := <-channel
+
+		if state.closed {
+			switch evt := msg.(type) {
+			case getConnection:
+				{
+					evt.channel <- connectionHandle{
+						err: fmt.Errorf("esdb connection is closed"),
+					}
+				}
+			case close:
+				{
+					evt.channel <- true
+				}
+			default:
+				// No-op
+			}
+			continue
+		}
+
 		msg.handle(&state)
 	}
 }
@@ -214,7 +223,7 @@ type reconnect struct {
 }
 
 func (msg reconnect) handle(state *connectionState) {
-	if msg.correlation == state.correlation && !state.closed {
+	if msg.correlation == state.correlation {
 		if msg.endpoint == nil {
 			// Means that in the next iteration cycle, the discovery process will start.
 			state.correlation = uuid.Nil
@@ -247,13 +256,19 @@ func (msg reconnect) handle(state *connectionState) {
 }
 
 type close struct {
+	channel chan bool
 }
 
 func (msg close) handle(state *connectionState) {
 	state.closed = true
 	if state.connection != nil {
-		defer state.connection.Close()
+		defer func() {
+			state.connection.Close()
+			state.connection = nil
+		}()
 	}
+
+	msg.channel <- true
 }
 
 func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {

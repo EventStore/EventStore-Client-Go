@@ -1,7 +1,5 @@
 package filtering
 
-import "github.com/EventStore/EventStore-Client-Go/position"
-
 type FilterType int
 
 const (
@@ -13,7 +11,6 @@ const (
 type SubscriptionFilterOptions struct {
 	MaxSearchWindow    int
 	CheckpointInterval int
-	CheckpointReached  func(checkpoint position.Position)
 	SubscriptionFilter SubscriptionFilter
 }
 type SubscriptionFilter struct {
@@ -26,16 +23,14 @@ func NewDefaultSubscriptionFilterOptions(filter SubscriptionFilter) Subscription
 	return SubscriptionFilterOptions{
 		MaxSearchWindow:    32,
 		CheckpointInterval: 1,
-		CheckpointReached:  nil,
 		SubscriptionFilter: filter,
 	}
 }
 
-func NewSubscriptionFilterOptions(maxSearchWindow int, checkpointInterval int, checkpointReached func(checkpoint position.Position), filter SubscriptionFilter) SubscriptionFilterOptions {
+func NewSubscriptionFilterOptions(maxSearchWindow int, checkpointInterval int, filter SubscriptionFilter) SubscriptionFilterOptions {
 	return SubscriptionFilterOptions{
 		MaxSearchWindow:    maxSearchWindow,
 		CheckpointInterval: checkpointInterval,
-		CheckpointReached:  checkpointReached,
 		SubscriptionFilter: filter,
 	}
 }

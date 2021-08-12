@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/stream_position"
+
 	"github.com/EventStore/EventStore-Client-Go/client"
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	client_errors "github.com/EventStore/EventStore-Client-Go/errors"
@@ -51,7 +53,7 @@ func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
 
-	events, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_revision.StreamRevisionStart, 1, false)
+	events, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_position.Start{}, 1, false)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)

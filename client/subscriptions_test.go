@@ -8,36 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/stream_position"
+
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/EventStore/EventStore-Client-Go/position"
-	"github.com/EventStore/EventStore-Client-Go/streamrevision"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/require"
 )
-
-func TestStreamSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer client.Close()
-
-	var cancellation sync.WaitGroup
-	cancellation.Add(1)
-	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", streamrevision.StreamRevisionStart, false,
-		nil,
-		nil,
-		func(reason string) {
-			cancellation.Done()
-		})
-
-	require.NoError(t, err)
-	subscription.Start()
-	subscription.Stop()
-	timedOut := waitWithTimeout(&cancellation, time.Duration(5)*time.Second)
-	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
-}
 
 func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *testing.T) {
 	container := GetPrePopulatedDatabase()
@@ -54,62 +32,49 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
 
-	current := 0
 	var receivedEvents sync.WaitGroup
 	var appendedEvents sync.WaitGroup
-	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", streamrevision.StreamRevisionStart, false,
-		func(event messages.RecordedEvent) {
-			current++
-			if current <= 5999 {
-				receivedEvents.Done()
-			} else {
+	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", stream_position.Start{}, false)
+
+	go func() {
+		current := 0
+		for {
+			subEvent := subscription.Recv()
+
+			if subEvent.EventAppeared != nil {
+				current++
+				if current <= 6_000 {
+					receivedEvents.Done()
+					continue
+				}
+
+				event := subEvent.EventAppeared
 				require.Equal(t, testEvent.EventID, event.EventID)
-				require.Equal(t, uint64(6000), event.EventNumber)
+				require.Equal(t, uint64(6_000), event.EventNumber)
 				require.Equal(t, streamID, event.StreamID)
 				require.Equal(t, testEvent.Data, event.Data)
 				require.Equal(t, testEvent.UserMetadata, event.UserMetadata)
 				appendedEvents.Done()
+				break
 			}
-		}, nil, nil)
+		}
+	}()
 
 	require.NoError(t, err)
-	receivedEvents.Add(5999)
+	receivedEvents.Add(6_000)
 	appendedEvents.Add(1)
-	subscription.Start()
 	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 
 	// Write a new event
 	writeResult, err := client.AppendToStream(context.Background(), streamID, stream_revision.NewStreamRevision(5999), []messages.ProposedEvent{testEvent})
 	require.NoError(t, err)
-	require.Equal(t, uint64(6000), writeResult.NextExpectedVersion)
+	require.Equal(t, uint64(6_000), writeResult.NextExpectedVersion)
 
 	// Assert event was forwarded to the subscription
 	timedOut = waitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for the appended events")
-	defer subscription.Stop()
-}
-
-func TestAllSubscriptionDeliversAllowsCancellationDuringStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer client.Close()
-
-	var cancellation sync.WaitGroup
-	cancellation.Add(1)
-	subscription, err := client.SubscribeToAll(context.Background(), position.StartPosition, false,
-		nil,
-		nil,
-		func(reason string) {
-			cancellation.Done()
-		})
-
-	require.NoError(t, err)
-	subscription.Start()
-	subscription.Stop()
-	timedOut := waitWithTimeout(&cancellation, time.Duration(5)*time.Second)
-	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
+	defer subscription.Close()
 }
 
 type Position struct {
@@ -135,33 +100,79 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	defer client.Close()
 
 	var receivedEvents sync.WaitGroup
-	var cancellation sync.WaitGroup
 	receivedEvents.Add(len(positions))
-	cancellation.Add(1)
 
 	filter := filtering.NewEventPrefixFilter([]string{"eventType-194"})
 	filterOptions := filtering.NewDefaultSubscriptionFilterOptions(filter)
 
-	current := 0
+	subscription, err := client.SubscribeToAllFiltered(context.Background(), stream_position.Start{}, false, filterOptions)
 
-	subscription, err := client.SubscribeToAllFiltered(context.Background(), position.StartPosition, false, filterOptions,
-		func(event messages.RecordedEvent) {
-			require.Equal(t, versions[current], event.EventNumber)
-			require.Equal(t, positions[current].Commit, event.Position.Commit)
-			require.Equal(t, positions[current].Prepare, event.Position.Prepare)
-			current++
-			receivedEvents.Done()
-		}, nil, func(reason string) {
-			cancellation.Done()
-		})
+	go func() {
+		current := 0
+		for {
+			subEvent := subscription.Recv()
+
+			if subEvent.Dropped != nil {
+				break
+			}
+
+			if subEvent.EventAppeared != nil {
+				event := subEvent.EventAppeared
+
+				require.Equal(t, versions[current], event.EventNumber)
+				require.Equal(t, positions[current].Commit, event.Position.Commit)
+				require.Equal(t, positions[current].Prepare, event.Position.Prepare)
+				current++
+				receivedEvents.Done()
+			}
+		}
+	}()
 
 	require.NoError(t, err)
-	subscription.Start()
 	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out while waiting for events via the subscription")
-	subscription.Stop()
-	timedOut = waitWithTimeout(&cancellation, time.Duration(5)*time.Second)
-	require.False(t, timedOut, "Timed out waiting for subscription cancellation")
+}
+
+func TestConnectionClosing(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer client.Close()
+
+	var receivedEvents sync.WaitGroup
+	var droppedEvent sync.WaitGroup
+	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", stream_position.Start{}, false)
+
+	go func() {
+		current := 1
+
+		for {
+			subEvent := subscription.Recv()
+
+			if subEvent.EventAppeared != nil {
+				if current <= 10 {
+					receivedEvents.Done()
+					current++
+				}
+
+				continue
+			}
+
+			if subEvent.Dropped != nil {
+				droppedEvent.Done()
+				break
+			}
+		}
+	}()
+
+	require.NoError(t, err)
+	receivedEvents.Add(10)
+	droppedEvent.Add(1)
+	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+	require.False(t, timedOut, "Timed out waiting for initial set of events")
+	subscription.Close()
+	timedOut = waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
+	require.False(t, timedOut, "Timed out waiting for dropped event")
 }
 
 func waitWithTimeout(wg *sync.WaitGroup, duration time.Duration) bool {
