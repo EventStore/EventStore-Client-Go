@@ -3,11 +3,15 @@ package client_test
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/stream_position"
+	"github.com/EventStore/EventStore-Client-Go/streamrevision"
 
 	direction "github.com/EventStore/EventStore-Client-Go/direction"
 	uuid "github.com/gofrs/uuid"
@@ -62,7 +66,15 @@ func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {
 
 	streamId := "dataset20M-1800"
 
-	events, err := client.ReadStreamEvents(context, direction.Forwards, streamId, stream_position.Start{}, numberOfEvents, true)
+	stream, err := client.ReadStreamEvents(context, direction.Forwards, streamId, stream_position.Start{}, numberOfEvents, true)
+
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
+
+	defer stream.Close()
+
+	events, err := collectStreamEvents(stream)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
@@ -105,7 +117,15 @@ func TestReadStreamEventsBackwardsFromEndPosition(t *testing.T) {
 
 	streamId := "dataset20M-1800"
 
-	events, err := client.ReadStreamEvents(context, direction.Backwards, streamId, stream_position.End{}, numberOfEvents, true)
+	stream, err := client.ReadStreamEvents(context, direction.Backwards, streamId, stream_position.End{}, numberOfEvents, true)
+
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
+
+	defer stream.Close()
+
+	events, err := collectStreamEvents(stream)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
@@ -124,4 +144,40 @@ func TestReadStreamEventsBackwardsFromEndPosition(t *testing.T) {
 		assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].GetOriginalEvent().Position.Prepare)
 		assert.Equal(t, testEvents[i].Event.ContentType, events[i].GetOriginalEvent().ContentType)
 	}
+}
+
+func TestReadStreamReturnsEOFAfterCompletion(t *testing.T) {
+	container := GetEmptyDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer client.Close()
+
+	var waitingForError sync.WaitGroup
+
+	proposedEvents := []messages.ProposedEvent{}
+
+	for i := 1; i <= 10; i++ {
+		proposedEvents = append(proposedEvents, createTestEvent())
+	}
+
+	_, err := client.AppendToStream(context.Background(), "testing-closing", streamrevision.StreamRevisionNoStream, proposedEvents)
+	require.NoError(t, err)
+
+	stream, err := client.ReadStreamEvents(context.Background(), direction.Forwards, "testing-closing", stream_position.Start{}, 1_024, false)
+
+	require.NoError(t, err)
+	_, err = collectStreamEvents(stream)
+	require.NoError(t, err)
+
+	go func() {
+		_, err := stream.Recv()
+		require.Error(t, err)
+		require.True(t, err == io.EOF)
+		waitingForError.Done()
+	}()
+
+	require.NoError(t, err)
+	waitingForError.Add(1)
+	timedOut := waitWithTimeout(&waitingForError, time.Duration(5)*time.Second)
+	require.False(t, timedOut, "Timed out waiting for read stream to return io.EOF on completion")
 }
