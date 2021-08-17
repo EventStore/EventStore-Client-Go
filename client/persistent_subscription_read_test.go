@@ -55,7 +55,7 @@ func Test_PersistentSubscription_ReadExistingStream_AckToReceiveNewEvents(t *tes
 
 	// since buffer size is two, after reading two outstanding messages
 	// we must acknowledge a message in order to receive third one
-	err = readConnectionClient.Ack(firstReadEvent.EventID)
+	err = readConnectionClient.Ack(firstReadEvent.GetOriginalEvent().EventID)
 	require.NoError(t, err)
 
 	thirdReadEvent, err := readConnectionClient.Read()
@@ -106,8 +106,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFromBeginning_AndEventsIn
 
 	// assert Event Number == stream Start
 	// assert Event.ID == first event ID (readEvent.EventID == events[0].EventID)
-	require.EqualValues(t, 0, readEvent.EventNumber)
-	require.Equal(t, events[0].EventID, readEvent.EventID)
+	require.EqualValues(t, 0, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[0].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEventsAfterwards(t *testing.T) {
@@ -153,8 +153,8 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEv
 	require.NotNil(t, readEvent)
 	// assert Event Number == stream Start
 	// assert Event.ID == first event ID (readEvent.EventID == events[0].EventID)
-	require.EqualValues(t, 0, readEvent.EventNumber)
-	require.Equal(t, events[0].EventID, readEvent.EventID)
+	require.EqualValues(t, 0, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[0].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppendEventsAfterwards(t *testing.T) {
@@ -209,8 +209,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppe
 	require.NotNil(t, readEvent)
 	// assert readEvent.EventNumber == stream position 10
 	// assert readEvent.ID == events[10].EventID
-	require.EqualValues(t, 10, readEvent.EventNumber)
-	require.Equal(t, events[10].EventID, readEvent.EventID)
+	require.EqualValues(t, 10, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[10].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInIt(t *testing.T) {
@@ -324,8 +324,8 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAf
 
 	// assert readEvent.EventNumber == stream position 2
 	// assert readEvent.ID == events[2].EventID
-	require.EqualValues(t, 2, readEvent.EventNumber)
-	require.Equal(t, events[2].EventID, readEvent.EventID)
+	require.EqualValues(t, 2, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[2].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEventsAfterwards(t *testing.T) {
@@ -381,8 +381,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEv
 
 	// assert readEvent.EventNumber == stream position 10
 	// assert readEvent.ID == events[10].EventID
-	require.EqualValues(t, 10, readEvent.EventNumber)
-	require.Equal(t, events[10].EventID, readEvent.EventID)
+	require.EqualValues(t, 10, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[10].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testing.T) {
@@ -438,8 +438,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testi
 
 	// assert readEvent.EventNumber == stream position 4
 	// assert readEvent.ID == events[4].EventID
-	require.EqualValues(t, 4, readEvent.EventNumber)
-	require.Equal(t, events[4].EventID, readEvent.EventID)
+	require.EqualValues(t, 4, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[4].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsInStream_EventsInItAppendEventsAfterwards(t *testing.T) {
@@ -496,8 +496,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEve
 
 	// assert readEvent.EventNumber == stream position 11
 	// assert readEvent.ID == events[11].EventID
-	require.EqualValues(t, 11, readEvent.EventNumber)
-	require.Equal(t, events[11].EventID, readEvent.EventID)
+	require.EqualValues(t, 11, readEvent.GetOriginalEvent().EventNumber)
+	require.Equal(t, events[11].EventID, readEvent.GetOriginalEvent().EventID)
 }
 
 func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *testing.T) {
@@ -543,7 +543,7 @@ func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *te
 
 	// since buffer size is two, after reading two outstanding messages
 	// we must acknowledge a message in order to receive third one
-	err = readConnectionClient.Nack("test reason", persistent.Nack_Park, firstReadEvent.EventID)
+	err = readConnectionClient.Nack("test reason", persistent.Nack_Park, firstReadEvent.GetOriginalEvent().EventID)
 	require.NoError(t, err)
 
 	thirdReadEvent, err := readConnectionClient.Read()

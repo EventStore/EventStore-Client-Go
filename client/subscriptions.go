@@ -7,15 +7,13 @@ import (
 	"sync"
 
 	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
-	"github.com/EventStore/EventStore-Client-Go/position"
-	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
-
 	"github.com/EventStore/EventStore-Client-Go/messages"
+	"github.com/EventStore/EventStore-Client-Go/position"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
 )
 
 type SubscriptionEvent struct {
-	EventAppeared     *messages.RecordedEvent
+	EventAppeared     *messages.ResolvedEvent
 	Dropped           *SubscriptionDropped
 	CheckPointReached *position.Position
 }
@@ -96,24 +94,9 @@ func NewSubscription(client *Client, cancel context.CancelFunc, inner api.Stream
 				}
 			case *api.ReadResp_Event:
 				{
-					event := result.GetEvent()
-					recordedEvent := event.GetEvent()
-					streamIdentifier := recordedEvent.GetStreamIdentifier()
-					eventAppeared := messages.RecordedEvent{
-						EventID:        protoutils.EventIDFromProto(recordedEvent),
-						EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
-						ContentType:    protoutils.GetContentTypeFromProto(recordedEvent),
-						StreamID:       string(streamIdentifier.StreamName),
-						EventNumber:    recordedEvent.GetStreamRevision(),
-						CreatedDate:    protoutils.CreatedFromProto(recordedEvent),
-						Position:       protoutils.PositionFromProto(recordedEvent),
-						Data:           recordedEvent.GetData(),
-						SystemMetadata: recordedEvent.GetMetadata(),
-						UserMetadata:   recordedEvent.GetCustomMetadata(),
-					}
-
+					resolvedEvent := protoutils.GetResolvedEventFromProto(result.GetEvent())
 					req.channel <- &SubscriptionEvent{
-						EventAppeared: &eventAppeared,
+						EventAppeared: &resolvedEvent,
 					}
 				}
 			}

@@ -75,9 +75,9 @@ func Test_MessageAdapter(t *testing.T) {
 	message := messageAdapterInstance.FromProtoResponse(protoResponse)
 
 	// compare string representations of time
-	require.Equal(t, expectedMessage.CreatedDate.String(), message.CreatedDate.String())
+	require.Equal(t, expectedMessage.CreatedDate.String(), message.GetOriginalEvent().CreatedDate.String())
 	// because it is hard to compare time in tests set this to be equal so that we can compare other fields
-	expectedMessage.CreatedDate = message.CreatedDate
+	expectedMessage.CreatedDate = message.GetOriginalEvent().CreatedDate
 
-	require.Equal(t, expectedMessage, message)
+	require.Equal(t, expectedMessage, message.GetOriginalEvent())
 }

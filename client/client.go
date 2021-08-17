@@ -186,7 +186,7 @@ func (client *Client) ReadStreamEvents(
 	streamID string,
 	from stream_position.StreamPosition,
 	count uint64,
-	resolveLinks bool) ([]messages.RecordedEvent, error) {
+	resolveLinks bool) ([]messages.ResolvedEvent, error) {
 	readRequest := protoutils.ToReadStreamRequest(streamID, direction, from, count, resolveLinks)
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -204,7 +204,7 @@ func (client *Client) ReadAllEvents(
 	from stream_position.AllStreamPosition,
 	count uint64,
 	resolveLinks bool,
-) ([]messages.RecordedEvent, error) {
+) ([]messages.ResolvedEvent, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -445,15 +445,15 @@ func readInternal(
 	streamsClient api.StreamsClient,
 	readRequest *api.ReadReq,
 	limit uint64,
-) ([]messages.RecordedEvent, error) {
+) ([]messages.ResolvedEvent, error) {
 	var headers, trailers metadata.MD
 	result, err := streamsClient.Read(context, readRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
 		err = client.HandleError(handle, headers, trailers, err)
-		return []messages.RecordedEvent{}, fmt.Errorf("Failed to construct read client. Reason: %v", err)
+		return []messages.ResolvedEvent{}, fmt.Errorf("Failed to construct read client. Reason: %v", err)
 	}
 
-	events := []messages.RecordedEvent{}
+	events := []messages.ResolvedEvent{}
 	for {
 		readResult, err := result.Recv()
 		if err == io.EOF {
@@ -466,9 +466,8 @@ func readInternal(
 		switch readResult.Content.(type) {
 		case *api.ReadResp_Event:
 			{
-				event := readResult.GetEvent()
-				recordedEvent := protoutils.RecordedEventFromProto(event)
-				events = append(events, recordedEvent)
+				resolvedEvent := protoutils.GetResolvedEventFromProto(readResult.GetEvent())
+				events = append(events, resolvedEvent)
 				if uint64(len(events)) >= limit {
 					break
 				}

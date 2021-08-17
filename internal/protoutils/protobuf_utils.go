@@ -401,6 +401,9 @@ func GetContentTypeFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent
 // RecordedEventFromProto
 func RecordedEventFromProto(result *api.ReadResp_ReadEvent) messages.RecordedEvent {
 	recordedEvent := result.GetEvent()
+	return GetRecordedEventFromProto(recordedEvent)
+}
+func GetRecordedEventFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) messages.RecordedEvent {
 	streamIdentifier := recordedEvent.GetStreamIdentifier()
 	return messages.RecordedEvent{
 		EventID:        EventIDFromProto(recordedEvent),
@@ -413,5 +416,44 @@ func RecordedEventFromProto(result *api.ReadResp_ReadEvent) messages.RecordedEve
 		Data:           recordedEvent.GetData(),
 		SystemMetadata: recordedEvent.GetMetadata(),
 		UserMetadata:   recordedEvent.GetCustomMetadata(),
+	}
+}
+
+func GetResolvedEventFromProto(result *api.ReadResp_ReadEvent) messages.ResolvedEvent {
+	positionWire := result.GetPosition()
+	linkWire := result.GetLink()
+	eventWire := result.GetEvent()
+
+	var event *messages.RecordedEvent = nil
+	var link *messages.RecordedEvent = nil
+	var commit *uint64
+
+	if positionWire != nil {
+		switch value := positionWire.(type) {
+		case *api.ReadResp_ReadEvent_CommitPosition:
+			{
+				commit = &value.CommitPosition
+			}
+		case *api.ReadResp_ReadEvent_NoPosition:
+			{
+				commit = nil
+			}
+		}
+	}
+
+	if eventWire != nil {
+		recordedEvent := GetRecordedEventFromProto(eventWire)
+		event = &recordedEvent
+	}
+
+	if linkWire != nil {
+		recordedEvent := GetRecordedEventFromProto(linkWire)
+		link = &recordedEvent
+	}
+
+	return messages.ResolvedEvent{
+		Event:  event,
+		Link:   link,
+		Commit: commit,
 	}
 }
