@@ -31,19 +31,23 @@ func (client clientImpl) SubscribeToStreamSync(
 	streamName []byte,
 ) (SyncReadConnection, error) {
 	var headers, trailers metadata.MD
+	ctx, cancel := context.WithCancel(ctx)
 	readClient, err := client.persistentSubscriptionClient.Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		defer cancel()
 		err = client.inner.HandleError(handle, headers, trailers, err)
 		return nil, NewError(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr, err)
 	}
 
 	err = readClient.Send(toPersistentReadRequest(bufferSize, groupName, streamName))
 	if err != nil {
+		defer cancel()
 		return nil, NewError(SubscribeToStreamSync_FailedToSendStreamInitializationErr, err)
 	}
 
 	readResult, err := readClient.Recv()
 	if err != nil {
+		defer cancel()
 		return nil, NewError(SubscribeToStreamSync_FailedToReceiveStreamInitializationErr, err)
 	}
 	switch readResult.Content.(type) {
@@ -52,12 +56,14 @@ func (client clientImpl) SubscribeToStreamSync(
 			asyncConnection := client.syncReadConnectionFactory.NewSyncReadConnection(
 				readClient,
 				readResult.GetSubscriptionConfirmation().SubscriptionId,
-				client.messageAdapterProvider.GetMessageAdapter())
+				client.messageAdapterProvider.GetMessageAdapter(),
+				cancel)
 
 			return asyncConnection, nil
 		}
 	}
 
+	defer cancel()
 	return nil, NewError(SubscribeToStreamSync_NoSubscriptionConfirmationErr, err)
 }
 

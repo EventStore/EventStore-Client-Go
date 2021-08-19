@@ -2,7 +2,7 @@ package persistent
 
 import (
 	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/gofrs/uuid"
+	"github.com/EventStore/EventStore-Client-Go/subscription"
 )
 
 type Nack_Action int32
@@ -16,7 +16,8 @@ const (
 )
 
 type SyncReadConnection interface {
-	Read() (*messages.ResolvedEvent, error) // this call must block
-	Ack(messageIds ...uuid.UUID) error      // max 2000 messages can be acknowledged
-	Nack(reason string, action Nack_Action, messageIds ...uuid.UUID) error
+	Recv() *subscription.SubscriptionEvent     // this call must block
+	Ack(msgs ...*messages.ResolvedEvent) error // max 2000 messages can be acknowledged
+	Nack(reason string, action Nack_Action, msgs ...*messages.ResolvedEvent) error
+	Close() error
 }
