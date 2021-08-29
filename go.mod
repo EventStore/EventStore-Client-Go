@@ -7,7 +7,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/golang/mock v1.6.0
-	github.com/golang/protobuf v1.5.0
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/ory/dockertest/v3 v3.6.3

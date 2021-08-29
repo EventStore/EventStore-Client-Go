@@ -4,7 +4,6 @@ package gossip
 
 import (
 	context "context"
-
 	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"

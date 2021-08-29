@@ -7,12 +7,11 @@
 package streams
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
