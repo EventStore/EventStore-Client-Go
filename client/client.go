@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/EventStore/EventStore-Client-Go/stream_position"
 
@@ -186,7 +185,7 @@ func (client *Client) ReadStreamEvents(
 	streamID string,
 	from stream_position.StreamPosition,
 	count uint64,
-	resolveLinks bool) ([]messages.ResolvedEvent, error) {
+	resolveLinks bool) (*ReadStream, error) {
 	readRequest := protoutils.ToReadStreamRequest(streamID, direction, from, count, resolveLinks)
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -194,7 +193,7 @@ func (client *Client) ReadStreamEvents(
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 
-	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest, count)
+	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest)
 }
 
 // ReadAllEvents ...
@@ -204,14 +203,14 @@ func (client *Client) ReadAllEvents(
 	from stream_position.AllStreamPosition,
 	count uint64,
 	resolveLinks bool,
-) ([]messages.ResolvedEvent, error) {
+) (*ReadStream, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	readRequest := protoutils.ToReadAllRequest(direction, from, count, resolveLinks)
-	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest, count)
+	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest)
 }
 
 // SubscribeToStream ...
@@ -439,44 +438,31 @@ func (client *Client) DeletePersistentSubscriptionAll(
 }
 
 func readInternal(
-	context context.Context,
+	ctx context.Context,
 	client connection.GrpcClient,
 	handle connection.ConnectionHandle,
 	streamsClient api.StreamsClient,
 	readRequest *api.ReadReq,
-	limit uint64,
-) ([]messages.ResolvedEvent, error) {
+) (*ReadStream, error) {
 	var headers, trailers metadata.MD
-	result, err := streamsClient.Read(context, readRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
+	ctx, cancel := context.WithCancel(ctx)
+	result, err := streamsClient.Read(ctx, readRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
+		defer cancel()
 		err = client.HandleError(handle, headers, trailers, err)
-		return []messages.ResolvedEvent{}, fmt.Errorf("Failed to construct read client. Reason: %v", err)
+		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
 	}
 
-	events := []messages.ResolvedEvent{}
-	for {
-		readResult, err := result.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			err = client.HandleError(handle, headers, trailers, err)
-			return nil, fmt.Errorf("Failed to perform read. Reason: %v", err)
-		}
-		switch readResult.Content.(type) {
-		case *api.ReadResp_Event:
-			{
-				resolvedEvent := protoutils.GetResolvedEventFromProto(readResult.GetEvent())
-				events = append(events, resolvedEvent)
-				if uint64(len(events)) >= limit {
-					break
-				}
-			}
-		case *api.ReadResp_StreamNotFound_:
-			{
-				return nil, errors.ErrStreamNotFound
-			}
-		}
+	params := ReadStreamParams{
+		client:   client,
+		handle:   handle,
+		cancel:   cancel,
+		inner:    result,
+		headers:  headers,
+		trailers: trailers,
 	}
-	return events, nil
+
+	stream := NewReadStream(params)
+
+	return stream, nil
 }

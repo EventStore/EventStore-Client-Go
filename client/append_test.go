@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 	"time"
 
@@ -27,6 +28,26 @@ func createTestEvent() messages.ProposedEvent {
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
 }
+
+func collectStreamEvents(stream *client.ReadStream) ([]*messages.ResolvedEvent, error) {
+	events := []*messages.ResolvedEvent{}
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return nil, err
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
 func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 	container := GetEmptyDatabase()
 	defer container.Close()
@@ -53,7 +74,15 @@ func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
 
-	events, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_position.Start{}, 1, false)
+	stream, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_position.Start{}, 1, false)
+
+	if err != nil {
+		t.Fatalf("Unexpected failure %+v", err)
+	}
+
+	defer stream.Close()
+
+	events, err := collectStreamEvents(stream)
 
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
