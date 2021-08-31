@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
@@ -98,25 +100,25 @@ func (client *ClientImpl) ResetProjection(ctx context.Context, options ResetOpti
 	return nil
 }
 
-func (client *ClientImpl) ProjectionState(ctx context.Context, options StateOptionsRequest) (interface{}, error) {
+func (client *ClientImpl) ProjectionState(ctx context.Context, options StateOptionsRequest) (StateResponse, error) {
 	result, err := client.projectionsClient.State(ctx, options.Build())
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("ProjectionState: ", result.State.Kind)
+	fmt.Println("ProjectionState: ", spew.Sdump(result.State.Kind))
 
-	return result, nil
+	return newStateResponse(result), nil
 }
 
-func (client *ClientImpl) ProjectionResult(ctx context.Context, options ResultOptionsRequest) (interface{}, error) {
+func (client *ClientImpl) ProjectionResult(ctx context.Context, options ResultOptionsRequest) (ResultResponse, error) {
 	result, err := client.projectionsClient.Result(ctx, options.Build())
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("ProjectionResult: ", result.Result.Kind)
-	return result, nil
+	fmt.Println("ProjectionResult: ", spew.Sdump(result.Result.Kind))
+	return newResultResponse(result), nil
 }
 
 func (client *ClientImpl) RestartProjectionsSubsystem(ctx context.Context) error {

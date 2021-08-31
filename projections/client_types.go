@@ -72,14 +72,14 @@ func (createConfig *CreateOptionsRequest) Build() *projections.CreateReq {
 			OneTime: &shared.Empty{},
 		}
 	} else if createConfig.mode.GetType() == CreateConfigModeTransientOptionType {
-		transientOption := createConfig.mode.(*CreateConfigModeTransientOption)
+		transientOption := createConfig.mode.(CreateConfigModeTransientOption)
 		result.Options.Mode = &projections.CreateReq_Options_Transient_{
 			Transient: &projections.CreateReq_Options_Transient{
 				Name: transientOption.Name,
 			},
 		}
 	} else if createConfig.mode.GetType() == CreateConfigModeContinuousOptionType {
-		continuousOption := createConfig.mode.(*CreateConfigModeContinuousOption)
+		continuousOption := createConfig.mode.(CreateConfigModeContinuousOption)
 		result.Options.Mode = &projections.CreateReq_Options_Continuous_{
 			Continuous: &projections.CreateReq_Options_Continuous{
 				Name:                continuousOption.Name,
@@ -124,8 +124,18 @@ func (u UpdateOptionsEmitOptionNoEmit) GetType() UpdateOptionsEmitOptionType {
 
 type UpdateOptionsRequest struct {
 	emitOption UpdateOptionsEmitOption
-	Query      string
-	Name       string
+	query      string
+	name       string
+}
+
+func (updateConfig *UpdateOptionsRequest) SetQuery(query string) *UpdateOptionsRequest {
+	updateConfig.query = query
+	return updateConfig
+}
+
+func (updateConfig *UpdateOptionsRequest) SetName(name string) *UpdateOptionsRequest {
+	updateConfig.name = name
+	return updateConfig
 }
 
 func (updateConfig *UpdateOptionsRequest) SetEmitOption(option UpdateOptionsEmitOption) *UpdateOptionsRequest {
@@ -136,8 +146,8 @@ func (updateConfig *UpdateOptionsRequest) SetEmitOption(option UpdateOptionsEmit
 func (updateConfig *UpdateOptionsRequest) Build() *projections.UpdateReq {
 	result := &projections.UpdateReq{
 		Options: &projections.UpdateReq_Options{
-			Name:  updateConfig.Name,
-			Query: updateConfig.Query,
+			Name:  updateConfig.name,
+			Query: updateConfig.query,
 		},
 	}
 
@@ -146,7 +156,7 @@ func (updateConfig *UpdateOptionsRequest) Build() *projections.UpdateReq {
 			NoEmitOptions: &shared.Empty{},
 		}
 	} else if updateConfig.emitOption.GetType() == UpdateOptionsEmitOptionEnabledType {
-		emitOption := updateConfig.emitOption.(*UpdateOptionsEmitOptionEnabled)
+		emitOption := updateConfig.emitOption.(UpdateOptionsEmitOptionEnabled)
 		result.Options.EmitOption = &projections.UpdateReq_Options_EmitEnabled{
 			EmitEnabled: emitOption.EmitEnabled,
 		}
@@ -282,7 +292,7 @@ func (statisticsOptions *StatisticsOptionsRequest) Build() *projections.Statisti
 			OneTime: &shared.Empty{},
 		}
 	} else if statisticsOptions.mode.GetType() == StatisticsOptionsRequestModeNameType {
-		mode := statisticsOptions.mode.(*StatisticsOptionsRequestModeName)
+		mode := statisticsOptions.mode.(StatisticsOptionsRequestModeName)
 		result.Options.Mode = &projections.StatisticsReq_Options_Name{
 			Name: mode.Name,
 		}
