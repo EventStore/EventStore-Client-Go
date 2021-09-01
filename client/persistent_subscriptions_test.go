@@ -14,11 +14,8 @@ import (
 )
 
 func Test_CreatePersistentStreamSubscription(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -40,11 +37,8 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 }
 
 func Test_CreatePersistentStreamSubscription_MessageTimeoutZero(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -69,11 +63,8 @@ func Test_CreatePersistentStreamSubscription_MessageTimeoutZero(t *testing.T) {
 }
 
 func Test_CreatePersistentStreamSubscription_StreamNotExits(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -94,11 +85,8 @@ func Test_CreatePersistentStreamSubscription_StreamNotExits(t *testing.T) {
 }
 
 func Test_CreatePersistentStreamSubscription_FailsIfAlreadyExists(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -134,11 +122,8 @@ func Test_CreatePersistentStreamSubscription_FailsIfAlreadyExists(t *testing.T) 
 }
 
 func Test_CreatePersistentStreamSubscription_AfterDeleting(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -171,11 +156,8 @@ func Test_CreatePersistentStreamSubscription_AfterDeleting(t *testing.T) {
 }
 
 func Test_UpdatePersistentStreamSubscription(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -213,11 +195,8 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 }
 
 func Test_UpdatePersistentStreamSubscription_ErrIfSubscriptionDoesNotExist(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -237,11 +216,8 @@ func Test_UpdatePersistentStreamSubscription_ErrIfSubscriptionDoesNotExist(t *te
 }
 
 func Test_DeletePersistentStreamSubscription(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -270,11 +246,8 @@ func Test_DeletePersistentStreamSubscription(t *testing.T) {
 }
 
 func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	err := clientInstance.DeletePersistentSubscription(context.Background(),
@@ -286,10 +259,16 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 	require.Error(t, err)
 }
 
-func initializeContainerAndClient(t *testing.T) (*Container, *client.Client) {
+type CloseClientInstance func()
+
+func initializeContainerAndClient(t *testing.T) (*Container, *client.Client, CloseClientInstance) {
 	container := GetEmptyDatabase()
 	clientInstance := CreateTestClient(container, t)
-	return container, clientInstance
+	closeClientInstance := func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}
+	return container, clientInstance, closeClientInstance
 }
 
 func pushEventToStream(t *testing.T, clientInstance *client.Client, streamID string) {

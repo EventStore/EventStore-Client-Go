@@ -12,11 +12,8 @@ import (
 )
 
 func Test_PersistentSubscription_ReadExistingStream_AckToReceiveNewEvents(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"
@@ -64,11 +61,8 @@ func Test_PersistentSubscription_ReadExistingStream_AckToReceiveNewEvents(t *tes
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromBeginning_AndEventsInIt(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 10 events
@@ -111,11 +105,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFromBeginning_AndEventsIn
 }
 
 func Test_PersistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEventsAfterwards(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 10 events
@@ -160,11 +151,8 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEv
 func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppendEventsAfterwards(t *testing.T) {
 	// enable these tests once we switch to EventStore version 21.6.0 and greater
 	t.Skip()
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 11 events
@@ -216,11 +204,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppe
 func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInIt(t *testing.T) {
 	// enable these tests once we switch to EventStore version 21.6.0 and greater
 	t.Skip()
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 10 events
@@ -284,11 +269,8 @@ waitLoop:
 func Test_PersistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAfterwards(t *testing.T) {
 	// enable these tests once we switch to EventStore version 21.6.0 and greater
 	t.Skip()
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 3 events
@@ -331,11 +313,8 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAf
 func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEventsAfterwards(t *testing.T) {
 	// enable these tests once we switch to EventStore version 21.6.0 and greater
 	t.Skip()
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 11 events
@@ -388,11 +367,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEv
 func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testing.T) {
 	// enable these tests once we switch to EventStore version 21.6.0 and greater
 	t.Skip()
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 11 events
@@ -445,11 +421,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testi
 func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsInStream_EventsInItAppendEventsAfterwards(t *testing.T) {
 	// enable these tests once we switch to EventStore version 21.6.0 and greater
 	t.Skip()
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	// create 12 events
@@ -501,11 +474,8 @@ func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEve
 }
 
 func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *testing.T) {
-	containerInstance, clientInstance := initializeContainerAndClient(t)
-	defer func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}()
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
 	defer containerInstance.Close()
 
 	streamID := "someStream"

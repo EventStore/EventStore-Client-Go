@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EventStore/EventStore-Client-Go/stream_position"
-
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/persistent"
-	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
+	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/direction"
 	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	"github.com/EventStore/EventStore-Client-Go/messages"
+	"github.com/EventStore/EventStore-Client-Go/persistent"
+	"github.com/EventStore/EventStore-Client-Go/projections"
+	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
+	projectionsProto "github.com/EventStore/EventStore-Client-Go/protos/projections"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	"github.com/EventStore/EventStore-Client-Go/stream_position"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type Configuration = connection.Configuration
@@ -32,6 +32,7 @@ type Client struct {
 	grpcClient              connection.GrpcClient
 	Config                  *connection.Configuration
 	persistentClientFactory persistent.ClientFactory
+	projectionClientFactory projections.ClientFactory
 }
 
 // NewClient ...
@@ -443,6 +444,118 @@ func (client *Client) DeletePersistentSubscriptionAll(
 		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName)
+}
+
+func (client *Client) CreateProjection(ctx context.Context, options projections.CreateOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.CreateProjection(ctx, options)
+}
+
+func (client *Client) UpdateProjection(ctx context.Context, options projections.UpdateOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.UpdateProjection(ctx, options)
+}
+
+func (client *Client) AbortProjection(ctx context.Context, options projections.AbortOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.AbortProjection(ctx, options)
+}
+
+func (client *Client) DisableProjection(ctx context.Context, options projections.DisableOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.DisableProjection(ctx, options)
+}
+
+func (client *Client) DeleteProjection(ctx context.Context, options projections.DeleteOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.DeleteProjection(ctx, options)
+}
+
+func (client *Client) EnableProjection(ctx context.Context, options projections.EnableOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.EnableProjection(ctx, options)
+}
+
+func (client *Client) RestartProjectionsSubsystem(ctx context.Context) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.RestartProjectionsSubsystem(ctx)
+}
+
+func (client *Client) GetProjectionState(
+	ctx context.Context,
+	options projections.StateOptionsRequest) (projections.StateResponse, error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.GetProjectionState(ctx, options)
+}
+
+func (client *Client) GetProjectionResult(
+	ctx context.Context,
+	options projections.ResultOptionsRequest) (projections.ResultResponse, error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.GetProjectionResult(ctx, options)
 }
 
 func readInternal(
