@@ -73,10 +73,10 @@ func (mr *MockSyncReadConnectionMockRecorder) Nack(reason, action interface{}, m
 }
 
 // Read mocks base method.
-func (m *MockSyncReadConnection) Read() (*messages.RecordedEvent, error) {
+func (m *MockSyncReadConnection) Read() (*messages.ResolvedEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read")
-	ret0, _ := ret[0].(*messages.RecordedEvent)
+	ret0, _ := ret[0].(*messages.ResolvedEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

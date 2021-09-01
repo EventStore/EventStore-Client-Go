@@ -1,5 +1,7 @@
 package persistent
 
+//go:generate mockgen -source=client.go -destination=client_mock.go -package=persistent
+
 import (
 	"context"
 

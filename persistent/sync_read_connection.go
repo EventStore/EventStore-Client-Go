@@ -1,5 +1,7 @@
 package persistent
 
+//go:generate mockgen -source=sync_read_connection.go -destination=sync_read_connection_mock.go -package=persistent
+
 import (
 	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/subscription"
