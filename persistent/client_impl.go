@@ -169,9 +169,9 @@ func (client clientImpl) DeleteAllSubscription(ctx context.Context, handle conne
 	return nil
 }
 
-func NewClient(inner connection.GrpcClient, client persistentProto.PersistentSubscriptionsClient) Client {
+func newClientImpl(grpcClient connection.GrpcClient, client persistentProto.PersistentSubscriptionsClient) clientImpl {
 	return clientImpl{
-		grpcClient:                   inner,
+		grpcClient:                   grpcClient,
 		persistentSubscriptionClient: client,
 		syncReadConnectionFactory:    SyncReadConnectionFactoryImpl{},
 		messageAdapterProvider:       messageAdapterProviderImpl{},

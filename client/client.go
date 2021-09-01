@@ -29,16 +29,18 @@ func ParseConnectionString(str string) (*connection.Configuration, error) {
 
 // Client ...
 type Client struct {
-	grpcClient connection.GrpcClient
-	Config     *connection.Configuration
+	grpcClient              connection.GrpcClient
+	Config                  *connection.Configuration
+	persistentClientFactory persistent.ClientFactory
 }
 
 // NewClient ...
 func NewClient(configuration *connection.Configuration) (*Client, error) {
 	grpcClient := connection.NewGrpcClient(*configuration)
 	return &Client{
-		grpcClient: grpcClient,
-		Config:     configuration,
+		grpcClient:              grpcClient,
+		Config:                  configuration,
+		persistentClientFactory: persistent.ClientFactoryImpl{},
 	}, nil
 }
 
@@ -169,7 +171,6 @@ func (client *Client) TombstoneStream(
 	var headers, trailers metadata.MD
 	tombstoneRequest := protoutils.ToTombstoneRequest(streamID, streamRevision)
 	tombstoneResponse, err := streamsClient.Tombstone(context, tombstoneRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
-
 	if err != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("Failed to perform delete, details: %v", err)
@@ -348,7 +349,8 @@ func (client *Client) ConnectToPersistentSubscription(
 	if err != nil {
 		return nil, err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.SubscribeToStreamSync(
 		ctx,
@@ -367,7 +369,8 @@ func (client *Client) CreatePersistentSubscription(
 	if err != nil {
 		return err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, streamConfig)
 }
@@ -380,7 +383,8 @@ func (client *Client) CreatePersistentSubscriptionAll(
 	if err != nil {
 		return err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.CreateAllSubscription(ctx, handle, allOptions)
 }
@@ -393,7 +397,8 @@ func (client *Client) UpdatePersistentStreamSubscription(
 	if err != nil {
 		return err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, streamConfig)
 }
@@ -406,7 +411,8 @@ func (client *Client) UpdatePersistentSubscriptionAll(
 	if err != nil {
 		return err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, allOptions)
 }
@@ -419,7 +425,8 @@ func (client *Client) DeletePersistentSubscription(
 	if err != nil {
 		return err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, handle, deleteOptions)
 }
@@ -432,7 +439,8 @@ func (client *Client) DeletePersistentSubscriptionAll(
 	if err != nil {
 		return err
 	}
-	persistentSubscriptionClient := persistent.NewClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+	persistentSubscriptionClient := client.persistentClientFactory.
+		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName)
 }

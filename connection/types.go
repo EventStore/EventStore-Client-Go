@@ -1,5 +1,7 @@
 package connection
 
+//go:generate mockgen -source=types.go -destination=types_mock.go -package=connection
+
 import (
 	"fmt"
 	"net"
@@ -54,7 +56,6 @@ func ParseEndPoint(s string) (*EndPoint, error) {
 		ip := net.ParseIP(tokens[0])
 		if ip == nil {
 			_, err := url.Parse(tokens[0])
-
 			if err != nil {
 				return nil, fmt.Errorf("invalid hostname [%s]", tokens[0])
 			}
@@ -71,7 +72,6 @@ func ParseEndPoint(s string) (*EndPoint, error) {
 		ip := net.ParseIP(s)
 		if ip == nil {
 			_, err := url.Parse(s)
-
 			if err != nil {
 				return nil, fmt.Errorf("invalid hostname [%s]", s)
 			}
