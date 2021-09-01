@@ -2,7 +2,9 @@ package client_test
 
 import (
 	"context"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/EventStore/EventStore-Client-Go/messages"
@@ -306,4 +308,69 @@ func pushEventsToStream(t *testing.T,
 		events)
 
 	require.NoError(t, err)
+}
+
+func TestPersistentSubscriptionClosing(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer client.Close()
+
+	streamID := "dataset20M-0"
+	groupName := "Group 1"
+	var bufferSize int32 = 2
+
+	streamConfig := persistent.SubscriptionStreamConfig{
+		StreamOption: persistent.StreamSettings{
+			StreamName: []byte(streamID),
+			Revision:   persistent.Revision_Start,
+		},
+		GroupName: groupName,
+		Settings:  persistent.DefaultSubscriptionSettings,
+	}
+
+	err := client.CreatePersistentSubscription(context.Background(), streamConfig)
+
+	require.NoError(t, err)
+
+	var receivedEvents sync.WaitGroup
+	var droppedEvent sync.WaitGroup
+
+	subscription, err := client.ConnectToPersistentSubscription(
+		context.Background(), bufferSize, groupName, []byte(streamID))
+
+	require.NoError(t, err)
+
+	go func() {
+		current := 1
+
+		for {
+			subEvent := subscription.Recv()
+
+			if subEvent.EventAppeared != nil {
+				if current <= 10 {
+					receivedEvents.Done()
+					current++
+				}
+
+				subscription.Ack(subEvent.EventAppeared)
+
+				continue
+			}
+
+			if subEvent.Dropped != nil {
+				droppedEvent.Done()
+				break
+			}
+		}
+	}()
+
+	require.NoError(t, err)
+	receivedEvents.Add(10)
+	droppedEvent.Add(1)
+	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+	require.False(t, timedOut, "Timed out waiting for initial set of events")
+	subscription.Close()
+	timedOut = waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
+	require.False(t, timedOut, "Timed out waiting for dropped event")
 }
