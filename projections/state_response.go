@@ -50,6 +50,12 @@ func (s *StateResponseNumber) Value() float64 {
 	return s.value
 }
 
+const (
+	StateAbortedOrStopped = "Aborted/Stopped"
+	StateRunning          = "Running"
+	StateStopped          = "Stopped"
+)
+
 type StateResponseString struct {
 	value string
 }

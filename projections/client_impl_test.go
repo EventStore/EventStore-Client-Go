@@ -5,6 +5,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+
+	"github.com/EventStore/EventStore-Client-Go/connection"
+
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 
 	"google.golang.org/protobuf/types/known/structpb"
@@ -19,7 +26,9 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+
 	ctx := context.Background()
 
 	options := CreateOptionsRequest{}
@@ -32,26 +41,59 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Create(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Create(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.CreateProjection(ctx, options)
+		err := client.CreateProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Create(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.CreateProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Create(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.CreateReq,
+					options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.CreateProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToCreateProjectionErr)
 	})
 }
 
@@ -59,7 +101,8 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := UpdateOptionsRequest{}
@@ -72,26 +115,59 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Update(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Update(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.UpdateProjection(ctx, options)
+		err := client.UpdateProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Update(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.UpdateProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Update(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.UpdateReq,
+					options ...grpc.CallOption) (*persistent.UpdateResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.UpdateProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToUpdateProjectionErr)
 	})
 }
 
@@ -99,7 +175,8 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := DeleteOptionsRequest{}
@@ -108,26 +185,59 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Delete(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Delete(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.DeleteProjection(ctx, options)
+		err := client.DeleteProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Delete(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.DeleteProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Delete(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.DeleteReq,
+					options ...grpc.CallOption) (*persistent.DeleteResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.DeleteProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToDeleteProjectionErr)
 	})
 }
 
@@ -135,7 +245,8 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := StatisticsOptionsRequest{}
@@ -144,28 +255,61 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Statistics(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		statisticsClient, err := client.ProjectionStatistics(ctx, options)
+		statisticsClient, err := client.ProjectionStatistics(ctx, handle, options)
 		require.NotNil(t, statisticsClient)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Statistics(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		statisticsClient, err := client.ProjectionStatistics(ctx, options)
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.StatisticsReq,
+					options ...grpc.CallOption) (projections.Projections_StatisticsClient, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		statisticsClient, err := client.ProjectionStatistics(ctx, handle, options)
 		require.Nil(t, statisticsClient)
-		require.EqualError(t, err, someError.Error())
+		require.EqualError(t, err, FailedToFetchProjectionStatisticsErr)
 	})
 }
 
@@ -173,33 +317,67 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := DisableOptionsRequest{}
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Disable(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.DisableProjection(ctx, options)
+		err := client.DisableProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Disable(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.DisableProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.DisableReq,
+					options ...grpc.CallOption) (*projections.DisableResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.DisableProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToDisableProjectionErr)
 	})
 }
 
@@ -207,33 +385,67 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := AbortOptionsRequest{}
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Disable(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.AbortProjection(ctx, options)
+		err := client.AbortProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Disable(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.AbortProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.DisableReq,
+					options ...grpc.CallOption) (*projections.DisableResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.AbortProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToAbortProjectionErr)
 	})
 }
 
@@ -241,7 +453,8 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := EnableOptionsRequest{}
@@ -249,26 +462,58 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Enable(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Enable(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.EnableProjection(ctx, options)
+		err := client.EnableProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Enable(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.EnableProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Enable(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.EnableReq,
+					options ...grpc.CallOption) (*projections.EnableResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+		err := client.EnableProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToEnableProjectionErr)
 	})
 }
 
@@ -276,7 +521,8 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := ResetOptionsRequest{}
@@ -284,26 +530,59 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Reset(ctx, grpcOptions).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Reset(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.ResetProjection(ctx, options)
+		err := client.ResetProjection(ctx, handle, options)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Reset(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.ResetProjection(ctx, options)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Reset(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.ResetReq,
+					options ...grpc.CallOption) (*projections.ResetResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.ResetProjection(ctx, handle, options)
+		require.EqualError(t, err, FailedToResetProjectionErr)
 	})
 }
 
@@ -311,7 +590,8 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := StateOptionsRequest{}
@@ -325,30 +605,63 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().State(ctx, grpcOptions).Times(1).Return(response, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().State(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(response, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
 		expectedStateResponse := newStateResponse(response)
 
-		state, err := client.ProjectionState(ctx, options)
+		state, err := client.GetProjectionState(ctx, handle, options)
 		require.Equal(t, expectedStateResponse, state)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().State(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		state, err := client.ProjectionState(ctx, options)
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().State(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.StateReq,
+					options ...grpc.CallOption) (*projections.StateResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		state, err := client.GetProjectionState(ctx, handle, options)
 		require.Nil(t, state)
-		require.EqualError(t, err, someError.Error())
+		require.EqualError(t, err, FailedToGetProjectionStateErr)
 	})
 }
 
@@ -356,7 +669,8 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	options := ResultOptionsRequest{}
@@ -370,30 +684,63 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		grpcClientMock.EXPECT().Result(ctx, grpcOptions).Times(1).Return(response, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Result(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(response, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
 		expectedStateResponse := newResultResponse(response)
 
-		state, err := client.ProjectionResult(ctx, options)
+		state, err := client.GetProjectionResult(ctx, handle, options)
 		require.Equal(t, expectedStateResponse, state)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().Result(ctx, grpcOptions).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		state, err := client.ProjectionResult(ctx, options)
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Result(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.ResultReq,
+					options ...grpc.CallOption) (*projections.ResultResp, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		state, err := client.GetProjectionResult(ctx, handle, options)
 		require.Nil(t, state)
-		require.EqualError(t, err, someError.Error())
+		require.EqualError(t, err, FailedToGetProjectionResultErr)
 	})
 }
 
@@ -401,40 +748,76 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcClientMock := projections.NewMockProjectionsClient(ctrl)
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
 	t.Run("Success with RestartSubsystem return nil", func(t *testing.T) {
-		grpcClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{}).Times(1).Return(nil, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.RestartProjectionsSubsystem(ctx)
+		err := client.RestartProjectionsSubsystem(ctx, handle)
 		require.NoError(t, err)
 	})
 
 	t.Run("Success with RestartSubsystem return &shared.Empty{}", func(t *testing.T) {
-		grpcClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{}).Times(1).Return(&shared.Empty{}, nil)
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(&shared.Empty{}, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		err := client.RestartProjectionsSubsystem(ctx)
+		err := client.RestartProjectionsSubsystem(ctx, handle)
 		require.NoError(t, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
-		someError := errors.New("some error")
-		grpcClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{}).Times(1).Return(nil, someError)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		client := ClientImpl{
-			projectionsClient: grpcClientMock,
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
 		}
 
-		err := client.RestartProjectionsSubsystem(ctx)
-		require.EqualError(t, err, someError.Error())
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *shared.Empty,
+					options ...grpc.CallOption) (*shared.Empty, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		err := client.RestartProjectionsSubsystem(ctx, handle)
+		require.EqualError(t, err, FailedToRestartProjectionsSubsystemErr)
 	})
 }

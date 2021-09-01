@@ -455,7 +455,7 @@ func (client *Client) CreateProjection(ctx context.Context, options projections.
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.CreateProjection(ctx, options)
+	return projectionsClient.CreateProjection(ctx, handle, options)
 }
 
 func (client *Client) UpdateProjection(ctx context.Context, options projections.UpdateOptionsRequest) error {
@@ -467,7 +467,7 @@ func (client *Client) UpdateProjection(ctx context.Context, options projections.
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.UpdateProjection(ctx, options)
+	return projectionsClient.UpdateProjection(ctx, handle, options)
 }
 
 func (client *Client) AbortProjection(ctx context.Context, options projections.AbortOptionsRequest) error {
@@ -479,7 +479,7 @@ func (client *Client) AbortProjection(ctx context.Context, options projections.A
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.AbortProjection(ctx, options)
+	return projectionsClient.AbortProjection(ctx, handle, options)
 }
 
 func (client *Client) DisableProjection(ctx context.Context, options projections.DisableOptionsRequest) error {
@@ -491,7 +491,7 @@ func (client *Client) DisableProjection(ctx context.Context, options projections
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.DisableProjection(ctx, options)
+	return projectionsClient.DisableProjection(ctx, handle, options)
 }
 
 func (client *Client) DeleteProjection(ctx context.Context, options projections.DeleteOptionsRequest) error {
@@ -503,7 +503,7 @@ func (client *Client) DeleteProjection(ctx context.Context, options projections.
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.DeleteProjection(ctx, options)
+	return projectionsClient.DeleteProjection(ctx, handle, options)
 }
 
 func (client *Client) EnableProjection(ctx context.Context, options projections.EnableOptionsRequest) error {
@@ -515,7 +515,7 @@ func (client *Client) EnableProjection(ctx context.Context, options projections.
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.EnableProjection(ctx, options)
+	return projectionsClient.EnableProjection(ctx, handle, options)
 }
 
 func (client *Client) RestartProjectionsSubsystem(ctx context.Context) error {
@@ -527,7 +527,7 @@ func (client *Client) RestartProjectionsSubsystem(ctx context.Context) error {
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.RestartProjectionsSubsystem(ctx)
+	return projectionsClient.RestartProjectionsSubsystem(ctx, handle)
 }
 
 func (client *Client) GetProjectionState(
@@ -541,7 +541,7 @@ func (client *Client) GetProjectionState(
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.GetProjectionState(ctx, options)
+	return projectionsClient.GetProjectionState(ctx, handle, options)
 }
 
 func (client *Client) GetProjectionResult(
@@ -555,7 +555,7 @@ func (client *Client) GetProjectionResult(
 	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
-	return projectionsClient.GetProjectionResult(ctx, options)
+	return projectionsClient.GetProjectionResult(ctx, handle, options)
 }
 
 func readInternal(
