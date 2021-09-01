@@ -42,6 +42,7 @@ func NewClient(configuration *connection.Configuration) (*Client, error) {
 		grpcClient:              grpcClient,
 		Config:                  configuration,
 		persistentClientFactory: persistent.ClientFactoryImpl{},
+		projectionClientFactory: projections.ClientFactoryImpl{},
 	}, nil
 }
 
