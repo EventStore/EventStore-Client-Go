@@ -7,7 +7,7 @@ type StatisticsClientSync interface {
 }
 
 const (
-	StatisticsStatusAborted = "Aborted"
+	StatisticsStatusAborted = "Stopped"
 	StatisticsStatusStopped = "Aborted/Stopped"
 	StatisticsStatusRunning = "Running"
 )

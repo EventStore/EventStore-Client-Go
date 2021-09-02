@@ -20,33 +20,36 @@ func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*Containe
 		"EVENTSTORE_START_STANDARD_PROJECTIONS=true")
 }
 
-func Test_CreateContinuousProjection(t *testing.T) {
+func Test_CreateContinuousProjection_TrackEmittedStreamsFalse(t *testing.T) {
 	// instance EventStore container and client
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
-	t.Run("TrackEmittedStreams is false", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeContinuousOption{
-			Name:                "MyContinuous_false",
-			TrackEmittedStreams: false,
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
+		Name:                "MyContinuous_false",
+		TrackEmittedStreams: false,
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
-	})
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
+}
 
-	t.Run("TrackEmittedStreams is true", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeContinuousOption{
-			Name:                "MyContinuous_true",
-			TrackEmittedStreams: true,
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+func Test_CreateContinuousProjection_TrackEmittedStreamsTrue(t *testing.T) {
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
 
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
-	})
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
+		Name:                "MyContinuous_true",
+		TrackEmittedStreams: true,
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
 }
 
 func Test_CreateTransientProjection(t *testing.T) {
@@ -78,129 +81,145 @@ func Test_CreateOneTimeProjection(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_UpdateContinuousProjection(t *testing.T) {
+func Test_UpdateContinuousProjection_NoEmit(t *testing.T) {
 	// instance EventStore container and client
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
-	t.Run("No Emit", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeContinuousOption{
-			Name:                "MyContinuous_no_emit",
-			TrackEmittedStreams: false,
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
+		Name:                "MyContinuous_no_emit",
+		TrackEmittedStreams: false,
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
 
-		updateOptions := projections.UpdateOptionsRequest{}
-		updateOptions.SetName("MyContinuous_no_emit")
-		updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
-			SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyContinuous_no_emit")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
 
-		err = clientInstance.UpdateProjection(context.Background(), updateOptions)
-		require.NoError(t, err)
-	})
-
-	t.Run("Emit is false", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeContinuousOption{
-			Name:                "MyContinuous_emit_false",
-			TrackEmittedStreams: false,
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
-
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
-
-		updateOptions := projections.UpdateOptionsRequest{}
-		updateOptions.SetName("MyContinuous_emit_false")
-		updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
-			SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
-
-		err = clientInstance.UpdateProjection(context.Background(), updateOptions)
-		require.NoError(t, err)
-	})
-
-	t.Run("Emit is true", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeContinuousOption{
-			Name:                "MyContinuous_emit_true",
-			TrackEmittedStreams: false,
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
-
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
-
-		updateOptions := projections.UpdateOptionsRequest{}
-		updateOptions.SetName("MyContinuous_emit_true")
-		updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
-			SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
-
-		err = clientInstance.UpdateProjection(context.Background(), updateOptions)
-		require.NoError(t, err)
-	})
+	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	require.NoError(t, err)
 }
 
-func Test_UpdateTransientProjection(t *testing.T) {
+func Test_UpdateContinuousProjection_EmitFalse(t *testing.T) {
 	// instance EventStore container and client
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
-	t.Run("No Emit", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeTransientOption{
-			Name: "MyTransient_no_emit",
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
+		Name:                "MyContinuous_emit_false",
+		TrackEmittedStreams: false,
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
 
-		updateOptions := projections.UpdateOptionsRequest{}
-		updateOptions.SetName("MyTransient_no_emit")
-		updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
-			SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyContinuous_emit_false")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
 
-		err = clientInstance.UpdateProjection(context.Background(), updateOptions)
-		require.NoError(t, err)
-	})
+	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	require.NoError(t, err)
+}
 
-	t.Run("Emit is false", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeTransientOption{
-			Name: "MyTransient_emit_false",
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+func Test_UpdateContinuousProjection_EmitTrue(t *testing.T) {
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
 
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
+		Name:                "MyContinuous_emit_true",
+		TrackEmittedStreams: false,
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-		updateOptions := projections.UpdateOptionsRequest{}
-		updateOptions.SetName("MyTransient_emit_false")
-		updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
-			SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
 
-		err = clientInstance.UpdateProjection(context.Background(), updateOptions)
-		require.NoError(t, err)
-	})
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyContinuous_emit_true")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
 
-	t.Run("Emit is true", func(t *testing.T) {
-		createOptions := projections.CreateOptionsRequest{}
-		createOptions.SetMode(projections.CreateConfigModeTransientOption{
-			Name: "MyTransient_emit_true",
-		}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	require.NoError(t, err)
+}
 
-		err := clientInstance.CreateProjection(context.Background(), createOptions)
-		require.NoError(t, err)
+func Test_UpdateTransientProjection_NoEmit(t *testing.T) {
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
 
-		updateOptions := projections.UpdateOptionsRequest{}
-		updateOptions.SetName("MyTransient_emit_true")
-		updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
-			SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeTransientOption{
+		Name: "MyTransient_no_emit",
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-		err = clientInstance.UpdateProjection(context.Background(), updateOptions)
-		require.NoError(t, err)
-	})
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
+
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyTransient_no_emit")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
+
+	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	require.NoError(t, err)
+}
+
+func Test_UpdateTransientProjection_EmitFalse(t *testing.T) {
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
+
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeTransientOption{
+		Name: "MyTransient_emit_false",
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
+
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyTransient_emit_false")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
+
+	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	require.NoError(t, err)
+}
+
+func Test_UpdateTransientProjection_EmitTrue(t *testing.T) {
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
+
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeTransientOption{
+		Name: "MyTransient_emit_true",
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
+
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyTransient_emit_true")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
+
+	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	require.NoError(t, err)
 }
 
 func Test_AbortProjection(t *testing.T) {
