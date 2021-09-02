@@ -114,9 +114,7 @@ func (u UpdateOptionsEmitOptionEnabled) GetType() UpdateOptionsEmitOptionType {
 	return UpdateOptionsEmitOptionEnabledType
 }
 
-type UpdateOptionsEmitOptionNoEmit struct {
-	EmitEnabled bool
-}
+type UpdateOptionsEmitOptionNoEmit struct{}
 
 func (u UpdateOptionsEmitOptionNoEmit) GetType() UpdateOptionsEmitOptionType {
 	return UpdateOptionsEmitOptionNoEmitType
@@ -311,6 +309,11 @@ type DisableOptionsRequest struct {
 	name string
 }
 
+func (disableOptionsRequest *DisableOptionsRequest) SetName(name string) *DisableOptionsRequest {
+	disableOptionsRequest.name = name
+	return disableOptionsRequest
+}
+
 func (disableOptionsRequest *DisableOptionsRequest) Build() *projections.DisableReq {
 	result := &projections.DisableReq{
 		Options: &projections.DisableReq_Options{
@@ -330,6 +333,11 @@ func NewAbortOptionsRequest(projectionName string) *AbortOptionsRequest {
 
 type AbortOptionsRequest struct {
 	name string
+}
+
+func (abortOptionsRequest *AbortOptionsRequest) SetName(name string) *AbortOptionsRequest {
+	abortOptionsRequest.name = name
+	return abortOptionsRequest
 }
 
 func (abortOptionsRequest *AbortOptionsRequest) Build() *projections.DisableReq {

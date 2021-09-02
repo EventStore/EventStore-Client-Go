@@ -6,6 +6,12 @@ type StatisticsClientSync interface {
 	Read() (StatisticsClientResponse, error)
 }
 
+const (
+	StatisticsStatusAborted = "Aborted"
+	StatisticsStatusStopped = "Aborted/Stopped"
+	StatisticsStatusRunning = "Running"
+)
+
 type StatisticsClientResponse struct {
 	CoreProcessingTime                 int64
 	Version                            int64

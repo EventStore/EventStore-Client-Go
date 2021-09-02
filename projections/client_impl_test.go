@@ -263,7 +263,7 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 			projectionsClient: grpcProjectionsClientMock,
 		}
 
-		statisticsClient, err := client.ProjectionStatistics(ctx, handle, options)
+		statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
 		require.NotNil(t, statisticsClient)
 		require.NoError(t, err)
 	})
@@ -307,7 +307,7 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 			grpcClient:        grpcClient,
 		}
 
-		statisticsClient, err := client.ProjectionStatistics(ctx, handle, options)
+		statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
 		require.Nil(t, statisticsClient)
 		require.EqualError(t, err, FailedToFetchProjectionStatisticsErr)
 	})

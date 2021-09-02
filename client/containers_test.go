@@ -78,8 +78,9 @@ func (container *Container) Close() {
 	}
 }
 
-func GetEmptyDatabase() *Container {
+func GetEmptyDatabase(environmentVariables ...string) *Container {
 	options := getDockerOptions()
+	options.Env = append(options.Env, environmentVariables...)
 	return getDatabase(options)
 }
 
@@ -224,13 +225,11 @@ func CreateTestClient(container *Container, t *testing.T) *client.Client {
 
 func CreateClient(connStr string, t *testing.T) *client.Client {
 	config, err := client.ParseConnectionString(connStr)
-
 	if err != nil {
 		t.Fatalf("Error when parsin connection string: %v", err)
 	}
 
 	client, err := client.NewClient(config)
-
 	if err != nil {
 		t.Fatalf("Error when creating an ESDB client: %v", err)
 	}

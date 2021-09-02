@@ -20,7 +20,7 @@ type Client interface {
 	CreateProjection(ctx context.Context, handle connection.ConnectionHandle, options CreateOptionsRequest) error
 	UpdateProjection(ctx context.Context, handle connection.ConnectionHandle, options UpdateOptionsRequest) error
 	DeleteProjection(ctx context.Context, handle connection.ConnectionHandle, options DeleteOptionsRequest) error
-	ProjectionStatistics(ctx context.Context,
+	GetProjectionStatistics(ctx context.Context,
 		handle connection.ConnectionHandle,
 		options StatisticsOptionsRequest) (StatisticsClientSync, error)
 	AbortProjection(ctx context.Context, handle connection.ConnectionHandle, options AbortOptionsRequest) error
@@ -94,7 +94,7 @@ func (client *ClientImpl) DeleteProjection(
 
 const FailedToFetchProjectionStatisticsErr = "FailedToFetchProjectionStatisticsErr"
 
-func (client *ClientImpl) ProjectionStatistics(
+func (client *ClientImpl) GetProjectionStatistics(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
 	options StatisticsOptionsRequest) (StatisticsClientSync, error) {

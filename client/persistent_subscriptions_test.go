@@ -261,8 +261,9 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 
 type CloseClientInstance func()
 
-func initializeContainerAndClient(t *testing.T) (*Container, *client.Client, CloseClientInstance) {
-	container := GetEmptyDatabase()
+func initializeContainerAndClient(t *testing.T,
+	environmentVariables ...string) (*Container, *client.Client, CloseClientInstance) {
+	container := GetEmptyDatabase(environmentVariables...)
 	clientInstance := CreateTestClient(container, t)
 	closeClientInstance := func() {
 		err := clientInstance.Close()
