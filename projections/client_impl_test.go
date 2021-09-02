@@ -3,6 +3,7 @@ package projections
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
@@ -819,5 +820,55 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 
 		err := client.RestartProjectionsSubsystem(ctx, handle)
 		require.EqualError(t, err, FailedToRestartProjectionsSubsystemErr)
+	})
+}
+
+func TestClientImpl_ListAllProjections(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
+	ctx := context.Background()
+
+	options := StatisticsOptionsRequest{}
+	options.SetMode(StatisticsOptionsRequestModeAll{})
+
+	grpcOptions := options.Build()
+
+	t.Run("Success", func(t *testing.T) {
+		var headers, trailers metadata.MD
+		responseList := []*projections.StatisticsResp{
+			{
+				Details: &projections.StatisticsResp_Details{
+					Name: "response 1",
+				},
+			},
+			{
+				Details: &projections.StatisticsResp_Details{
+					Name: "response 2",
+				},
+			},
+		}
+
+		for _, item := range responseList {
+			statisticsClient.EXPECT().Recv().Return(item, nil)
+		}
+
+		statisticsClient.EXPECT().Recv().Return(nil, io.EOF)
+
+		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+		}
+
+		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
+		require.NoError(t, err)
+		require.NotNil(t, allProjectionsResult)
+		require.Len(t, allProjectionsResult, len(responseList))
 	})
 }
