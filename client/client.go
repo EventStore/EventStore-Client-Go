@@ -585,6 +585,19 @@ func (client *Client) GetProjectionStatistics(
 	return projectionsClient.GetProjectionStatistics(ctx, handle, options)
 }
 
+func (client *Client) ListAllProjections(
+	ctx context.Context) ([]projections.StatisticsClientResponse, error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.ListAllProjections(ctx, handle)
+}
+
 func readInternal(
 	ctx context.Context,
 	client connection.GrpcClient,

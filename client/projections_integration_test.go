@@ -457,10 +457,30 @@ func Test_RestartProjectionSubsystem(t *testing.T) {
 }
 
 func Test_ListAllProjections(t *testing.T) {
-	// instance EventStore container
-	containerInstance, _ /*clientInstance*/, closeClientInstance := initializeContainerAndClient(t)
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
+
+	expectedStreamNames := []string{
+		StandardProjectionStreams,
+		StandardProjectionStreamByCategory,
+		StandardProjectionByCategory,
+		StandardProjectionByEventType,
+		StandardProjectionByCorrelationId,
+	}
+
+	result, err := clientInstance.ListAllProjections(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result, len(expectedStreamNames))
+
+	var resultNames []string
+	for _, resultItem := range result {
+		resultNames = append(resultNames, resultItem.Name)
+	}
+
+	require.ElementsMatch(t, expectedStreamNames, resultNames)
 }
 
 func Test_ListContinuousProjections(t *testing.T) {
@@ -479,8 +499,8 @@ func Test_ListOneTimeProjections(t *testing.T) {
 
 const (
 	StandardProjectionStreams          = "$streams"
-	StandardProjectionStreamByCategory = "stream_by_category"
-	StandardProjectionByCategory       = "by_category"
-	StandardProjectionByEventType      = "by_event_type"
-	StandardProjectionByCorrelationId  = "by_correlation_id"
+	StandardProjectionStreamByCategory = "$stream_by_category"
+	StandardProjectionByCategory       = "$by_category"
+	StandardProjectionByEventType      = "$by_event_type"
+	StandardProjectionByCorrelationId  = "$by_correlation_id"
 )

@@ -3,6 +3,7 @@ package projections
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"google.golang.org/grpc"
@@ -31,6 +32,7 @@ type Client interface {
 		handle connection.ConnectionHandle,
 		options ResultOptionsRequest) (ResultResponse, error)
 	RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) error
+	ListAllProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
 }
 
 type ClientImpl struct {
@@ -222,6 +224,36 @@ func (client *ClientImpl) RestartProjectionsSubsystem(ctx context.Context, handl
 	}
 
 	return nil
+}
+
+const FailedToGetListAllProjectionsStatistics = "FailedToGetListAllProjectionsStatistics"
+
+func (client *ClientImpl) ListAllProjections(
+	ctx context.Context,
+	handle connection.ConnectionHandle) ([]StatisticsClientResponse, error) {
+	options := StatisticsOptionsRequest{}
+	options.SetMode(StatisticsOptionsRequestModeAll{})
+
+	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+	if err != nil {
+		return nil, errors.New(FailedToGetListAllProjectionsStatistics)
+	}
+
+	var result []StatisticsClientResponse
+
+	for {
+		statisticsResult, err := statisticsClient.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+
+		result = append(result, statisticsResult)
+	}
+
+	return result, nil
 }
 
 func newClientImpl(
