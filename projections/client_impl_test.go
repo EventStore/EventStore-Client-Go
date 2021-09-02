@@ -839,7 +839,6 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
 		responseList := []*projections.StatisticsResp{
 			{
 				Details: &projections.StatisticsResp_Details{
@@ -859,6 +858,7 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 
 		statisticsClient.EXPECT().Recv().Return(nil, io.EOF)
 
+		var headers, trailers metadata.MD
 		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
 
@@ -870,6 +870,69 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, allProjectionsResult)
 		require.Len(t, allProjectionsResult, len(responseList))
+	})
+
+	t.Run("Error returned from Statistics", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
+		}
+
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.StatisticsReq,
+					options ...grpc.CallOption) (projections.Projections_StatisticsClient, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
+		require.Error(t, err)
+		require.Nil(t, allProjectionsResult)
+		require.EqualError(t, err, FailedToListAllProjectionsStatistics)
+	})
+
+	t.Run("Error returned from statistics client read", func(t *testing.T) {
+		errorResult := errors.New("some error")
+		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
+
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+		}
+
+		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
+		require.Error(t, err)
+		require.EqualError(t, err, errorResult.Error())
+		require.Nil(t, allProjectionsResult)
 	})
 }
 
@@ -921,6 +984,69 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 		require.NotNil(t, projectionsResult)
 		require.Len(t, projectionsResult, len(responseList))
 	})
+
+	t.Run("Error returned from Statistics", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
+		}
+
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.StatisticsReq,
+					options ...grpc.CallOption) (projections.Projections_StatisticsClient, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		allProjectionsResult, err := client.ListContinuousProjections(ctx, handle)
+		require.Error(t, err)
+		require.Nil(t, allProjectionsResult)
+		require.EqualError(t, err, FailedToListAllContinuousProjections)
+	})
+
+	t.Run("Error returned from statistics client read", func(t *testing.T) {
+		errorResult := errors.New("some error")
+		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
+
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+		}
+
+		allProjectionsResult, err := client.ListContinuousProjections(ctx, handle)
+		require.Error(t, err)
+		require.EqualError(t, err, errorResult.Error())
+		require.Nil(t, allProjectionsResult)
+	})
 }
 
 func TestClientImpl_ListOneTimeProjections(t *testing.T) {
@@ -970,5 +1096,68 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, projectionsResult)
 		require.Len(t, projectionsResult, len(responseList))
+	})
+
+	t.Run("Error returned from Statistics", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+
+		errorResult := errors.New("some error")
+		expectedHeader := metadata.MD{
+			"header_key": []string{"header_value"},
+		}
+
+		expectedTrailer := metadata.MD{
+			"trailer_key": []string{"trailer_value"},
+		}
+
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).
+				DoAndReturn(func(
+					_ctx context.Context,
+					_protoRequest *projections.StatisticsReq,
+					options ...grpc.CallOption) (projections.Projections_StatisticsClient, error) {
+
+					*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+						"header_key": []string{"header_value"},
+					}
+
+					*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+						"trailer_key": []string{"trailer_value"},
+					}
+					return nil, errorResult
+				}),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:        grpcClient,
+		}
+
+		allProjectionsResult, err := client.ListOneTimeProjections(ctx, handle)
+		require.Error(t, err)
+		require.Nil(t, allProjectionsResult)
+		require.EqualError(t, err, FailedToListOneTimeProjections)
+	})
+
+	t.Run("Error returned from statistics client read", func(t *testing.T) {
+		errorResult := errors.New("some error")
+		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
+
+		var headers, trailers metadata.MD
+		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		client := ClientImpl{
+			projectionsClient: grpcProjectionsClientMock,
+		}
+
+		allProjectionsResult, err := client.ListOneTimeProjections(ctx, handle)
+		require.Error(t, err)
+		require.EqualError(t, err, errorResult.Error())
+		require.Nil(t, allProjectionsResult)
 	})
 }
