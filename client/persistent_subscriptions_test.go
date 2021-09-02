@@ -274,13 +274,13 @@ func initializeContainerAndClient(t *testing.T,
 
 func pushEventToStream(t *testing.T, clientInstance *client.Client, streamID string) {
 	testEvent := createTestEvent()
-	pushEventsToStream(t, clientInstance, streamID, []messages.ProposedEvent{testEvent})
+	pushEventsToStream(t, clientInstance, streamID, testEvent)
 }
 
 func pushEventsToStream(t *testing.T,
 	clientInstance *client.Client,
 	streamID string,
-	events []messages.ProposedEvent) {
+	events ...messages.ProposedEvent) {
 	_, err := clientInstance.AppendToStream(
 		context.Background(),
 		streamID,

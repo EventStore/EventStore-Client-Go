@@ -3,13 +3,10 @@ package projections
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 
@@ -193,8 +190,6 @@ func (client *ClientImpl) GetProjectionState(
 		return nil, errors.New(FailedToGetProjectionStateErr)
 	}
 
-	fmt.Println("GetProjectionState: ", spew.Sdump(result.State.Kind))
-
 	return newStateResponse(result), nil
 }
 
@@ -212,7 +207,6 @@ func (client *ClientImpl) GetProjectionResult(
 		return nil, errors.New(FailedToGetProjectionResultErr)
 	}
 
-	fmt.Println("GetProjectionResult: ", spew.Sdump(result.Result.Kind))
 	return newResultResponse(result), nil
 }
 

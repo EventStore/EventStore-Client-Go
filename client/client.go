@@ -495,6 +495,18 @@ func (client *Client) DisableProjection(ctx context.Context, options projections
 	return projectionsClient.DisableProjection(ctx, handle, options)
 }
 
+func (client *Client) ResetProjection(ctx context.Context, options projections.ResetOptionsRequest) error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.projectionClientFactory.CreateClient(client.grpcClient,
+		projectionsProto.NewProjectionsClient(handle.Connection()))
+
+	return projectionsClient.ResetProjection(ctx, handle, options)
+}
+
 func (client *Client) DeleteProjection(ctx context.Context, options projections.DeleteOptionsRequest) error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {

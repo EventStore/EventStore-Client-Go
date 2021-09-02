@@ -20,8 +20,7 @@ func Test_PersistentSubscription_ReadExistingStream_AckToReceiveNewEvents(t *tes
 	firstEvent := createTestEvent()
 	secondEvent := createTestEvent()
 	thirdEvent := createTestEvent()
-	events := []messages.ProposedEvent{firstEvent, secondEvent, thirdEvent}
-	pushEventsToStream(t, clientInstance, streamID, events)
+	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
 	groupName := "Group 1"
 	err := clientInstance.CreatePersistentSubscription(
@@ -482,8 +481,7 @@ func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *te
 	firstEvent := createTestEvent()
 	secondEvent := createTestEvent()
 	thirdEvent := createTestEvent()
-	events := []messages.ProposedEvent{firstEvent, secondEvent, thirdEvent}
-	pushEventsToStream(t, clientInstance, streamID, events)
+	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
 	groupName := "Group 1"
 	err := clientInstance.CreatePersistentSubscription(

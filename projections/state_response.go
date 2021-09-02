@@ -1,6 +1,8 @@
 package projections
 
 import (
+	"encoding/json"
+
 	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -69,14 +71,14 @@ func (s *StateResponseString) Value() string {
 }
 
 type StateResponseStruct struct {
-	value map[string]JSONBytes
+	value JSONBytes
 }
 
 func (s *StateResponseStruct) GetType() StateResponseType {
 	return StateResponseStructType
 }
 
-func (s *StateResponseStruct) Value() map[string]JSONBytes {
+func (s *StateResponseStruct) Value() JSONBytes {
 	return s.value
 }
 
@@ -142,15 +144,10 @@ func newStateResponse(state *projections.StateResp) StateResponse {
 	return nil
 }
 
-func newStateResponseStructMap(grpcValue map[string]*structpb.Value) map[string]JSONBytes {
-	result := map[string]JSONBytes{}
-
-	for key, value := range grpcValue {
-		byteValue, err := value.MarshalJSON()
-		if err != nil {
-			panic(err)
-		}
-		result[key] = byteValue
+func newStateResponseStructMap(grpcValue map[string]*structpb.Value) JSONBytes {
+	result, err := json.Marshal(grpcValue)
+	if err != nil {
+		panic(err)
 	}
 
 	return result
