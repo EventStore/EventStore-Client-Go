@@ -12,6 +12,8 @@ const (
 	StatisticsStatusRunning = "Running"
 )
 
+const StatisticsModeOneTime = "OneTime"
+
 type StatisticsClientResponse struct {
 	CoreProcessingTime                 int64
 	Version                            int64

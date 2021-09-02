@@ -33,6 +33,11 @@ type Client interface {
 		options ResultOptionsRequest) (ResultResponse, error)
 	RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) error
 	ListAllProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
+	ListContinuousProjections(ctx context.Context,
+		handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
+	ListOneTimeProjections(
+		ctx context.Context,
+		handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
 }
 
 type ClientImpl struct {
@@ -226,7 +231,7 @@ func (client *ClientImpl) RestartProjectionsSubsystem(ctx context.Context, handl
 	return nil
 }
 
-const FailedToGetListAllProjectionsStatistics = "FailedToGetListAllProjectionsStatistics"
+const FailedToListAllProjectionsStatistics = "FailedToListAllProjectionsStatistics"
 
 func (client *ClientImpl) ListAllProjections(
 	ctx context.Context,
@@ -236,7 +241,67 @@ func (client *ClientImpl) ListAllProjections(
 
 	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
 	if err != nil {
-		return nil, errors.New(FailedToGetListAllProjectionsStatistics)
+		return nil, errors.New(FailedToListAllProjectionsStatistics)
+	}
+
+	var result []StatisticsClientResponse
+
+	for {
+		statisticsResult, err := statisticsClient.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+
+		result = append(result, statisticsResult)
+	}
+
+	return result, nil
+}
+
+const FailedToListAllContinuousProjections = "FailedToListAllContinuousProjections"
+
+func (client *ClientImpl) ListContinuousProjections(
+	ctx context.Context,
+	handle connection.ConnectionHandle) ([]StatisticsClientResponse, error) {
+	options := StatisticsOptionsRequest{}
+	options.SetMode(StatisticsOptionsRequestModeContinuous{})
+
+	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+	if err != nil {
+		return nil, errors.New(FailedToListAllContinuousProjections)
+	}
+
+	var result []StatisticsClientResponse
+
+	for {
+		statisticsResult, err := statisticsClient.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+
+		result = append(result, statisticsResult)
+	}
+
+	return result, nil
+}
+
+const FailedToListOneTimeProjections = "FailedToListOneTimeProjections"
+
+func (client *ClientImpl) ListOneTimeProjections(
+	ctx context.Context,
+	handle connection.ConnectionHandle) ([]StatisticsClientResponse, error) {
+	options := StatisticsOptionsRequest{}
+	options.SetMode(StatisticsOptionsRequestModeOneTime{})
+
+	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+	if err != nil {
+		return nil, errors.New(FailedToListOneTimeProjections)
 	}
 
 	var result []StatisticsClientResponse

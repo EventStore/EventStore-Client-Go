@@ -484,17 +484,61 @@ func Test_ListAllProjections(t *testing.T) {
 }
 
 func Test_ListContinuousProjections(t *testing.T) {
-	// instance EventStore container
-	containerInstance, _ /*clientInstance*/, closeClientInstance := initializeContainerAndClient(t)
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
+
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
+		Name:                "MyContinuous_false",
+		TrackEmittedStreams: false,
+	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
+
+	expectedStreamNames := []string{
+		StandardProjectionStreams,
+		StandardProjectionStreamByCategory,
+		StandardProjectionByCategory,
+		StandardProjectionByEventType,
+		StandardProjectionByCorrelationId,
+		"MyContinuous_false",
+	}
+
+	result, err := clientInstance.ListContinuousProjections(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result, len(expectedStreamNames))
+
+	var resultNames []string
+	for _, resultItem := range result {
+		resultNames = append(resultNames, resultItem.Name)
+	}
+
+	require.ElementsMatch(t, expectedStreamNames, resultNames)
 }
 
 func Test_ListOneTimeProjections(t *testing.T) {
-	// instance EventStore container
-	containerInstance, _ /*clientInstance*/, closeClientInstance := initializeContainerAndClient(t)
+	// instance EventStore container and client
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
+
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeOneTimeOption{}).
+		SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+
+	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	require.NoError(t, err)
+
+	result, err := clientInstance.ListOneTimeProjections(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result, 1)
+
+	require.Equal(t, projections.StatisticsModeOneTime, result[0].Mode)
 }
 
 const (
