@@ -1,6 +1,8 @@
 package projections
 
 import (
+	"strings"
+
 	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
@@ -85,6 +87,10 @@ func (statisticsOptions *StatisticsOptionsRequest) Build() *projections.Statisti
 		}
 	} else if statisticsOptions.mode.GetType() == StatisticsOptionsRequestModeNameType {
 		mode := statisticsOptions.mode.(StatisticsOptionsRequestModeName)
+		if strings.TrimSpace(mode.Name) == "" {
+			panic("Failed to build StatisticsOptionsRequest. Trimmed name is an empty string")
+		}
+
 		result.Options.Mode = &projections.StatisticsReq_Options_Name{
 			Name: mode.Name,
 		}
