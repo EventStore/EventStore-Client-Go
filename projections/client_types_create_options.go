@@ -1,6 +1,8 @@
 package projections
 
 import (
+	"strings"
+
 	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
@@ -12,10 +14,6 @@ const (
 	CreateConfigModeTransientOptionType  CreateConfigModeType = "CreateConfigModeTransientOptionType"
 	CreateConfigModeContinuousOptionType CreateConfigModeType = "CreateConfigModeContinuousOptionType"
 )
-
-func CreateConfigBuild() *CreateOptionsRequest {
-	return &CreateOptionsRequest{}
-}
 
 type CreateConfigMode interface {
 	GetType() CreateConfigModeType
@@ -60,6 +58,10 @@ func (createConfig *CreateOptionsRequest) SetMode(mode CreateConfigMode) *Create
 }
 
 func (createConfig *CreateOptionsRequest) Build() *projections.CreateReq {
+	if strings.TrimSpace(createConfig.query) == "" {
+		panic("Failed to build CreateOptionsRequest. Trimmed query is empty string")
+	}
+
 	result := &projections.CreateReq{
 		Options: &projections.CreateReq_Options{
 			Mode:  nil,
@@ -89,10 +91,6 @@ func (createConfig *CreateOptionsRequest) Build() *projections.CreateReq {
 	}
 
 	return result
-}
-
-func CreateUpdateOptions() *UpdateOptionsRequest {
-	return &UpdateOptionsRequest{}
 }
 
 type UpdateOptionsEmitOptionType string
@@ -161,10 +159,6 @@ func (updateConfig *UpdateOptionsRequest) Build() *projections.UpdateReq {
 	}
 
 	return result
-}
-
-func NewDeleteOptionsRequest() *DeleteOptionsRequest {
-	return &DeleteOptionsRequest{}
 }
 
 type DeleteOptionsRequest struct {
@@ -253,10 +247,6 @@ func (s StatisticsOptionsRequestModeOneTime) GetType() StatisticsOptionsRequestM
 	return StatisticsOptionsRequestModeOneTimeType
 }
 
-func NewStatisticsOptionsRequest() *StatisticsOptionsRequest {
-	return &StatisticsOptionsRequest{}
-}
-
 type StatisticsOptionsRequest struct {
 	mode StatisticsOptionsRequestMode
 }
@@ -299,12 +289,6 @@ func (statisticsOptions *StatisticsOptionsRequest) Build() *projections.Statisti
 	return result
 }
 
-func NewDisableOptionsRequest(projectionName string) *DisableOptionsRequest {
-	return &DisableOptionsRequest{
-		name: projectionName,
-	}
-}
-
 type DisableOptionsRequest struct {
 	name string
 }
@@ -323,12 +307,6 @@ func (disableOptionsRequest *DisableOptionsRequest) Build() *projections.Disable
 	}
 
 	return result
-}
-
-func NewAbortOptionsRequest(projectionName string) *AbortOptionsRequest {
-	return &AbortOptionsRequest{
-		name: projectionName,
-	}
 }
 
 type AbortOptionsRequest struct {
@@ -351,10 +329,6 @@ func (abortOptionsRequest *AbortOptionsRequest) Build() *projections.DisableReq 
 	return result
 }
 
-func NewEnableOptionsRequest() *EnableOptionsRequest {
-	return &EnableOptionsRequest{}
-}
-
 type EnableOptionsRequest struct {
 	name            string
 	writeCheckpoint bool
@@ -373,10 +347,6 @@ func (enableOptionsRequest *EnableOptionsRequest) Build() *projections.EnableReq
 	}
 
 	return result
-}
-
-func NewResetOptionsRequest() *ResetOptionsRequest {
-	return &ResetOptionsRequest{}
 }
 
 type ResetOptionsRequest struct {
@@ -405,10 +375,6 @@ func (resetOptionsRequest *ResetOptionsRequest) Build() *projections.ResetReq {
 	return result
 }
 
-func NewStateOptionsRequest() *ResetOptionsRequest {
-	return &ResetOptionsRequest{}
-}
-
 type StateOptionsRequest struct {
 	name      string
 	partition string
@@ -433,10 +399,6 @@ func (stateOptionsRequest *StateOptionsRequest) Build() *projections.StateReq {
 	}
 
 	return result
-}
-
-func NewResultOptionsRequest() *ResetOptionsRequest {
-	return &ResetOptionsRequest{}
 }
 
 type ResultOptionsRequest struct {
