@@ -1,6 +1,10 @@
 package projections
 
-import "github.com/EventStore/EventStore-Client-Go/protos/projections"
+import (
+	"strings"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/projections"
+)
 
 type EnableOptionsRequest struct {
 	name            string
@@ -13,6 +17,10 @@ func (enableOptionsRequest *EnableOptionsRequest) SetName(name string) *EnableOp
 }
 
 func (enableOptionsRequest *EnableOptionsRequest) Build() *projections.EnableReq {
+	if strings.TrimSpace(enableOptionsRequest.name) == "" {
+		panic("Failed to build EnableOptionsRequest. Trimmed name is an empty string")
+	}
+
 	result := &projections.EnableReq{
 		Options: &projections.EnableReq_Options{
 			Name: enableOptionsRequest.name,
