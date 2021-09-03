@@ -237,7 +237,7 @@ func TestUpdateOptionsRequest_Build(t *testing.T) {
 		})
 	})
 
-	t.Run("Build with name consisting of spaces panics", func(t *testing.T) {
+	t.Run("Panics with name consisting of spaces only", func(t *testing.T) {
 		options := UpdateOptionsRequest{}
 		options.SetName("     ")
 
@@ -246,7 +246,7 @@ func TestUpdateOptionsRequest_Build(t *testing.T) {
 		})
 	})
 
-	t.Run("Build with empty query panics", func(t *testing.T) {
+	t.Run("Panics with empty query", func(t *testing.T) {
 		options := UpdateOptionsRequest{}
 		options.SetQuery("")
 
@@ -255,7 +255,7 @@ func TestUpdateOptionsRequest_Build(t *testing.T) {
 		})
 	})
 
-	t.Run("Build with query consisting of spaces panics", func(t *testing.T) {
+	t.Run("Panics with query consisting of spaces only", func(t *testing.T) {
 		options := UpdateOptionsRequest{}
 		options.SetQuery("     ")
 
