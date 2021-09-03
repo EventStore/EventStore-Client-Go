@@ -1,6 +1,10 @@
 package projections
 
-import "github.com/EventStore/EventStore-Client-Go/protos/projections"
+import (
+	"strings"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/projections"
+)
 
 type DisableOptionsRequest struct {
 	name string
@@ -12,6 +16,10 @@ func (disableOptionsRequest *DisableOptionsRequest) SetName(name string) *Disabl
 }
 
 func (disableOptionsRequest *DisableOptionsRequest) Build() *projections.DisableReq {
+	if strings.TrimSpace(disableOptionsRequest.name) == "" {
+		panic("Failed to build DisableOptionsRequest. Trimmed name is an empty string")
+	}
+
 	result := &projections.DisableReq{
 		Options: &projections.DisableReq_Options{
 			Name:            disableOptionsRequest.name,
