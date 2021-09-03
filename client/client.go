@@ -159,7 +159,7 @@ func (client *Client) DeleteStream(
 	return &DeleteResult{Position: protoutils.DeletePositionFromProto(deleteResponse)}, nil
 }
 
-// Tombstone ...
+// TombstoneStream Tombstone ...
 func (client *Client) TombstoneStream(
 	context context.Context,
 	streamID string,
