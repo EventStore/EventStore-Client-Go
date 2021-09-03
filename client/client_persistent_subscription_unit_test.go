@@ -1,4 +1,4 @@
-package client_test
+package client
 
 import (
 	"context"
@@ -47,12 +47,12 @@ func Test_Client_ConnectToPersistentSubscription(t *testing.T) {
 	persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 		Return(persistentSubscriptionClient)
 
-	client := Client{
+	clientInstance := Client{
 		grpcClient:              grpcClient,
 		persistentClientFactory: persistentSubscriptionClientFactory,
 	}
 
-	connectionResult, err := client.ConnectToPersistentSubscription(ctx, bufferSize, groupName, streamName)
+	connectionResult, err := clientInstance.ConnectToPersistentSubscription(ctx, bufferSize, groupName, streamName)
 	require.Equal(t, expectedErrorResult, err)
 	require.Equal(t, expectedSyncReadConnection, connectionResult)
 }
@@ -88,23 +88,23 @@ func Test_Client_CreatePersistentSubscriptionToStream(t *testing.T) {
 		persistentSubscriptionClient.EXPECT().CreateStreamSubscription(ctx, connectionHandle, streamConfig).Return(nil)
 		persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 			Return(persistentSubscriptionClient)
-		client := Client{
+		clientInstance := Client{
 			grpcClient:              grpcClient,
 			persistentClientFactory: persistentSubscriptionClientFactory,
 		}
 
-		err := client.CreatePersistentSubscription(ctx, streamConfig)
+		err := clientInstance.CreatePersistentSubscription(ctx, streamConfig)
 		require.NoError(t, err)
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
 		expectedErrorResult := errors.New("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
-		client := Client{
+		clientInstance := Client{
 			grpcClient: grpcClient,
 		}
 
-		err := client.CreatePersistentSubscription(ctx, streamConfig)
+		err := clientInstance.CreatePersistentSubscription(ctx, streamConfig)
 		require.Equal(t, expectedErrorResult, err)
 	})
 }
@@ -150,12 +150,12 @@ func Test_Client_CreatePersistentSubscriptionToAll(t *testing.T) {
 		persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 			Return(persistentSubscriptionClient)
 
-		client := Client{
+		clientInstance := Client{
 			persistentClientFactory: persistentSubscriptionClientFactory,
 			grpcClient:              grpcClient,
 		}
 
-		err := client.CreatePersistentSubscriptionAll(ctx, streamConfig)
+		err := clientInstance.CreatePersistentSubscriptionAll(ctx, streamConfig)
 		require.NoError(t, err)
 	})
 
@@ -163,11 +163,11 @@ func Test_Client_CreatePersistentSubscriptionToAll(t *testing.T) {
 		expectedErrorResult := errors.New("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
-		client := Client{
+		clientInstance := Client{
 			grpcClient: grpcClient,
 		}
 
-		err := client.CreatePersistentSubscriptionAll(ctx, streamConfig)
+		err := clientInstance.CreatePersistentSubscriptionAll(ctx, streamConfig)
 		require.Equal(t, expectedErrorResult, err)
 	})
 }
@@ -204,12 +204,12 @@ func Test_Client_UpdatePersistentSubscriptionToStream(t *testing.T) {
 		persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 			Return(persistentSubscriptionClient)
 
-		client := Client{
+		clientInstance := Client{
 			persistentClientFactory: persistentSubscriptionClientFactory,
 			grpcClient:              grpcClient,
 		}
 
-		err := client.UpdatePersistentStreamSubscription(ctx, streamConfig)
+		err := clientInstance.UpdatePersistentStreamSubscription(ctx, streamConfig)
 		require.NoError(t, err)
 	})
 
@@ -217,11 +217,11 @@ func Test_Client_UpdatePersistentSubscriptionToStream(t *testing.T) {
 		expectedErrorResult := errors.New("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
-		client := Client{
+		clientInstance := Client{
 			grpcClient: grpcClient,
 		}
 
-		err := client.UpdatePersistentStreamSubscription(ctx, streamConfig)
+		err := clientInstance.UpdatePersistentStreamSubscription(ctx, streamConfig)
 		require.Equal(t, expectedErrorResult, err)
 	})
 }
@@ -258,12 +258,12 @@ func Test_Client_UpdatePersistentSubscriptionToAll(t *testing.T) {
 		persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 			Return(persistentSubscriptionClient)
 
-		client := Client{
+		clientInstance := Client{
 			persistentClientFactory: persistentSubscriptionClientFactory,
 			grpcClient:              grpcClient,
 		}
 
-		err := client.UpdatePersistentSubscriptionAll(ctx, streamConfig)
+		err := clientInstance.UpdatePersistentSubscriptionAll(ctx, streamConfig)
 		require.NoError(t, err)
 	})
 
@@ -271,11 +271,11 @@ func Test_Client_UpdatePersistentSubscriptionToAll(t *testing.T) {
 		expectedErrorResult := errors.New("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
-		client := Client{
+		clientInstance := Client{
 			grpcClient: grpcClient,
 		}
 
-		err := client.UpdatePersistentSubscriptionAll(ctx, streamConfig)
+		err := clientInstance.UpdatePersistentSubscriptionAll(ctx, streamConfig)
 		require.Equal(t, expectedErrorResult, err)
 	})
 }
@@ -308,12 +308,12 @@ func Test_Client_DeletePersistentSubscriptionToStream(t *testing.T) {
 		persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 			Return(persistentSubscriptionClient)
 
-		client := Client{
+		clientInstance := Client{
 			persistentClientFactory: persistentSubscriptionClientFactory,
 			grpcClient:              grpcClient,
 		}
 
-		err := client.DeletePersistentSubscription(ctx, streamConfig)
+		err := clientInstance.DeletePersistentSubscription(ctx, streamConfig)
 		require.NoError(t, err)
 	})
 
@@ -321,11 +321,11 @@ func Test_Client_DeletePersistentSubscriptionToStream(t *testing.T) {
 		expectedErrorResult := errors.New("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
-		client := Client{
+		clientInstance := Client{
 			grpcClient: grpcClient,
 		}
 
-		err := client.DeletePersistentSubscription(ctx, streamConfig)
+		err := clientInstance.DeletePersistentSubscription(ctx, streamConfig)
 		require.Equal(t, expectedErrorResult, err)
 	})
 }
@@ -355,12 +355,12 @@ func Test_Client_DeletePersistentSubscriptionToAll(t *testing.T) {
 		persistentSubscriptionClientFactory.EXPECT().CreateClient(grpcClient, expectedPersistentSubscriptionsClient).
 			Return(persistentSubscriptionClient)
 
-		client := Client{
+		clientInstance := Client{
 			persistentClientFactory: persistentSubscriptionClientFactory,
 			grpcClient:              grpcClient,
 		}
 
-		err := client.DeletePersistentSubscriptionAll(ctx, groupName)
+		err := clientInstance.DeletePersistentSubscriptionAll(ctx, groupName)
 		require.NoError(t, err)
 	})
 
@@ -368,11 +368,11 @@ func Test_Client_DeletePersistentSubscriptionToAll(t *testing.T) {
 		expectedErrorResult := errors.New("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
-		client := Client{
+		clientInstance := Client{
 			grpcClient: grpcClient,
 		}
 
-		err := client.DeletePersistentSubscriptionAll(ctx, groupName)
+		err := clientInstance.DeletePersistentSubscriptionAll(ctx, groupName)
 		require.Equal(t, expectedErrorResult, err)
 	})
 }
