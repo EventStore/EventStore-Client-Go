@@ -1,6 +1,10 @@
 package projections
 
-import "github.com/EventStore/EventStore-Client-Go/protos/projections"
+import (
+	"strings"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/projections"
+)
 
 type DeleteOptionsRequest struct {
 	name                   string
@@ -30,6 +34,10 @@ func (deleteOptions *DeleteOptionsRequest) SetDeleteCheckpointStream(delete bool
 }
 
 func (deleteOptions *DeleteOptionsRequest) Build() *projections.DeleteReq {
+	if strings.TrimSpace(deleteOptions.name) == "" {
+		panic("Failed to build DeleteOptionsRequest. Trimmed name is an empty string")
+	}
+
 	result := &projections.DeleteReq{
 		Options: &projections.DeleteReq_Options{
 			Name:                   deleteOptions.name,
