@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	messages "github.com/EventStore/EventStore-Client-Go/messages"
-	uuid "github.com/gofrs/uuid"
+	subscription "github.com/EventStore/EventStore-Client-Go/subscription"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,10 +36,10 @@ func (m *MockSyncReadConnection) EXPECT() *MockSyncReadConnectionMockRecorder {
 }
 
 // Ack mocks base method.
-func (m *MockSyncReadConnection) Ack(messageIds ...uuid.UUID) error {
+func (m *MockSyncReadConnection) Ack(msgs ...*messages.ResolvedEvent) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
-	for _, a := range messageIds {
+	for _, a := range msgs {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Ack", varargs...)
@@ -48,16 +48,30 @@ func (m *MockSyncReadConnection) Ack(messageIds ...uuid.UUID) error {
 }
 
 // Ack indicates an expected call of Ack.
-func (mr *MockSyncReadConnectionMockRecorder) Ack(messageIds ...interface{}) *gomock.Call {
+func (mr *MockSyncReadConnectionMockRecorder) Ack(msgs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ack", reflect.TypeOf((*MockSyncReadConnection)(nil).Ack), messageIds...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ack", reflect.TypeOf((*MockSyncReadConnection)(nil).Ack), msgs...)
+}
+
+// Close mocks base method.
+func (m *MockSyncReadConnection) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockSyncReadConnectionMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockSyncReadConnection)(nil).Close))
 }
 
 // Nack mocks base method.
-func (m *MockSyncReadConnection) Nack(reason string, action Nack_Action, messageIds ...uuid.UUID) error {
+func (m *MockSyncReadConnection) Nack(reason string, action Nack_Action, msgs ...*messages.ResolvedEvent) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{reason, action}
-	for _, a := range messageIds {
+	for _, a := range msgs {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Nack", varargs...)
@@ -66,23 +80,22 @@ func (m *MockSyncReadConnection) Nack(reason string, action Nack_Action, message
 }
 
 // Nack indicates an expected call of Nack.
-func (mr *MockSyncReadConnectionMockRecorder) Nack(reason, action interface{}, messageIds ...interface{}) *gomock.Call {
+func (mr *MockSyncReadConnectionMockRecorder) Nack(reason, action interface{}, msgs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{reason, action}, messageIds...)
+	varargs := append([]interface{}{reason, action}, msgs...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Nack", reflect.TypeOf((*MockSyncReadConnection)(nil).Nack), varargs...)
 }
 
-// Read mocks base method.
-func (m *MockSyncReadConnection) Read() (*messages.ResolvedEvent, error) {
+// Recv mocks base method.
+func (m *MockSyncReadConnection) Recv() *subscription.SubscriptionEvent {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Read")
-	ret0, _ := ret[0].(*messages.ResolvedEvent)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "Recv")
+	ret0, _ := ret[0].(*subscription.SubscriptionEvent)
+	return ret0
 }
 
-// Read indicates an expected call of Read.
-func (mr *MockSyncReadConnectionMockRecorder) Read() *gomock.Call {
+// Recv indicates an expected call of Recv.
+func (mr *MockSyncReadConnectionMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockSyncReadConnection)(nil).Read))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockSyncReadConnection)(nil).Recv))
 }

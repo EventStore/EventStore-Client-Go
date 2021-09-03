@@ -5,6 +5,7 @@
 package persistent
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -34,15 +35,15 @@ func (m *MockSyncReadConnectionFactory) EXPECT() *MockSyncReadConnectionFactoryM
 }
 
 // NewSyncReadConnection mocks base method.
-func (m *MockSyncReadConnectionFactory) NewSyncReadConnection(client protoClient, subscriptionId string, messageAdapter messageAdapter) SyncReadConnection {
+func (m *MockSyncReadConnectionFactory) NewSyncReadConnection(client protoClient, subscriptionId string, messageAdapter messageAdapter, cancel context.CancelFunc) SyncReadConnection {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewSyncReadConnection", client, subscriptionId, messageAdapter)
+	ret := m.ctrl.Call(m, "NewSyncReadConnection", client, subscriptionId, messageAdapter, cancel)
 	ret0, _ := ret[0].(SyncReadConnection)
 	return ret0
 }
 
 // NewSyncReadConnection indicates an expected call of NewSyncReadConnection.
-func (mr *MockSyncReadConnectionFactoryMockRecorder) NewSyncReadConnection(client, subscriptionId, messageAdapter interface{}) *gomock.Call {
+func (mr *MockSyncReadConnectionFactoryMockRecorder) NewSyncReadConnection(client, subscriptionId, messageAdapter, cancel interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSyncReadConnection", reflect.TypeOf((*MockSyncReadConnectionFactory)(nil).NewSyncReadConnection), client, subscriptionId, messageAdapter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSyncReadConnection", reflect.TypeOf((*MockSyncReadConnectionFactory)(nil).NewSyncReadConnection), client, subscriptionId, messageAdapter, cancel)
 }

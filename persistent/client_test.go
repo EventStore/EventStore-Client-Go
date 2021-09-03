@@ -46,16 +46,17 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 
 	messageAdapterInstance := messageAdapterImpl{}
 	var headers, trailers metadata.MD
+	cancelCtx, _ := context.WithCancel(ctx)
 
 	gomock.InOrder(
 		persistentSubscriptionClient.EXPECT().
-			Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers)).
+			Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
 		persistentReadClient.EXPECT().Recv().Return(protoReadResponse, nil),
 		messageAdapterProviderInstance.EXPECT().GetMessageAdapter().Return(messageAdapterInstance),
 		syncReadConnectionFactory.EXPECT().
-			NewSyncReadConnection(persistentReadClient, subscriptionId, messageAdapterInstance).
+			NewSyncReadConnection(persistentReadClient, subscriptionId, messageAdapterInstance, gomock.Any()).
 			Return(expectedSyncReadConnection),
 	)
 
@@ -96,8 +97,10 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 	handle := connection.NewMockConnectionHandle(ctrl)
 
 	var headers, trailers metadata.MD
+	canceContext, _ := context.WithCancel(ctx)
+
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers)).
+		persistentSubscriptionClient.EXPECT().Read(canceContext, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
 				_ctx context.Context,
 				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
@@ -143,8 +146,9 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	expectedError := errors.New("new error")
 
 	var headers, trailers metadata.MD
+	cancelCtx, _ := context.WithCancel(ctx)
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers)).
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(expectedError),
 	)
@@ -177,8 +181,9 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 	expectedError := errors.New("new error")
 
 	var headers, trailers metadata.MD
+	cancelCtx, _ := context.WithCancel(ctx)
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers)).
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
 		persistentReadClient.EXPECT().Recv().Return(nil, expectedError),
@@ -213,8 +218,9 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 	}
 
 	var headers, trailers metadata.MD
+	cancelCtx, _ := context.WithCancel(ctx)
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers)).
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
 		persistentReadClient.EXPECT().Recv().Return(protoReadResponse, nil),
