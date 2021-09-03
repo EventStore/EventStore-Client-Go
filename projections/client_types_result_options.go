@@ -1,6 +1,10 @@
 package projections
 
-import "github.com/EventStore/EventStore-Client-Go/protos/projections"
+import (
+	"strings"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/projections"
+)
 
 type ResultOptionsRequest struct {
 	name      string
@@ -18,6 +22,10 @@ func (resultOptionsRequest *ResultOptionsRequest) SetPartition(partition string)
 }
 
 func (resultOptionsRequest *ResultOptionsRequest) Build() *projections.ResultReq {
+	if strings.TrimSpace(resultOptionsRequest.name) == "" {
+		panic("Failed to build ResultOptionsRequest. Trimmed name is an empty string")
+	}
+
 	result := &projections.ResultReq{
 		Options: &projections.ResultReq_Options{
 			Name:      resultOptionsRequest.name,

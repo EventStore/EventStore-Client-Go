@@ -1,6 +1,10 @@
 package projections
 
-import "github.com/EventStore/EventStore-Client-Go/protos/projections"
+import (
+	"strings"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/projections"
+)
 
 type ResetOptionsRequest struct {
 	name            string
@@ -18,6 +22,10 @@ func (resetOptionsRequest *ResetOptionsRequest) SetWriteCheckpoint(writeCheckpoi
 }
 
 func (resetOptionsRequest *ResetOptionsRequest) Build() *projections.ResetReq {
+	if strings.TrimSpace(resetOptionsRequest.name) == "" {
+		panic("Failed to build ResetOptionsRequest. Trimmed name is an empty string")
+	}
+
 	result := &projections.ResetReq{
 		Options: &projections.ResetReq_Options{
 			Name:            resetOptionsRequest.name,
