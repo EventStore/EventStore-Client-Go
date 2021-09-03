@@ -24,12 +24,6 @@ type syncReadConnectionImpl struct {
 	once           *sync.Once
 }
 
-const (
-	Read_FailedToRead_Err                     ErrorCode = "Read_FailedToRead_Err"
-	Read_ReceivedSubscriptionConfirmation_Err ErrorCode = "Read_ReceivedSubscriptionConfirmation_Err"
-	Read_UnknownContentTypeReceived_Err       ErrorCode = "Read_UnknownContentTypeReceived_Err"
-)
-
 func (connection *syncReadConnectionImpl) Recv() *subscription.SubscriptionEvent {
 	channel := make(chan *subscription.SubscriptionEvent)
 	req := request{

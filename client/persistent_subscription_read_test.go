@@ -519,6 +519,46 @@ func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *te
 	require.NotNil(t, thirdReadEvent)
 }
 
+func Test_PersistentSubscription_ReadExistingStream_Cancelled(t *testing.T) {
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
+
+	streamID := "someStream"
+	firstEvent := createTestEvent()
+	pushEventsToStream(t, clientInstance, streamID, firstEvent)
+
+	groupName := "Group 1"
+	err := clientInstance.CreatePersistentSubscription(
+		context.Background(),
+		persistent.SubscriptionStreamConfig{
+			StreamOption: persistent.StreamSettings{
+				StreamName: []byte(streamID),
+				Revision:   persistent.Revision_Start,
+			},
+			GroupName: groupName,
+			Settings:  persistent.DefaultSubscriptionSettings,
+		},
+	)
+	require.NoError(t, err)
+
+	var bufferSize int32 = 2
+	readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
+		context.Background(), bufferSize, groupName, []byte(streamID))
+	require.NoError(t, err)
+
+	firstReadEvent := readConnectionClient.Recv().EventAppeared
+	require.NoError(t, err)
+	require.NotNil(t, firstReadEvent)
+
+	err = readConnectionClient.Close()
+	require.NoError(t, err)
+
+	droppedConnectionEvent := readConnectionClient.Recv().Dropped
+	require.NotNil(t, droppedConnectionEvent)
+	require.Error(t, droppedConnectionEvent.Error)
+}
+
 func testCreateEvents(count uint32) []messages.ProposedEvent {
 	result := make([]messages.ProposedEvent, count)
 	var i uint32 = 0
