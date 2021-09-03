@@ -59,7 +59,7 @@ func (createConfig *CreateOptionsRequest) SetMode(mode CreateConfigMode) *Create
 
 func (createConfig *CreateOptionsRequest) Build() *projections.CreateReq {
 	if strings.TrimSpace(createConfig.query) == "" {
-		panic("Failed to build CreateOptionsRequest. Trimmed query is empty string")
+		panic("Failed to build CreateOptionsRequest. Trimmed query is an empty string")
 	}
 
 	result := &projections.CreateReq{
@@ -140,6 +140,14 @@ func (updateConfig *UpdateOptionsRequest) SetEmitOption(option UpdateOptionsEmit
 }
 
 func (updateConfig *UpdateOptionsRequest) Build() *projections.UpdateReq {
+	if strings.TrimSpace(updateConfig.name) == "" {
+		panic("Failed to build UpdateOptionsRequest. Trimmed name is an empty string")
+	}
+
+	if strings.TrimSpace(updateConfig.query) == "" {
+		panic("Failed to build UpdateOptionsRequest. Trimmed query is an empty string")
+	}
+
 	result := &projections.UpdateReq{
 		Options: &projections.UpdateReq_Options{
 			Name:  updateConfig.name,
