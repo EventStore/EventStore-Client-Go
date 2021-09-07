@@ -83,30 +83,30 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 package main
 
 import (
-	"log"
+    "log"
 
-	eventClient "github.com/EventStore/EventStore-Client-Go/client"
+    eventClient "github.com/EventStore/EventStore-Client-Go/client"
 )
 
 const (
-	connString = "esdb://127.0.0.1:2113?tls=false"
+    connString = "esdb://127.0.0.1:2113?tls=false"
 )
 
 func main() {
 
-	log.Println("starting example")
-	config, err := eventClient.ParseConnectionString(connString)
-	if err != nil {
-		log.Fatalf("could not create client configuration: %s", err.Error())
-	}
-	log.Printf("Config = %v", config)
+    log.Println("starting example")
+    config, err := eventClient.ParseConnectionString(connString)
+    if err != nil {
+        log.Fatalf("could not create client configuration: %s", err.Error())
+    }
+    log.Printf("Config = %v", config)
 
-	client, err := eventClient.NewClient(config)
-	if err != nil {
-		log.Fatalf("could not create client: %s", err.Error())
-	}
+    client, err := eventClient.NewClient(config)
+    if err != nil {
+        log.Fatalf("could not create client: %s", err.Error())
+    }
 
-	defer client.Close()
+    defer client.Close()
 
     // Use client...
 }
@@ -118,13 +118,13 @@ func main() {
 package main
 
 import (
-	"log"
+    "log"
     "json"
     "fmt"
 
     "github.com/gofrs/uuid"
     eventClient "github.com/EventStore/EventStore-Client-Go/client"
-	"github.com/EventStore/EventStore-Client-Go/streamrevision"
+    "github.com/EventStore/EventStore-Client-Go/streamrevision"
 )
 
 
@@ -141,13 +141,13 @@ func appendToStreamExample(client *eventClient.Client) error {
             Data:         payloadBytes,
             UserMetadata: []byte{},
         },
-	}
-	revision := streamrevision.StreamRevisionNoStream // The stream should not exist yet
+    }
+    revision := streamrevision.StreamRevisionNoStream // The stream should not exist yet
 
-	_, err := client.AppendToStream(context.Background(), "example-stream", revision, events)
-	if err != nil {
-		return fmt.Errorf("could not write events to stream: %w", err)
-	}
-	return nil
+    _, err := client.AppendToStream(context.Background(), "example-stream", revision, events)
+    if err != nil {
+        return fmt.Errorf("could not write events to stream: %w", err)
+    }
+    return nil
 }
 ```
