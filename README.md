@@ -74,3 +74,80 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 [docker]: https://www.docker.com/
 [es]: https://eventstore.com
 [ghp]: https://github.com/features/packages
+
+## SDK Example Usage
+
+### Connecting to EventStoreDB
+
+```go
+package main
+
+import (
+	"log"
+
+	eventClient "github.com/EventStore/EventStore-Client-Go/client"
+)
+
+const (
+	connString = "esdb://127.0.0.1:2113?tls=false"
+)
+
+func main() {
+
+	log.Println("starting example")
+	config, err := eventClient.ParseConnectionString(connString)
+	if err != nil {
+		log.Fatalf("could not create client configuration: %s", err.Error())
+	}
+	log.Printf("Config = %v", config)
+
+	client, err := eventClient.NewClient(config)
+	if err != nil {
+		log.Fatalf("could not create client: %s", err.Error())
+	}
+
+	defer client.Close()
+
+    // Use client...
+}
+```
+
+### Append to Stream
+
+```go
+package main
+
+import (
+	"log"
+    "json"
+    "fmt"
+
+    "github.com/gofrs/uuid"
+    eventClient "github.com/EventStore/EventStore-Client-Go/client"
+	"github.com/EventStore/EventStore-Client-Go/streamrevision"
+)
+
+
+func appendToStreamExample(client *eventClient.Client) error {
+
+    payload := struct { Message string} { Message: "Hello World" }
+    payloadBytes, _ := json.Marshal(payload)
+
+    events := []messages.ProposedEvent{
+        {
+            EventID:      uuid.Must(uuid.NewV4()),
+            EventType:    "example-event",
+            ContentType:  "json",
+            Data:         payloadBytes,
+            UserMetadata: []byte{},
+        },
+	}
+	revision := streamrevision.StreamRevisionNoStream // The stream should not exist yet
+
+	_, err := client.AppendToStream(context.Background(), "example-stream", revision, events)
+	if err != nil {
+		return fmt.Errorf("could not write events to stream: %w", err)
+	}
+	return nil
+}
+```
