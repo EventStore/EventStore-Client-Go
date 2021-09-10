@@ -27,11 +27,42 @@ func TestReaderImpl_Start_Reading(t *testing.T) {
 		return "bbb", nil
 	})
 
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	reader := NewReaderImpl(2, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
 	require.Equal(t, "aaaa", value)
 	wg.Done()
+}
+
+func TestReaderImpl_Start_Reading_WaitsForAvailableSpotInBuffer(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	secondReaderWait := sync.WaitGroup{}
+	secondReaderWait.Add(1)
+	thirdReaderWait := sync.WaitGroup{}
+	thirdReaderWait.Add(1)
+
+	readerHelper := NewMockreaderHelper(ctrl)
+	firstRead := readerHelper.EXPECT().Read().Return("aaaa", nil)
+	secondRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+		secondReaderWait.Wait()
+		return "bbb", nil
+	}).After(firstRead)
+	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+		thirdReaderWait.Wait()
+		return "bbb", nil
+	}).After(secondRead)
+
+	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	messageChannel := reader.Start(readerHelper.Read)
+	value := <-messageChannel
+	require.Equal(t, "aaaa", value)
+	require.Len(t, messageChannel, 0)
+	secondReaderWait.Done()
+	value = <-messageChannel
+	require.Equal(t, "bbb", value)
+	thirdReaderWait.Done()
 }
 
 func TestReaderImpl_Start_Reading_IsIdempotent(t *testing.T) {
