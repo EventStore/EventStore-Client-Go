@@ -281,7 +281,7 @@ func pushEventsToStream(t *testing.T,
 	clientInstance *client.Client,
 	streamID string,
 	events ...messages.ProposedEvent) {
-	_, err := clientInstance.AppendToStream(
+	_, err := clientInstance.AppendToStream_OLD(
 		context.Background(),
 		streamID,
 		stream_revision.StreamRevisionNoStream,

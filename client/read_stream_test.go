@@ -66,8 +66,7 @@ func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {
 
 	streamId := "dataset20M-1800"
 
-	stream, err := client.ReadStreamEvents(context, direction.Forwards, streamId, stream_position.Start{}, numberOfEvents, true)
-
+	stream, err := client.ReadStreamEvents_OLD(context, direction.Forwards, streamId, stream_position.Start{}, numberOfEvents, true)
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
@@ -75,7 +74,6 @@ func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {
 	defer stream.Close()
 
 	events, err := collectStreamEvents(stream)
-
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
@@ -117,8 +115,7 @@ func TestReadStreamEventsBackwardsFromEndPosition(t *testing.T) {
 
 	streamId := "dataset20M-1800"
 
-	stream, err := client.ReadStreamEvents(context, direction.Backwards, streamId, stream_position.End{}, numberOfEvents, true)
-
+	stream, err := client.ReadStreamEvents_OLD(context, direction.Backwards, streamId, stream_position.End{}, numberOfEvents, true)
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
@@ -126,7 +123,6 @@ func TestReadStreamEventsBackwardsFromEndPosition(t *testing.T) {
 	defer stream.Close()
 
 	events, err := collectStreamEvents(stream)
-
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
@@ -160,10 +156,10 @@ func TestReadStreamReturnsEOFAfterCompletion(t *testing.T) {
 		proposedEvents = append(proposedEvents, createTestEvent())
 	}
 
-	_, err := client.AppendToStream(context.Background(), "testing-closing", streamrevision.StreamRevisionNoStream, proposedEvents)
+	_, err := client.AppendToStream_OLD(context.Background(), "testing-closing", streamrevision.StreamRevisionNoStream, proposedEvents)
 	require.NoError(t, err)
 
-	stream, err := client.ReadStreamEvents(context.Background(), direction.Forwards, "testing-closing", stream_position.Start{}, 1_024, false)
+	stream, err := client.ReadStreamEvents_OLD(context.Background(), direction.Forwards, "testing-closing", stream_position.Start{}, 1_024, false)
 
 	require.NoError(t, err)
 	_, err = collectStreamEvents(stream)

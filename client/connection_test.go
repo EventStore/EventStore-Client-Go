@@ -31,14 +31,13 @@ func Test_CloseConnection(t *testing.T) {
 	streamID, _ := uuid.NewV4()
 	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
-	_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionNoStream, proposedEvents)
-
+	_, err := client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionNoStream, proposedEvents)
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
 
 	client.Close()
-	_, err = client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionAny, proposedEvents)
+	_, err = client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionAny, proposedEvents)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "esdb connection is closed", err.Error())

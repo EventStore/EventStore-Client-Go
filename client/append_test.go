@@ -68,14 +68,12 @@ func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 	streamID, _ := uuid.NewV4()
 	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
-	_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionNoStream, proposedEvents)
-
+	_, err := client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionNoStream, proposedEvents)
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
 
-	stream, err := client.ReadStreamEvents(context, direction.Forwards, streamID.String(), stream_position.Start{}, 1, false)
-
+	stream, err := client.ReadStreamEvents_OLD(context, direction.Forwards, streamID.String(), stream_position.Start{}, 1, false)
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
@@ -83,7 +81,6 @@ func TestAppendToStreamSingleEventNoStream(t *testing.T) {
 	defer stream.Close()
 
 	events, err := collectStreamEvents(stream)
-
 	if err != nil {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
@@ -109,7 +106,7 @@ func TestAppendWithInvalidStreamRevision(t *testing.T) {
 	streamID, _ := uuid.NewV4()
 	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
-	_, err := client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionStreamExists, events)
+	_, err := client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionStreamExists, events)
 
 	if !errors.Is(err, client_errors.ErrWrongExpectedStreamRevision) {
 		t.Fatalf("Expected WrongExpectedVersion, got %+v", err)
@@ -139,7 +136,7 @@ func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
 	streamID, _ := uuid.NewV4()
 	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
-	_, err = client.AppendToStream(context, streamID.String(), stream_revision.StreamRevisionAny, events)
+	_, err = client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionAny, events)
 
 	if !errors.Is(err, client_errors.ErrUnauthenticated) {
 		t.Fatalf("Expected Unauthenticated, got %+v", err)

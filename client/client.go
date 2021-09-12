@@ -2,12 +2,15 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/direction"
-	"github.com/EventStore/EventStore-Client-Go/errors"
+	errors2 "github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/internal/protoutils"
 	"github.com/EventStore/EventStore-Client-Go/messages"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
@@ -15,6 +18,7 @@ import (
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	projectionsProto "github.com/EventStore/EventStore-Client-Go/protos/projections"
 	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/EventStore/EventStore-Client-Go/stream_position"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	"google.golang.org/grpc"
@@ -29,20 +33,22 @@ func ParseConnectionString(str string) (*connection.Configuration, error) {
 
 // Client ...
 type Client struct {
-	grpcClient              connection.GrpcClient
-	Config                  *connection.Configuration
-	persistentClientFactory persistent.ClientFactory
-	projectionClientFactory projections.ClientFactory
+	grpcClient                connection.GrpcClient
+	Config                    *connection.Configuration
+	persistentClientFactory   persistent.ClientFactory
+	projectionClientFactory   projections.ClientFactory
+	eventStreamsClientFactory event_streams.ClientFactory
 }
 
 // NewClient ...
 func NewClient(configuration *connection.Configuration) (*Client, error) {
 	grpcClient := connection.NewGrpcClient(*configuration)
 	return &Client{
-		grpcClient:              grpcClient,
-		Config:                  configuration,
-		persistentClientFactory: persistent.ClientFactoryImpl{},
-		projectionClientFactory: projections.ClientFactoryImpl{},
+		grpcClient:                grpcClient,
+		Config:                    configuration,
+		persistentClientFactory:   persistent.ClientFactoryImpl{},
+		projectionClientFactory:   projections.ClientFactoryImpl{},
+		eventStreamsClientFactory: event_streams.ClientFactoryImpl{},
 	}, nil
 }
 
@@ -52,8 +58,197 @@ func (client *Client) Close() error {
 	return nil
 }
 
-// AppendToStream ...
+const (
+	AppendToStream_WrongExpectedVersionErr         = "AppendToStream_WrongExpectedVersionErr"
+	AppendToStream_WrongExpectedVersion_20_6_0_Err = "AppendToStream_WrongExpectedVersion_20_6_0_Err"
+)
+
 func (client *Client) AppendToStream(
+	ctx context.Context,
+	options event_streams.AppendRequestContentOptions,
+	events []event_streams.ProposedEvent,
+) (WriteResult, error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return WriteResult{}, err
+	}
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
+		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+
+	appender, err := eventStreamsClient.GetAppender(ctx, handle)
+	if err != nil {
+		return WriteResult{}, err
+	}
+
+	err = appender.Send(handle, event_streams.AppendRequest{
+		Content: options,
+	})
+
+	if err != nil {
+		log.Println("Could not send append request header", err)
+		return WriteResult{}, err
+	}
+
+	for _, event := range events {
+		err = appender.Send(handle, event_streams.AppendRequest{
+			Content: event.ToProposedMessage(),
+		})
+
+		if err != nil {
+			log.Println("Could not send append request", err)
+			return WriteResult{}, err
+		}
+	}
+
+	response, err := appender.CloseAndRecv(handle)
+	if err != nil {
+		log.Println("Could not close sender end", err)
+		return WriteResult{}, err
+	}
+
+	switch response.Result.(type) {
+	case event_streams.AppendResponseSuccess:
+		successResponse := response.Result.(event_streams.AppendResponseSuccess)
+
+		var streamRevision uint64 = 1
+		revision, isCurrentRevision := successResponse.CurrentRevision.(event_streams.AppendResponseSuccessCurrentRevision)
+		if isCurrentRevision {
+			streamRevision = revision.CurrentRevision
+		}
+
+		var commitPosition uint64
+		var preparePosition uint64
+		if position, ok := successResponse.Position.(event_streams.AppendResponseSuccessPosition); ok {
+			commitPosition = position.CommitPosition
+			preparePosition = position.PreparePosition
+		} else if !isCurrentRevision {
+			streamRevision = 0
+		}
+
+		return WriteResult{
+			CommitPosition:      commitPosition,
+			PreparePosition:     preparePosition,
+			NextExpectedVersion: streamRevision,
+		}, nil
+	case event_streams.AppendResponseWrongExpectedVersion:
+		wrongVersion := response.Result.(event_streams.AppendResponseWrongExpectedVersion)
+		type currentRevisionType struct {
+			Revision uint64
+			NoStream bool
+		}
+		var currentRevision *currentRevisionType
+
+		if wrongVersion.CurrentRevision_20_6_0 != nil {
+			switch wrongVersion.CurrentRevision_20_6_0.(type) {
+			case event_streams.AppendResponseWrongCurrentRevision_20_6_0:
+				revision := wrongVersion.CurrentRevision_20_6_0.(event_streams.AppendResponseWrongCurrentRevision_20_6_0)
+				currentRevision = &currentRevisionType{
+					Revision: revision.CurrentRevision,
+					NoStream: false,
+				}
+			case event_streams.AppendResponseWrongCurrentRevisionNoStream_20_6_0:
+				currentRevision = &currentRevisionType{
+					NoStream: true,
+				}
+			}
+		} else if wrongVersion.CurrentRevision != nil {
+			switch wrongVersion.CurrentRevision.(type) {
+			case event_streams.AppendResponseWrongCurrentRevision:
+				revision := wrongVersion.CurrentRevision.(event_streams.AppendResponseWrongCurrentRevision)
+
+				currentRevision = &currentRevisionType{
+					Revision: revision.CurrentRevision,
+					NoStream: false,
+				}
+			case event_streams.AppendResponseWrongCurrentRevisionNoStream:
+				currentRevision = &currentRevisionType{
+					NoStream: true,
+				}
+			}
+		}
+
+		if currentRevision != nil {
+			if currentRevision.NoStream {
+				log.Println("Wrong expected revision. Current revision no stream")
+			} else {
+				log.Println("Wrong expected revision. Current revision:", currentRevision.Revision)
+			}
+		}
+
+		type expectedRevisionType struct {
+			Revision     uint64
+			IsAny        bool
+			StreamExists bool
+			NoStream     bool
+		}
+
+		var expectedRevision *expectedRevisionType
+
+		if wrongVersion.ExpectedRevision_20_6_0 != nil {
+			switch wrongVersion.ExpectedRevision_20_6_0.(type) {
+			case event_streams.AppendResponseWrongExpectedRevision_20_6_0:
+				revision := wrongVersion.ExpectedRevision_20_6_0.(event_streams.AppendResponseWrongExpectedRevision_20_6_0)
+				expectedRevision = &expectedRevisionType{
+					Revision: revision.ExpectedRevision,
+				}
+			case event_streams.AppendResponseWrongExpectedRevisionAny_20_6_0:
+				expectedRevision = &expectedRevisionType{
+					IsAny: true,
+				}
+			case event_streams.AppendResponseWrongExpectedRevisionStreamExists_20_6_0:
+				expectedRevision = &expectedRevisionType{
+					StreamExists: true,
+				}
+			}
+		} else if wrongVersion.ExpectedRevision != nil {
+			switch wrongVersion.ExpectedRevision.(type) {
+			case event_streams.AppendResponseWrongExpectedRevision:
+				revision := wrongVersion.ExpectedRevision.(event_streams.AppendResponseWrongExpectedRevision)
+				expectedRevision = &expectedRevisionType{
+					Revision: revision.ExpectedRevision,
+				}
+			case event_streams.AppendResponseWrongExpectedRevisionAny:
+				expectedRevision = &expectedRevisionType{
+					IsAny: true,
+				}
+			case event_streams.AppendResponseWrongExpectedRevisionStreamExists:
+				expectedRevision = &expectedRevisionType{
+					StreamExists: true,
+				}
+			case event_streams.AppendResponseWrongExpectedRevisionNoStream:
+				expectedRevision = &expectedRevisionType{
+					NoStream: true,
+				}
+			}
+		}
+
+		if expectedRevision != nil {
+			if expectedRevision.StreamExists {
+				log.Println("Wrong expected revision. Stream Exists!")
+			} else if expectedRevision.IsAny {
+				log.Println("Wrong expected revision. Any!")
+			} else if expectedRevision.NoStream {
+				log.Println("Wrong expected revision. No Stream!")
+			} else {
+				log.Println("Wrong expected revision. Expected revision: ", expectedRevision.Revision)
+			}
+		}
+
+		if wrongVersion.CurrentRevision_20_6_0 != nil || wrongVersion.ExpectedRevision_20_6_0 != nil {
+			return WriteResult{}, errors.New(AppendToStream_WrongExpectedVersion_20_6_0_Err)
+		}
+		return WriteResult{}, errors.New(AppendToStream_WrongExpectedVersionErr)
+	}
+
+	return WriteResult{
+		CommitPosition:      0,
+		PreparePosition:     0,
+		NextExpectedVersion: 1,
+	}, nil
+}
+
+// AppendToStream_OLD ...
+func (client *Client) AppendToStream_OLD(
 	context context.Context,
 	streamID string,
 	streamRevision stream_revision.StreamRevision,
@@ -126,7 +321,7 @@ func (client *Client) AppendToStream(
 		}
 	case *api.AppendResp_WrongExpectedVersion_:
 		{
-			return nil, errors.ErrWrongExpectedStreamRevision
+			return nil, errors2.ErrWrongExpectedStreamRevision
 		}
 	}
 
@@ -137,8 +332,8 @@ func (client *Client) AppendToStream(
 	}, nil
 }
 
-// DeleteStream ...
-func (client *Client) DeleteStream(
+// DeleteStream_OLD ...
+func (client *Client) DeleteStream_OLD(
 	context context.Context,
 	streamID string,
 	streamRevision stream_revision.StreamRevision,
@@ -159,8 +354,8 @@ func (client *Client) DeleteStream(
 	return &DeleteResult{Position: protoutils.DeletePositionFromProto(deleteResponse)}, nil
 }
 
-// TombstoneStream Tombstone ...
-func (client *Client) TombstoneStream(
+// TombstoneStream_OLD Tombstone ...
+func (client *Client) TombstoneStream_OLD(
 	context context.Context,
 	streamID string,
 	streamRevision stream_revision.StreamRevision,
@@ -181,8 +376,8 @@ func (client *Client) TombstoneStream(
 	return &DeleteResult{Position: protoutils.TombstonePositionFromProto(tombstoneResponse)}, nil
 }
 
-// ReadStreamEvents ...
-func (client *Client) ReadStreamEvents(
+// ReadStreamEvents_OLD ...
+func (client *Client) ReadStreamEvents_OLD(
 	context context.Context,
 	direction direction.Direction,
 	streamID string,
@@ -199,8 +394,8 @@ func (client *Client) ReadStreamEvents(
 	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest)
 }
 
-// ReadAllEvents ...
-func (client *Client) ReadAllEvents(
+// ReadAllEvents_OLD ...
+func (client *Client) ReadAllEvents_OLD(
 	context context.Context,
 	direction direction.Direction,
 	from stream_position.AllStreamPosition,
@@ -216,8 +411,8 @@ func (client *Client) ReadAllEvents(
 	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest)
 }
 
-// SubscribeToStream ...
-func (client *Client) SubscribeToStream(
+// SubscribeToStream_OLD ...
+func (client *Client) SubscribeToStream_OLD(
 	ctx context.Context,
 	streamID string,
 	from stream_position.StreamPosition,
@@ -262,8 +457,8 @@ func (client *Client) SubscribeToStream(
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
-// SubscribeToAll ...
-func (client *Client) SubscribeToAll(
+// SubscribeToAll_OLD ...
+func (client *Client) SubscribeToAll_OLD(
 	ctx context.Context,
 	from stream_position.AllStreamPosition,
 	resolveLinks bool,
@@ -299,8 +494,8 @@ func (client *Client) SubscribeToAll(
 	return nil, fmt.Errorf("Failed to initiate subscription.")
 }
 
-// SubscribeToAllFiltered ...
-func (client *Client) SubscribeToAllFiltered(
+// SubscribeToAllFiltered_OLD ...
+func (client *Client) SubscribeToAllFiltered_OLD(
 	ctx context.Context,
 	from stream_position.AllStreamPosition,
 	resolveLinks bool,

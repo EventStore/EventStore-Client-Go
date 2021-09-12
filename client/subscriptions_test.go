@@ -34,7 +34,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 
 	var receivedEvents sync.WaitGroup
 	var appendedEvents sync.WaitGroup
-	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", stream_position.Start{}, false)
+	subscription, err := client.SubscribeToStream_OLD(context.Background(), "dataset20M-0", stream_position.Start{}, false)
 
 	go func() {
 		current := 0
@@ -67,7 +67,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 
 	// Write a new event
-	writeResult, err := client.AppendToStream(context.Background(), streamID, stream_revision.NewStreamRevision(5999), []messages.ProposedEvent{testEvent})
+	writeResult, err := client.AppendToStream_OLD(context.Background(), streamID, stream_revision.NewStreamRevision(5999), []messages.ProposedEvent{testEvent})
 	require.NoError(t, err)
 	require.Equal(t, uint64(6_000), writeResult.NextExpectedVersion)
 
@@ -105,7 +105,7 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	filter := filtering.NewEventPrefixFilter([]string{"eventType-194"})
 	filterOptions := filtering.NewDefaultSubscriptionFilterOptions(filter)
 
-	subscription, err := client.SubscribeToAllFiltered(context.Background(), stream_position.Start{}, false, filterOptions)
+	subscription, err := client.SubscribeToAllFiltered_OLD(context.Background(), stream_position.Start{}, false, filterOptions)
 
 	go func() {
 		current := 0
@@ -141,7 +141,7 @@ func TestConnectionClosing(t *testing.T) {
 
 	var receivedEvents sync.WaitGroup
 	var droppedEvent sync.WaitGroup
-	subscription, err := client.SubscribeToStream(context.Background(), "dataset20M-0", stream_position.Start{}, false)
+	subscription, err := client.SubscribeToStream_OLD(context.Background(), "dataset20M-0", stream_position.Start{}, false)
 
 	go func() {
 		current := 1
