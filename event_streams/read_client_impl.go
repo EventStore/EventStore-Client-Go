@@ -5,6 +5,7 @@ import "github.com/EventStore/EventStore-Client-Go/protos/streams2"
 type ReadClientImpl struct {
 	protoClient         streams2.Streams_ReadClient
 	readResponseAdapter readResponseAdapter
+	streamId            string
 }
 
 func (this *ReadClientImpl) Recv() (ReadResponse, error) {
@@ -19,9 +20,10 @@ func (this *ReadClientImpl) Recv() (ReadResponse, error) {
 
 func newReadClientImpl(
 	protoClient streams2.Streams_ReadClient,
-	readResponseAdapter readResponseAdapter) *ReadClientImpl {
+	readResponseAdapter readResponseAdapter, streamId string) *ReadClientImpl {
 	return &ReadClientImpl{
 		protoClient:         protoClient,
 		readResponseAdapter: readResponseAdapter,
+		streamId:            streamId,
 	}
 }

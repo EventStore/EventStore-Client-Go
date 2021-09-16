@@ -2,9 +2,7 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
 
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	"github.com/EventStore/EventStore-Client-Go/connection"
@@ -58,193 +56,19 @@ func (client *Client) Close() error {
 	return nil
 }
 
-const (
-	AppendToStream_WrongExpectedVersionErr         = "AppendToStream_WrongExpectedVersionErr"
-	AppendToStream_WrongExpectedVersion_20_6_0_Err = "AppendToStream_WrongExpectedVersion_20_6_0_Err"
-)
-
 func (client *Client) AppendToStream(
 	ctx context.Context,
 	options event_streams.AppendRequestContentOptions,
 	events []event_streams.ProposedEvent,
-) (WriteResult, error) {
+) (event_streams.WriteResult, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
-		return WriteResult{}, err
+		return event_streams.WriteResult{}, err
 	}
 	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
 		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
 
-	appender, err := eventStreamsClient.GetAppender(ctx, handle)
-	if err != nil {
-		return WriteResult{}, err
-	}
-
-	err = appender.Send(handle, event_streams.AppendRequest{
-		Content: options,
-	})
-
-	if err != nil {
-		log.Println("Could not send append request header", err)
-		return WriteResult{}, err
-	}
-
-	for _, event := range events {
-		err = appender.Send(handle, event_streams.AppendRequest{
-			Content: event.ToProposedMessage(),
-		})
-
-		if err != nil {
-			log.Println("Could not send append request", err)
-			return WriteResult{}, err
-		}
-	}
-
-	response, err := appender.CloseAndRecv(handle)
-	if err != nil {
-		log.Println("Could not close sender end", err)
-		return WriteResult{}, err
-	}
-
-	switch response.Result.(type) {
-	case event_streams.AppendResponseSuccess:
-		successResponse := response.Result.(event_streams.AppendResponseSuccess)
-
-		var streamRevision uint64 = 1
-		revision, isCurrentRevision := successResponse.CurrentRevision.(event_streams.AppendResponseSuccessCurrentRevision)
-		if isCurrentRevision {
-			streamRevision = revision.CurrentRevision
-		}
-
-		var commitPosition uint64
-		var preparePosition uint64
-		if position, ok := successResponse.Position.(event_streams.AppendResponseSuccessPosition); ok {
-			commitPosition = position.CommitPosition
-			preparePosition = position.PreparePosition
-		} else if !isCurrentRevision {
-			streamRevision = 0
-		}
-
-		return WriteResult{
-			CommitPosition:      commitPosition,
-			PreparePosition:     preparePosition,
-			NextExpectedVersion: streamRevision,
-		}, nil
-	case event_streams.AppendResponseWrongExpectedVersion:
-		wrongVersion := response.Result.(event_streams.AppendResponseWrongExpectedVersion)
-		type currentRevisionType struct {
-			Revision uint64
-			NoStream bool
-		}
-		var currentRevision *currentRevisionType
-
-		if wrongVersion.CurrentRevision_20_6_0 != nil {
-			switch wrongVersion.CurrentRevision_20_6_0.(type) {
-			case event_streams.AppendResponseWrongCurrentRevision_20_6_0:
-				revision := wrongVersion.CurrentRevision_20_6_0.(event_streams.AppendResponseWrongCurrentRevision_20_6_0)
-				currentRevision = &currentRevisionType{
-					Revision: revision.CurrentRevision,
-					NoStream: false,
-				}
-			case event_streams.AppendResponseWrongCurrentRevisionNoStream_20_6_0:
-				currentRevision = &currentRevisionType{
-					NoStream: true,
-				}
-			}
-		} else if wrongVersion.CurrentRevision != nil {
-			switch wrongVersion.CurrentRevision.(type) {
-			case event_streams.AppendResponseWrongCurrentRevision:
-				revision := wrongVersion.CurrentRevision.(event_streams.AppendResponseWrongCurrentRevision)
-
-				currentRevision = &currentRevisionType{
-					Revision: revision.CurrentRevision,
-					NoStream: false,
-				}
-			case event_streams.AppendResponseWrongCurrentRevisionNoStream:
-				currentRevision = &currentRevisionType{
-					NoStream: true,
-				}
-			}
-		}
-
-		if currentRevision != nil {
-			if currentRevision.NoStream {
-				log.Println("Wrong expected revision. Current revision no stream")
-			} else {
-				log.Println("Wrong expected revision. Current revision:", currentRevision.Revision)
-			}
-		}
-
-		type expectedRevisionType struct {
-			Revision     uint64
-			IsAny        bool
-			StreamExists bool
-			NoStream     bool
-		}
-
-		var expectedRevision *expectedRevisionType
-
-		if wrongVersion.ExpectedRevision_20_6_0 != nil {
-			switch wrongVersion.ExpectedRevision_20_6_0.(type) {
-			case event_streams.AppendResponseWrongExpectedRevision_20_6_0:
-				revision := wrongVersion.ExpectedRevision_20_6_0.(event_streams.AppendResponseWrongExpectedRevision_20_6_0)
-				expectedRevision = &expectedRevisionType{
-					Revision: revision.ExpectedRevision,
-				}
-			case event_streams.AppendResponseWrongExpectedRevisionAny_20_6_0:
-				expectedRevision = &expectedRevisionType{
-					IsAny: true,
-				}
-			case event_streams.AppendResponseWrongExpectedRevisionStreamExists_20_6_0:
-				expectedRevision = &expectedRevisionType{
-					StreamExists: true,
-				}
-			}
-		} else if wrongVersion.ExpectedRevision != nil {
-			switch wrongVersion.ExpectedRevision.(type) {
-			case event_streams.AppendResponseWrongExpectedRevision:
-				revision := wrongVersion.ExpectedRevision.(event_streams.AppendResponseWrongExpectedRevision)
-				expectedRevision = &expectedRevisionType{
-					Revision: revision.ExpectedRevision,
-				}
-			case event_streams.AppendResponseWrongExpectedRevisionAny:
-				expectedRevision = &expectedRevisionType{
-					IsAny: true,
-				}
-			case event_streams.AppendResponseWrongExpectedRevisionStreamExists:
-				expectedRevision = &expectedRevisionType{
-					StreamExists: true,
-				}
-			case event_streams.AppendResponseWrongExpectedRevisionNoStream:
-				expectedRevision = &expectedRevisionType{
-					NoStream: true,
-				}
-			}
-		}
-
-		if expectedRevision != nil {
-			if expectedRevision.StreamExists {
-				log.Println("Wrong expected revision. Stream Exists!")
-			} else if expectedRevision.IsAny {
-				log.Println("Wrong expected revision. Any!")
-			} else if expectedRevision.NoStream {
-				log.Println("Wrong expected revision. No Stream!")
-			} else {
-				log.Println("Wrong expected revision. Expected revision: ", expectedRevision.Revision)
-			}
-		}
-
-		if wrongVersion.CurrentRevision_20_6_0 != nil || wrongVersion.ExpectedRevision_20_6_0 != nil {
-			return WriteResult{}, errors.New(AppendToStream_WrongExpectedVersion_20_6_0_Err)
-		}
-		return WriteResult{}, errors.New(AppendToStream_WrongExpectedVersionErr)
-	}
-
-	return WriteResult{
-		CommitPosition:      0,
-		PreparePosition:     0,
-		NextExpectedVersion: 1,
-	}, nil
+	return eventStreamsClient.AppendToStream(ctx, options, events)
 }
 
 // AppendToStream_OLD ...

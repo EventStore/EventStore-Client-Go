@@ -12,7 +12,7 @@ type DeleteRequest struct {
 	//	DeleteRequestExpectedStreamRevisionNoStream
 	//	DeleteRequestExpectedStreamRevisionAny
 	//	DeleteRequestExpectedStreamRevisionStreamExists
-	ExpectedStreamRevision isDeleteRequestExpectedStreamRevision
+	ExpectedStreamRevision IsDeleteRequestExpectedStreamRevision
 }
 
 func (this DeleteRequest) Build() *streams2.DeleteReq {
@@ -49,7 +49,7 @@ func (this DeleteRequest) Build() *streams2.DeleteReq {
 	return result
 }
 
-type isDeleteRequestExpectedStreamRevision interface {
+type IsDeleteRequestExpectedStreamRevision interface {
 	isDeleteRequestExpectedStreamRevision()
 }
 

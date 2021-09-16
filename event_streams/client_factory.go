@@ -17,6 +17,10 @@ func (clientFactory ClientFactoryImpl) CreateClient(
 	return newClientImpl(grpcClient, client)
 }
 
-func newClientImpl(client connection.GrpcClient, client2 streamsProto.StreamsClient) Client {
-	return nil
+func newClientImpl(grpcClient connection.GrpcClient,
+	grpcStreamsClient streamsProto.StreamsClient) *ClientImpl {
+	return &ClientImpl{
+		grpcClient:        grpcClient,
+		grpcStreamsClient: grpcStreamsClient,
+	}
 }

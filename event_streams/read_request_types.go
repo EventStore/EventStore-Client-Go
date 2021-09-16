@@ -86,7 +86,7 @@ func (this ReadRequest) buildStreamOptions(
 	result := &streams2.ReadReq_Options_Stream{
 		Stream: &streams2.ReadReq_Options_StreamOptions{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: streamOptions.StreamIdentifier,
+				StreamName: []byte(streamOptions.StreamIdentifier),
 			},
 			RevisionOption: nil,
 		},
@@ -253,7 +253,7 @@ type isReadRequestStreamOptions interface {
 }
 
 type ReadRequestStreamOptions struct {
-	StreamIdentifier []byte
+	StreamIdentifier string
 	// ReadRequestOptionsStreamRevision
 	// ReadRequestOptionsStreamRevisionStart
 	// ReadRequestOptionsStreamRevisionEnd

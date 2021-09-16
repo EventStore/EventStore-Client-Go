@@ -12,7 +12,7 @@ type TombstoneRequest struct {
 	//	TombstoneRequestExpectedStreamRevisionNoStream
 	//	TombstoneRequestExpectedStreamRevisionAny
 	//	TombstoneRequestExpectedStreamRevisionStreamExists
-	ExpectedStreamRevision isTombstoneRequestExpectedStreamRevision
+	ExpectedStreamRevision IsTombstoneRequestExpectedStreamRevision
 }
 
 func (this TombstoneRequest) Build() *streams2.TombstoneReq {
@@ -48,7 +48,7 @@ func (this TombstoneRequest) Build() *streams2.TombstoneReq {
 	return result
 }
 
-type isTombstoneRequestExpectedStreamRevision interface {
+type IsTombstoneRequestExpectedStreamRevision interface {
 	isTombstoneRequestExpectedStreamRevision()
 }
 
