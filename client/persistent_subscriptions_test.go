@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
-	"github.com/EventStore/EventStore-Client-Go/messages"
+	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
-	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	"github.com/stretchr/testify/require"
 )
 
@@ -280,11 +279,11 @@ func pushEventToStream(t *testing.T, clientInstance *client.Client, streamID str
 func pushEventsToStream(t *testing.T,
 	clientInstance *client.Client,
 	streamID string,
-	events ...messages.ProposedEvent) {
-	_, err := clientInstance.AppendToStream_OLD(
+	events ...event_streams.ProposedEvent) {
+	_, err := clientInstance.AppendToStream(
 		context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events)
 
 	require.NoError(t, err)

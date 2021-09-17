@@ -54,7 +54,7 @@ func (this ReadResponseEventNoPosition) isReadResponsePosition() {}
 
 type ReadResponseRecordedEvent struct {
 	Id               uuid.UUID
-	StreamIdentifier []byte
+	StreamIdentifier string
 	StreamRevision   uint64
 	PreparePosition  uint64
 	CommitPosition   uint64
@@ -91,7 +91,7 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 
 			event.Event = &ReadResponseRecordedEvent{
 				Id:               uuid.FromStringOrNil(idString),
-				StreamIdentifier: protoEvent.StreamIdentifier.StreamName,
+				StreamIdentifier: string(protoEvent.StreamIdentifier.StreamName),
 				StreamRevision:   protoEvent.StreamRevision,
 				PreparePosition:  protoEvent.PreparePosition,
 				CommitPosition:   protoEvent.CommitPosition,
@@ -108,7 +108,7 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 
 			event.Link = &ReadResponseRecordedEvent{
 				Id:               uuid.FromStringOrNil(idString),
-				StreamIdentifier: protoEventLink.StreamIdentifier.StreamName,
+				StreamIdentifier: string(protoEventLink.StreamIdentifier.StreamName),
 				StreamRevision:   protoEventLink.StreamRevision,
 				PreparePosition:  protoEventLink.PreparePosition,
 				CommitPosition:   protoEventLink.CommitPosition,

@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/messages"
+	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
-	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,9 +68,9 @@ func Test_PersistentSubscription_ToExistingStream_StartFromBeginning_AndEventsIn
 
 	streamID := "someStream"
 	// append events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, Events);
-	_, err := clientInstance.AppendToStream_OLD(context.Background(),
+	_, err := clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events)
 	require.NoError(t, err)
 	// create persistent stream connection with Revision set to Start
@@ -127,9 +126,9 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEv
 	)
 	require.NoError(t, err)
 	// append events to StreamsClient.AppendToStreamAsync(Stream, stream_revision.StreamRevisionNoStream, Events);
-	_, err = clientInstance.AppendToStream_OLD(context.Background(),
+	_, err = clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events)
 	require.NoError(t, err)
 	// read one event
@@ -159,9 +158,9 @@ func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppe
 	// append 10 events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events[:10]);
 	streamID := "someStream"
 	// append events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, Events);
-	_, err := clientInstance.AppendToStream_OLD(context.Background(),
+	_, err := clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events[:10])
 	require.NoError(t, err)
 	// create persistent stream connection with Revision set to End
@@ -180,9 +179,9 @@ func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppe
 	require.NoError(t, err)
 
 	// append 1 event to StreamsClient.AppendToStreamAsync(Stream, new StreamRevision(9), event[10])
-	_, err = clientInstance.AppendToStream_OLD(context.Background(),
+	_, err = clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.NewStreamRevision(9),
+		event_streams.AppendRequestExpectedStreamRevision{Revision: 9},
 		events[10:])
 	require.NoError(t, err)
 
@@ -212,9 +211,9 @@ func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInIt(t *tes
 	// append 10 events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events[:10]);
 	streamID := "someStream"
 	// append events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, Events);
-	_, err := clientInstance.AppendToStream_OLD(context.Background(),
+	_, err := clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events[:10])
 	require.NoError(t, err)
 	// create persistent stream connection with position set to End
@@ -290,9 +289,9 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAf
 	)
 	require.NoError(t, err)
 	// append 3 event to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events)
-	_, err = clientInstance.AppendToStream_OLD(context.Background(),
+	_, err = clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events)
 	require.NoError(t, err)
 	// read one event
@@ -321,9 +320,9 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEv
 
 	// append 10 events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events[:10]);
 	streamID := "someStream"
-	_, err := clientInstance.AppendToStream_OLD(context.Background(),
+	_, err := clientInstance.AppendToStream(context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events[:10])
 	require.NoError(t, err)
 
@@ -343,9 +342,10 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEv
 	require.NoError(t, err)
 
 	// append 1 event to StreamsClient.AppendToStreamAsync(Stream, StreamRevision(9), events[10:)
-	_, err = clientInstance.AppendToStream_OLD(context.Background(),
+	_, err = clientInstance.AppendToStream(
+		context.Background(),
 		streamID,
-		stream_revision.StreamRevision(9),
+		event_streams.AppendRequestExpectedStreamRevision{Revision: 9},
 		events[10:])
 	require.NoError(t, err)
 
@@ -375,9 +375,10 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testi
 
 	// append 10 events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events[:10]);
 	streamID := "someStream"
-	_, err := clientInstance.AppendToStream_OLD(context.Background(),
+	_, err := clientInstance.AppendToStream(
+		context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events[:10])
 	require.NoError(t, err)
 
@@ -397,9 +398,10 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testi
 	require.NoError(t, err)
 
 	// append 1 event to StreamsClient.AppendToStreamAsync(Stream, StreamRevision(9), events)
-	_, err = clientInstance.AppendToStream_OLD(context.Background(),
+	_, err = clientInstance.AppendToStream(
+		context.Background(),
 		streamID,
-		stream_revision.StreamRevision(9),
+		event_streams.AppendRequestExpectedStreamRevision{Revision: 9},
 		events[10:])
 	require.NoError(t, err)
 
@@ -430,9 +432,10 @@ func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEve
 	// append 11 events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events[:11]);
 	// append 10 events to StreamsClient.AppendToStreamAsync(Stream, StreamState.NoStream, events[:10]);
 	streamID := "someStream"
-	_, err := clientInstance.AppendToStream_OLD(context.Background(),
+	_, err := clientInstance.AppendToStream(
+		context.Background(),
 		streamID,
-		stream_revision.StreamRevisionNoStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		events[:11])
 	require.NoError(t, err)
 
@@ -452,9 +455,10 @@ func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEve
 	require.NoError(t, err)
 
 	// append event to StreamsClient.AppendToStreamAsync(Stream, StreamRevision(10), events[11:])
-	_, err = clientInstance.AppendToStream_OLD(context.Background(),
+	_, err = clientInstance.AppendToStream(
+		context.Background(),
 		streamID,
-		stream_revision.StreamRevision(10),
+		event_streams.AppendRequestExpectedStreamRevision{Revision: 10},
 		events[11:])
 	require.NoError(t, err)
 
@@ -559,8 +563,8 @@ func Test_PersistentSubscription_ReadExistingStream_Cancelled(t *testing.T) {
 	require.Error(t, droppedConnectionEvent.Error)
 }
 
-func testCreateEvents(count uint32) []messages.ProposedEvent {
-	result := make([]messages.ProposedEvent, count)
+func testCreateEvents(count uint32) []event_streams.ProposedEvent {
+	result := make([]event_streams.ProposedEvent, count)
 	var i uint32 = 0
 	for ; i < count; i++ {
 		result[i] = createTestEvent()

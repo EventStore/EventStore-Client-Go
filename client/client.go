@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
@@ -10,9 +9,6 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/projections"
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	projectionsProto "github.com/EventStore/EventStore-Client-Go/protos/projections"
-	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 type Configuration = connection.Configuration
@@ -332,32 +328,32 @@ func (client *Client) ListOneTimeProjections(
 	return projectionsClient.ListOneTimeProjections(ctx, handle)
 }
 
-func readInternal(
-	ctx context.Context,
-	client connection.GrpcClient,
-	handle connection.ConnectionHandle,
-	streamsClient api.StreamsClient,
-	readRequest *api.ReadReq,
-) (*ReadStream, error) {
-	var headers, trailers metadata.MD
-	ctx, cancel := context.WithCancel(ctx)
-	result, err := streamsClient.Read(ctx, readRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
-		defer cancel()
-		err = client.HandleError(handle, headers, trailers, err)
-		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
-	}
-
-	params := ReadStreamParams{
-		client:   client,
-		handle:   handle,
-		cancel:   cancel,
-		inner:    result,
-		headers:  headers,
-		trailers: trailers,
-	}
-
-	stream := NewReadStream(params)
-
-	return stream, nil
-}
+//func readInternal(
+//	ctx context.Context,
+//	client connection.GrpcClient,
+//	handle connection.ConnectionHandle,
+//	streamsClient api.StreamsClient,
+//	readRequest *api.ReadReq,
+//) (*ReadStream, error) {
+//	var headers, trailers metadata.MD
+//	ctx, cancel := context.WithCancel(ctx)
+//	result, err := streamsClient.Read(ctx, readRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
+//	if err != nil {
+//		defer cancel()
+//		err = client.HandleError(handle, headers, trailers, err)
+//		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
+//	}
+//
+//	params := ReadStreamParams{
+//		client:   client,
+//		handle:   handle,
+//		cancel:   cancel,
+//		inner:    result,
+//		headers:  headers,
+//		trailers: trailers,
+//	}
+//
+//	stream := NewReadStream(params)
+//
+//	return stream, nil
+//}

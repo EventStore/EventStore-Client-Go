@@ -308,7 +308,9 @@ func (client *ClientImpl) SubscribeToStream(
 ) (ReadClient, error) {
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
+
 	fmt.Println(spew.Sdump(request.Build()))
+
 	readStreamClient, err := client.grpcStreamsClient.Read(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
@@ -317,6 +319,7 @@ func (client *ClientImpl) SubscribeToStream(
 		fmt.Println("Failed to construct subscription. Reason: ", err)
 		return nil, errors.New(FailedToCreateReaderErr)
 	}
+
 	readResult, err := readStreamClient.Recv()
 	if err != nil {
 		defer cancel()
@@ -324,6 +327,7 @@ func (client *ClientImpl) SubscribeToStream(
 		fmt.Println("Failed to receive subscription response. Reason: ", err)
 		return nil, errors.New(FailedToReceiveSubscriptionResponseErr)
 	}
+
 	switch readResult.Content.(type) {
 	case *streams2.ReadResp_Confirmation:
 		{

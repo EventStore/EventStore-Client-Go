@@ -34,7 +34,7 @@ func NewStreamsClient(cc grpc.ClientConnInterface) StreamsClient {
 }
 
 func (c *streamsClient) Read(ctx context.Context, in *ReadReq, opts ...grpc.CallOption) (Streams_ReadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Streams_ServiceDesc.Streams[0], "/event_store.client.streams2.Streams/Read", opts...)
+	stream, err := c.cc.NewStream(ctx, &Streams_ServiceDesc.Streams[0], "/event_store.client.streams.Streams/Read", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (x *streamsReadClient) Recv() (*ReadResp, error) {
 }
 
 func (c *streamsClient) Append(ctx context.Context, opts ...grpc.CallOption) (Streams_AppendClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Streams_ServiceDesc.Streams[1], "/event_store.client.streams2.Streams/Append", opts...)
+	stream, err := c.cc.NewStream(ctx, &Streams_ServiceDesc.Streams[1], "/event_store.client.streams.Streams/Append", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (x *streamsAppendClient) CloseAndRecv() (*AppendResp, error) {
 
 func (c *streamsClient) Delete(ctx context.Context, in *DeleteReq, opts ...grpc.CallOption) (*DeleteResp, error) {
 	out := new(DeleteResp)
-	err := c.cc.Invoke(ctx, "/event_store.client.streams2.Streams/Delete", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/event_store.client.streams.Streams/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (c *streamsClient) Delete(ctx context.Context, in *DeleteReq, opts ...grpc.
 
 func (c *streamsClient) Tombstone(ctx context.Context, in *TombstoneReq, opts ...grpc.CallOption) (*TombstoneResp, error) {
 	out := new(TombstoneResp)
-	err := c.cc.Invoke(ctx, "/event_store.client.streams2.Streams/Tombstone", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/event_store.client.streams.Streams/Tombstone", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (c *streamsClient) Tombstone(ctx context.Context, in *TombstoneReq, opts ..
 }
 
 func (c *streamsClient) BatchAppend(ctx context.Context, opts ...grpc.CallOption) (Streams_BatchAppendClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Streams_ServiceDesc.Streams[2], "/event_store.client.streams2.Streams/BatchAppend", opts...)
+	stream, err := c.cc.NewStream(ctx, &Streams_ServiceDesc.Streams[2], "/event_store.client.streams.Streams/BatchAppend", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func _Streams_Delete_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/event_store.client.streams2.Streams/Delete",
+		FullMethod: "/event_store.client.streams.Streams/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StreamsServer).Delete(ctx, req.(*DeleteReq))
@@ -267,7 +267,7 @@ func _Streams_Tombstone_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/event_store.client.streams2.Streams/Tombstone",
+		FullMethod: "/event_store.client.streams.Streams/Tombstone",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StreamsServer).Tombstone(ctx, req.(*TombstoneReq))
@@ -305,7 +305,7 @@ func (x *streamsBatchAppendServer) Recv() (*BatchAppendReq, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Streams_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "event_store.client.streams2.Streams",
+	ServiceName: "event_store.client.streams.Streams",
 	HandlerType: (*StreamsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
