@@ -14,13 +14,15 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/EventStore/EventStore-Client-Go/stream_position"
 	stream_revision "github.com/EventStore/EventStore-Client-Go/streamrevision"
+	"github.com/davecgh/go-spew/spew"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
 func (client *Client) AppendToStream(
 	ctx context.Context,
-	options event_streams.AppendRequestContentOptions,
+	streamID string,
+	expectedStreamRevision event_streams.IsAppendRequestExpectedStreamRevision,
 	events []event_streams.ProposedEvent,
 ) (event_streams.WriteResult, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
@@ -30,7 +32,10 @@ func (client *Client) AppendToStream(
 	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
 		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
 
-	return eventStreamsClient.AppendToStream(ctx, options, events)
+	return eventStreamsClient.AppendToStream(ctx, event_streams.AppendRequestContentOptions{
+		StreamIdentifier:       streamID,
+		ExpectedStreamRevision: expectedStreamRevision,
+	}, events)
 }
 
 // AppendToStream_OLD ...
@@ -386,7 +391,7 @@ func (client *Client) ReadAllEvents_OLD(
 func (client *Client) SubscribeToStream(
 	ctx context.Context,
 	streamID string,
-	position event_streams.IsSubscribeRequestStreamOptionsStreamRevision,
+	revision event_streams.IsSubscribeRequestStreamOptionsStreamRevision,
 	resolveLinks bool,
 ) (event_streams.ReadClient, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
@@ -396,10 +401,10 @@ func (client *Client) SubscribeToStream(
 	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
 		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
 
-	return eventStreamsClient.SubscribeToStream(ctx, event_streams.SubscribeToStreamRequest{
+	return eventStreamsClient.SubscribeToStream(ctx, handle, event_streams.SubscribeToStreamRequest{
 		StreamOption: event_streams.SubscribeRequestStreamOptions{
 			StreamIdentifier: streamID,
-			Revision:         position,
+			Revision:         revision,
 		},
 		Direction:    event_streams.SubscribeRequestDirectionForward,
 		ResolveLinks: resolveLinks,
@@ -424,6 +429,7 @@ func (client *Client) SubscribeToStream_OLD(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to construct subscription. Reason: %v", err)
 	}
+	fmt.Println(spew.Sdump(subscriptionRequest))
 	ctx, cancel := context.WithCancel(ctx)
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
@@ -465,7 +471,7 @@ func (client *Client) SubscribeToAll(
 	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
 		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
 
-	return eventStreamsClient.SubscribeToStream(ctx, event_streams.SubscribeToStreamRequest{
+	return eventStreamsClient.SubscribeToStream(ctx, handle, event_streams.SubscribeToStreamRequest{
 		StreamOption: event_streams.SubscribeRequestStreamOptionsAll{
 			Position: position,
 		},
@@ -525,7 +531,7 @@ func (client *Client) SubscribeToAllFiltered(
 	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
 		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
 
-	return eventStreamsClient.SubscribeToStream(ctx, event_streams.SubscribeToStreamRequest{
+	return eventStreamsClient.SubscribeToStream(ctx, handle, event_streams.SubscribeToStreamRequest{
 		StreamOption: event_streams.SubscribeRequestStreamOptionsAll{
 			Position: position,
 		},

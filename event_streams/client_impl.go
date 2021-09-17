@@ -8,6 +8,7 @@ import (
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
+	"github.com/davecgh/go-spew/spew"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -302,16 +303,13 @@ const (
 
 func (client *ClientImpl) SubscribeToStream(
 	ctx context.Context,
+	handle connection.ConnectionHandle,
 	request SubscribeToStreamRequest,
 ) (ReadClient, error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
 	var headers, trailers metadata.MD
-	streamsClient := streams2.NewStreamsClient(handle.Connection())
 	ctx, cancel := context.WithCancel(ctx)
-	readStreamClient, err := streamsClient.Read(ctx, request.Build(),
+	fmt.Println(spew.Sdump(request.Build()))
+	readStreamClient, err := client.grpcStreamsClient.Read(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
 		defer cancel()

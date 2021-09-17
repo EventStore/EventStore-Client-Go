@@ -20,7 +20,10 @@ func (clientFactory ClientFactoryImpl) CreateClient(
 func newClientImpl(grpcClient connection.GrpcClient,
 	grpcStreamsClient streamsProto.StreamsClient) *ClientImpl {
 	return &ClientImpl{
-		grpcClient:        grpcClient,
-		grpcStreamsClient: grpcStreamsClient,
+		grpcClient:               grpcClient,
+		grpcStreamsClient:        grpcStreamsClient,
+		readClientFactory:        ReadClientFactoryImpl{},
+		tombstoneResponseAdapter: tombstoneResponseAdapterImpl{},
+		deleteResponseAdapter:    deleteResponseAdapterImpl{},
 	}
 }

@@ -1,6 +1,10 @@
 package event_streams
 
-import "context"
+import (
+	"context"
+
+	"github.com/EventStore/EventStore-Client-Go/connection"
+)
 
 type Client interface {
 	AppendToStream(
@@ -25,6 +29,7 @@ type Client interface {
 
 	SubscribeToStream(
 		ctx context.Context,
+		handle connection.ConnectionHandle,
 		request SubscribeToStreamRequest,
 	) (ReadClient, error)
 }

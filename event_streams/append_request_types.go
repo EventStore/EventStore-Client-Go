@@ -24,7 +24,7 @@ func (this *AppendRequest) Build() *streams2.AppendReq {
 		result.Content = &streams2.AppendReq_Options_{
 			Options: &streams2.AppendReq_Options{
 				StreamIdentifier: &shared.StreamIdentifier{
-					StreamName: content.StreamIdentifier,
+					StreamName: []byte(content.StreamIdentifier),
 				},
 				ExpectedStreamRevision: nil,
 			},
@@ -84,17 +84,17 @@ type isAppendRequestContent interface {
 }
 
 type AppendRequestContentOptions struct {
-	StreamIdentifier []byte
+	StreamIdentifier string
 	// AppendRequestExpectedStreamRevision
 	// AppendRequestExpectedStreamRevisionNoStream
 	// AppendRequestExpectedStreamRevisionAny
 	// AppendRequestExpectedStreamRevisionStreamExists
-	ExpectedStreamRevision isAppendRequestExpectedStreamRevision
+	ExpectedStreamRevision IsAppendRequestExpectedStreamRevision
 }
 
 func (this AppendRequestContentOptions) isAppendRequestContent() {}
 
-type isAppendRequestExpectedStreamRevision interface {
+type IsAppendRequestExpectedStreamRevision interface {
 	isAppendRequestExpectedStreamRevision()
 }
 

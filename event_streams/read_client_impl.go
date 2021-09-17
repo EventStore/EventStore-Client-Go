@@ -1,11 +1,18 @@
 package event_streams
 
-import "github.com/EventStore/EventStore-Client-Go/protos/streams2"
+import (
+	"context"
+	"sync"
+
+	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
+)
 
 type ReadClientImpl struct {
 	protoClient         streams2.Streams_ReadClient
 	readResponseAdapter readResponseAdapter
 	streamId            string
+	cancelFunc          context.CancelFunc
+	once                sync.Once
 }
 
 func (this *ReadClientImpl) Recv() (ReadResponse, error) {
@@ -18,12 +25,19 @@ func (this *ReadClientImpl) Recv() (ReadResponse, error) {
 	return result, nil
 }
 
+func (this *ReadClientImpl) Close() {
+	this.once.Do(this.cancelFunc)
+}
+
 func newReadClientImpl(
 	protoClient streams2.Streams_ReadClient,
-	readResponseAdapter readResponseAdapter, streamId string) *ReadClientImpl {
+	cancelFunc context.CancelFunc,
+	streamId string,
+	readResponseAdapter readResponseAdapter) *ReadClientImpl {
 	return &ReadClientImpl{
 		protoClient:         protoClient,
 		readResponseAdapter: readResponseAdapter,
 		streamId:            streamId,
+		cancelFunc:          cancelFunc,
 	}
 }

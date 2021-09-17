@@ -26,18 +26,18 @@ func (this *ProtoClientImpl) GetReader(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
 	request ReadRequest) (ReadClient, error) {
-	var headers, trailers metadata.MD
+	// var headers, trailers metadata.MD
 
-	readClient, err := this.grpcStreamsClient.Read(ctx, request.Build(),
-		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
-		err = this.grpcClient.HandleError(handle, headers, trailers, err)
-		return nil, errors.New(FailedToCreateReadClientErr)
-	}
+	//readClient, err := this.grpcStreamsClient.Read(ctx, request.Build(),
+	//	grpc.Header(&headers), grpc.Trailer(&trailers))
+	//if err != nil {
+	//	err = this.grpcClient.HandleError(handle, headers, trailers, err)
+	//	return nil, errors.New(FailedToCreateReadClientErr)
+	//}
 
-	result := this.readClientFactory.Create(readClient)
+	// result := this.readClientFactory.Create(readClient)
 
-	return result, nil
+	return nil, nil
 }
 
 func (this *ProtoClientImpl) GetAppender(

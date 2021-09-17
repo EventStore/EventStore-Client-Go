@@ -8,6 +8,7 @@ import (
 
 type ReadClient interface {
 	Recv() (ReadResponse, error)
+	Close()
 }
 
 type ReadClientFactory interface {
@@ -21,5 +22,5 @@ type ReadClientFactoryImpl struct{}
 func (this ReadClientFactoryImpl) Create(protoClient streams2.Streams_ReadClient,
 	cancelFunc context.CancelFunc,
 	streamId string) ReadClient {
-	return newReadClientImpl(protoClient, readResponseAdapterImpl{}, streamId)
+	return newReadClientImpl(protoClient, cancelFunc, streamId, readResponseAdapterImpl{})
 }
