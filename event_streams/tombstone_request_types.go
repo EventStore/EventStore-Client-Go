@@ -6,7 +6,7 @@ import (
 )
 
 type TombstoneRequest struct {
-	StreamIdentifier []byte
+	StreamIdentifier string
 	// Types that are assignable to ExpectedStreamRevision:
 	//	TombstoneRequestExpectedStreamRevision
 	//	TombstoneRequestExpectedStreamRevisionNoStream
@@ -19,7 +19,7 @@ func (this TombstoneRequest) Build() *streams2.TombstoneReq {
 	result := &streams2.TombstoneReq{
 		Options: &streams2.TombstoneReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: this.StreamIdentifier,
+				StreamName: []byte(this.StreamIdentifier),
 			},
 			ExpectedStreamRevision: nil,
 		},

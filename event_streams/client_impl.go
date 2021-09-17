@@ -223,17 +223,11 @@ const FailedToDeleteStreamErr = "FailedToDeleteStreamErr"
 
 func (client *ClientImpl) DeleteStream(
 	context context.Context,
-	streamID string,
-	streamRevision IsDeleteRequestExpectedStreamRevision,
+	deleteRequest DeleteRequest,
 ) (DeleteResponse, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return DeleteResponse{}, err
-	}
-
-	deleteRequest := DeleteRequest{
-		StreamIdentifier:       []byte(streamID),
-		ExpectedStreamRevision: streamRevision,
 	}
 
 	var headers, trailers metadata.MD
@@ -308,7 +302,7 @@ const (
 
 func (client *ClientImpl) SubscribeToStream(
 	ctx context.Context,
-	request ReadRequest,
+	request SubscribeToStreamRequest,
 ) (ReadClient, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {

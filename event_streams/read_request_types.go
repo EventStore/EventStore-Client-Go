@@ -3,7 +3,6 @@ package event_streams
 import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
-	"github.com/gofrs/uuid"
 )
 
 type ReadRequest struct {
@@ -12,13 +11,10 @@ type ReadRequest struct {
 	StreamOption isReadRequestStreamOptions
 	Direction    ReadRequestDirection
 	ResolveLinks bool
-	// ReadRequestCount
-	// ReadRequestCountSubscription
-	Count isReadRequestCount
+	Count        uint64
 	// ReadRequestFilter
 	// ReadRequestNoFilter
 	Filter isReadRequestFilterOption
-	Uuid   uuid.UUID
 }
 
 func (this ReadRequest) Build() *streams2.ReadReq {
@@ -26,7 +22,14 @@ func (this ReadRequest) Build() *streams2.ReadReq {
 		Options: &streams2.ReadReq_Options{
 			ResolveLinks: this.ResolveLinks,
 			FilterOption: nil,
-			UuidOption:   nil,
+			UuidOption: &streams2.ReadReq_Options_UUIDOption{
+				Content: &streams2.ReadReq_Options_UUIDOption_String_{
+					String_: &shared.Empty{},
+				},
+			},
+			CountOption: &streams2.ReadReq_Options_Count{
+				Count: this.Count,
+			},
 		},
 	}
 
@@ -37,7 +40,6 @@ func (this ReadRequest) Build() *streams2.ReadReq {
 	}
 
 	this.buildStreamOption(result.Options)
-	this.buildCountOption(result.Options)
 	this.buildFilterOption(result.Options)
 
 	return result
@@ -109,20 +111,6 @@ func (this ReadRequest) buildStreamOptions(
 	}
 
 	return result
-}
-
-func (this ReadRequest) buildCountOption(options *streams2.ReadReq_Options) {
-	switch this.Count.(type) {
-	case ReadRequestCount:
-		countOption := this.Count.(ReadRequestCount)
-		options.CountOption = &streams2.ReadReq_Options_Count{
-			Count: countOption.Count,
-		}
-	case ReadRequestCountSubscription:
-		options.CountOption = &streams2.ReadReq_Options_Subscription{
-			Subscription: &streams2.ReadReq_Options_SubscriptionOptions{},
-		}
-	}
 }
 
 func (this ReadRequest) buildFilterOption(options *streams2.ReadReq_Options) {
@@ -234,20 +222,6 @@ type ReadRequestNoFilter struct{}
 
 func (this ReadRequestNoFilter) isReadRequestFilterOption() {}
 
-type isReadRequestCount interface {
-	isReadRequestCountOption()
-}
-
-type ReadRequestCount struct {
-	Count uint64
-}
-
-func (this ReadRequestCount) isReadRequestCountOption() {}
-
-type ReadRequestCountSubscription struct{}
-
-func (this ReadRequestCountSubscription) isReadRequestCountOption() {}
-
 type isReadRequestStreamOptions interface {
 	isReadRequestStreamOptions()
 }
@@ -257,12 +231,12 @@ type ReadRequestStreamOptions struct {
 	// ReadRequestOptionsStreamRevision
 	// ReadRequestOptionsStreamRevisionStart
 	// ReadRequestOptionsStreamRevisionEnd
-	Revision isReadRequestStreamOptionsStreamRevision
+	Revision IsReadRequestStreamOptionsStreamRevision
 }
 
 func (this ReadRequestStreamOptions) isReadRequestStreamOptions() {}
 
-type isReadRequestStreamOptionsStreamRevision interface {
+type IsReadRequestStreamOptionsStreamRevision interface {
 	isReadRequestStreamOptionsStreamRevision()
 }
 
@@ -284,12 +258,12 @@ type ReadRequestStreamOptionsAll struct {
 	// ReadRequestOptionsAllPosition
 	// ReadRequestOptionsAllStartPosition
 	// ReadRequestOptionsAllEndPosition
-	Position isReadRequestOptionsAllPosition
+	Position IsReadRequestOptionsAllPosition
 }
 
 func (this ReadRequestStreamOptionsAll) isReadRequestStreamOptions() {}
 
-type isReadRequestOptionsAllPosition interface {
+type IsReadRequestOptionsAllPosition interface {
 	isReadRequestOptionsAllPosition()
 }
 

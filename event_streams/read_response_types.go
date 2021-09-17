@@ -1,16 +1,26 @@
 package event_streams
 
 import (
+	"fmt"
+
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/gofrs/uuid"
 )
 
 type ReadResponse struct {
 	// ReadResponseEvent
-	// ReadResponseConfirmation
 	// ReadResponseCheckpoint
-	// ReadResponseStreamNotFound
 	Result isReadResponseResult
+}
+
+func (response ReadResponse) GetEvent() (ReadResponseEvent, bool) {
+	event, isEvent := response.Result.(ReadResponseEvent)
+	return event, isEvent
+}
+
+func (response ReadResponse) GetCheckpoint() (ReadResponseCheckpoint, bool) {
+	checkpoint, isCheckpoint := response.Result.(ReadResponseCheckpoint)
+	return checkpoint, isCheckpoint
 }
 
 type isReadResponseResult interface {
@@ -53,24 +63,12 @@ type ReadResponseRecordedEvent struct {
 	Data             []byte
 }
 
-type ReadResponseConfirmation struct {
-	SubscriptionId string
-}
-
-func (this ReadResponseConfirmation) isReadResponseResult() {}
-
 type ReadResponseCheckpoint struct {
 	CommitPosition  uint64
 	PreparePosition uint64
 }
 
 func (this ReadResponseCheckpoint) isReadResponseResult() {}
-
-type ReadResponseStreamNotFound struct {
-	StreamIdentifier []byte
-}
-
-func (this ReadResponseStreamNotFound) isReadResponseResult() {}
 
 type readResponseAdapter interface {
 	Create(response *streams2.ReadResp) ReadResponse
@@ -131,12 +129,6 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 		}
 
 		result.Result = event
-	case *streams2.ReadResp_Confirmation:
-		protoConfirmationResponse := protoResponse.Content.(*streams2.ReadResp_Confirmation).Confirmation
-		result.Result = ReadResponseConfirmation{
-			SubscriptionId: protoConfirmationResponse.SubscriptionId,
-		}
-
 	case *streams2.ReadResp_Checkpoint_:
 		protoCheckpointResponse := protoResponse.Content.(*streams2.ReadResp_Checkpoint_).Checkpoint
 		result.Result = ReadResponseCheckpoint{
@@ -144,11 +136,15 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 			PreparePosition: protoCheckpointResponse.PreparePosition,
 		}
 
-	case *streams2.ReadResp_StreamNotFound_:
-		protoNotFound := protoResponse.Content.(*streams2.ReadResp_StreamNotFound_).StreamNotFound
-		result.Result = ReadResponseStreamNotFound{
-			StreamIdentifier: protoNotFound.StreamIdentifier.StreamName,
+	default:
+		if protoResponse.GetStreamNotFound() != nil {
+			panic(fmt.Sprintf("Received stream not found for stream %s",
+				string(protoResponse.GetStreamNotFound().GetStreamIdentifier().GetStreamName())))
+		} else if protoResponse.GetConfirmation() != nil {
+			panic(fmt.Sprintf("Received stream confirmation for stream %s",
+				protoResponse.GetConfirmation().SubscriptionId))
 		}
+		panic("Unexpected type received")
 	}
 
 	return result

@@ -34,7 +34,11 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 
 	var receivedEvents sync.WaitGroup
 	var appendedEvents sync.WaitGroup
-	subscription, err := client.SubscribeToStream_OLD(context.Background(), "dataset20M-0", stream_position.Start{}, false)
+	subscription, err := client.SubscribeToStream_OLD(
+		context.Background(),
+		"dataset20M-0",
+		stream_position.Start{},
+		false)
 
 	go func() {
 		current := 0

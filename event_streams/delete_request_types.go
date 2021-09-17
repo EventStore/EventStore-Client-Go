@@ -6,7 +6,7 @@ import (
 )
 
 type DeleteRequest struct {
-	StreamIdentifier []byte
+	StreamIdentifier string
 	// Types that are assignable to ExpectedStreamRevision:
 	//	DeleteRequestExpectedStreamRevision
 	//	DeleteRequestExpectedStreamRevisionNoStream
@@ -19,7 +19,7 @@ func (this DeleteRequest) Build() *streams2.DeleteReq {
 	result := &streams2.DeleteReq{
 		Options: &streams2.DeleteReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: this.StreamIdentifier,
+				StreamName: []byte(this.StreamIdentifier),
 			},
 			ExpectedStreamRevision: nil,
 		},
