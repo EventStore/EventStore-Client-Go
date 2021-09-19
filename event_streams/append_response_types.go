@@ -8,6 +8,20 @@ type AppendResponse struct {
 	Result isAppendResponseResult
 }
 
+func (this AppendResponse) GetSuccess() (AppendResponseSuccess, bool) {
+	if response, ok := this.Result.(AppendResponseSuccess); ok {
+		return response, true
+	}
+	return AppendResponseSuccess{}, false
+}
+
+func (this AppendResponse) GetWrongExpectedVersion() (AppendResponseWrongExpectedVersion, bool) {
+	if response, ok := this.Result.(AppendResponseWrongExpectedVersion); ok {
+		return response, true
+	}
+	return AppendResponseWrongExpectedVersion{}, false
+}
+
 type isAppendResponseResult interface {
 	isAppendResponseResult()
 }
@@ -24,6 +38,20 @@ type AppendResponseSuccess struct {
 }
 
 func (this AppendResponseSuccess) isAppendResponseResult() {
+}
+
+func (this AppendResponseSuccess) GetCurrentRevisionNoStream() bool {
+	if _, ok := this.CurrentRevision.(AppendResponseSuccessCurrentRevisionNoStream); ok {
+		return true
+	}
+	return false
+}
+
+func (this AppendResponseSuccess) GetCurrentRevision() uint64 {
+	if revision, ok := this.CurrentRevision.(AppendResponseSuccessCurrentRevision); ok {
+		return revision.CurrentRevision
+	}
+	return 0
 }
 
 type isAppendResponseSuccessPosition interface {
@@ -163,13 +191,13 @@ type AppendResponseWrongExpectedRevisionNoStream struct{}
 func (this AppendResponseWrongExpectedRevisionNoStream) isAppendResponseWrongExpectedRevision() {
 }
 
-type responseAdapter interface {
+type appendResponseAdapter interface {
 	CreateResponse(protoResponse *streams2.AppendResp) AppendResponse
 }
 
-type responseAdapterImpl struct{}
+type appendResponseAdapterImpl struct{}
 
-func (this responseAdapterImpl) CreateResponse(protoResponse *streams2.AppendResp) AppendResponse {
+func (this appendResponseAdapterImpl) CreateResponse(protoResponse *streams2.AppendResp) AppendResponse {
 	result := AppendResponse{}
 
 	switch protoResponse.Result.(type) {
@@ -184,9 +212,9 @@ func (this responseAdapterImpl) CreateResponse(protoResponse *streams2.AppendRes
 	return result
 }
 
-func (this responseAdapterImpl) buildSuccessResponse(
+func (this appendResponseAdapterImpl) buildSuccessResponse(
 	protoSuccessResult *streams2.AppendResp_Success_) isAppendResponseResult {
-	result := &AppendResponseSuccess{}
+	result := AppendResponseSuccess{}
 
 	switch protoSuccessResult.Success.CurrentRevisionOption.(type) {
 	case *streams2.AppendResp_Success_CurrentRevision:
@@ -213,7 +241,7 @@ func (this responseAdapterImpl) buildSuccessResponse(
 	return result
 }
 
-func (this responseAdapterImpl) buildWrongExpectedVersionResponse(
+func (this appendResponseAdapterImpl) buildWrongExpectedVersionResponse(
 	proto *streams2.AppendResp_WrongExpectedVersion_) isAppendResponseResult {
 	result := AppendResponseWrongExpectedVersion{}
 

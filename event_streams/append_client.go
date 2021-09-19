@@ -18,5 +18,5 @@ type AppendClientFactoryImpl struct{}
 
 func (this AppendClientFactoryImpl) Create(
 	protoClient streams2.Streams_AppendClient) Appender {
-	return newAppendClientImpl(protoClient, responseAdapterImpl{})
+	return newAppendClientImpl(protoClient, appendResponseAdapterImpl{})
 }

@@ -48,13 +48,10 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	go func() {
 		current := 0
 		for {
-			fmt.Println("Receiving...")
 			subEvent, err := subscription.Recv()
 			require.NoError(t, err)
-			fmt.Println("Processing: ", current)
 
 			if event, isEvent := subEvent.GetEvent(); isEvent {
-				fmt.Println("Is event")
 				current++
 				if current <= 6_000 {
 					receivedEvents.Done()
@@ -84,7 +81,8 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 		event_streams.AppendRequestExpectedStreamRevision{Revision: 5999},
 		[]event_streams.ProposedEvent{testEvent})
 	require.NoError(t, err)
-	require.Equal(t, uint64(6_000), writeResult.NextExpectedVersion)
+	success, _ := writeResult.GetSuccess()
+	require.Equal(t, uint64(6_000), success.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription
 	fmt.Println("Waiting 2...")

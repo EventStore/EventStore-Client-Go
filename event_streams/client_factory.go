@@ -25,5 +25,7 @@ func newClientImpl(grpcClient connection.GrpcClient,
 		readClientFactory:        ReadClientFactoryImpl{},
 		tombstoneResponseAdapter: tombstoneResponseAdapterImpl{},
 		deleteResponseAdapter:    deleteResponseAdapterImpl{},
+		appendResponseAdapter:    appendResponseAdapterImpl{},
+		readResponseAdapter:      readResponseAdapterImpl{},
 	}
 }

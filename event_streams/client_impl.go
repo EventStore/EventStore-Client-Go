@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
@@ -19,25 +20,25 @@ type ClientImpl struct {
 	deleteResponseAdapter    deleteResponseAdapter
 	tombstoneResponseAdapter tombstoneResponseAdapter
 	readClientFactory        ReadClientFactory
+	appendResponseAdapter    appendResponseAdapter
+	readResponseAdapter      readResponseAdapter
 }
 
 const (
-	AppendToStream_WrongExpectedVersionErr         = "AppendToStream_WrongExpectedVersionErr"
-	AppendToStream_WrongExpectedVersion_20_6_0_Err = "AppendToStream_WrongExpectedVersion_20_6_0_Err"
-	AppendToStream_FailedToObtainAppenderErr       = "AppendToStream_FailedToObtainAppenderErr"
-	AppendToStream_FailedSendHeaderErr             = "AppendToStream_FailedSendHeaderErr"
-	AppendToStream_FailedSendMessageErr            = "AppendToStream_FailedSendMessageErr"
-	AppendToStream_FailedToCloseStreamErr          = "AppendToStream_FailedToCloseStreamErr"
+	AppendToStream_FailedToObtainAppenderErr = "AppendToStream_FailedToObtainAppenderErr"
+	AppendToStream_FailedSendHeaderErr       = "AppendToStream_FailedSendHeaderErr"
+	AppendToStream_FailedSendMessageErr      = "AppendToStream_FailedSendMessageErr"
+	AppendToStream_FailedToCloseStreamErr    = "AppendToStream_FailedToCloseStreamErr"
 )
 
 func (client *ClientImpl) AppendToStream(
 	ctx context.Context,
 	options AppendRequestContentOptions,
 	events []ProposedEvent,
-) (WriteResult, error) {
+) (AppendResponse, error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
-		return WriteResult{}, err
+		return AppendResponse{}, err
 	}
 
 	var headers, trailers metadata.MD
@@ -45,7 +46,7 @@ func (client *ClientImpl) AppendToStream(
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if err != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return WriteResult{}, errors.New(AppendToStream_FailedToObtainAppenderErr)
+		return AppendResponse{}, errors.New(AppendToStream_FailedToObtainAppenderErr)
 	}
 
 	headerRequest := AppendRequest{Content: options}
@@ -53,7 +54,7 @@ func (client *ClientImpl) AppendToStream(
 
 	if err != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return WriteResult{}, errors.New(AppendToStream_FailedSendHeaderErr)
+		return AppendResponse{}, errors.New(AppendToStream_FailedSendHeaderErr)
 	}
 
 	for _, event := range events {
@@ -62,162 +63,17 @@ func (client *ClientImpl) AppendToStream(
 
 		if err != nil {
 			err = client.grpcClient.HandleError(handle, headers, trailers, err)
-			return WriteResult{}, errors.New(AppendToStream_FailedSendMessageErr)
+			return AppendResponse{}, errors.New(AppendToStream_FailedSendMessageErr)
 		}
 	}
 
 	response, err := appendClient.CloseAndRecv()
 	if err != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return WriteResult{}, errors.New(AppendToStream_FailedToCloseStreamErr)
+		return AppendResponse{}, errors.New(AppendToStream_FailedToCloseStreamErr)
 	}
 
-	switch response.Result.(type) {
-	case *streams2.AppendResp_Success_:
-		successResponse := response.Result.(*streams2.AppendResp_Success_)
-
-		var streamRevision uint64 = 1
-		revision, isCurrentRevision := successResponse.Success.
-			CurrentRevisionOption.(*streams2.AppendResp_Success_CurrentRevision)
-		if isCurrentRevision {
-			streamRevision = revision.CurrentRevision
-		}
-
-		var commitPosition uint64
-		var preparePosition uint64
-		if position, ok := successResponse.Success.
-			PositionOption.(*streams2.AppendResp_Success_Position); ok {
-			commitPosition = position.Position.CommitPosition
-			preparePosition = position.Position.PreparePosition
-		} else if !isCurrentRevision {
-			streamRevision = 0
-		}
-
-		return WriteResult{
-			CommitPosition:      commitPosition,
-			PreparePosition:     preparePosition,
-			NextExpectedVersion: streamRevision,
-		}, nil
-	case *streams2.AppendResp_WrongExpectedVersion_:
-		wrongVersion := response.Result.(*streams2.AppendResp_WrongExpectedVersion_).WrongExpectedVersion
-		type currentRevisionType struct {
-			Revision uint64
-			NoStream bool
-		}
-		var currentRevision *currentRevisionType
-
-		if wrongVersion.CurrentRevisionOption_20_6_0 != nil {
-			switch wrongVersion.CurrentRevisionOption_20_6_0.(type) {
-			case *streams2.AppendResp_WrongExpectedVersion_CurrentRevision_20_6_0:
-				revision := wrongVersion.
-					CurrentRevisionOption_20_6_0.(*streams2.AppendResp_WrongExpectedVersion_CurrentRevision_20_6_0)
-				currentRevision = &currentRevisionType{
-					Revision: revision.CurrentRevision_20_6_0,
-					NoStream: false,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_NoStream_20_6_0:
-				currentRevision = &currentRevisionType{
-					NoStream: true,
-				}
-			}
-		} else if wrongVersion.CurrentRevisionOption != nil {
-			switch wrongVersion.CurrentRevisionOption.(type) {
-			case *streams2.AppendResp_WrongExpectedVersion_CurrentRevision:
-				revision := wrongVersion.
-					CurrentRevisionOption.(*streams2.AppendResp_WrongExpectedVersion_CurrentRevision)
-
-				currentRevision = &currentRevisionType{
-					Revision: revision.CurrentRevision,
-					NoStream: false,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_CurrentNoStream:
-				currentRevision = &currentRevisionType{
-					NoStream: true,
-				}
-			}
-		}
-
-		if currentRevision != nil {
-			if currentRevision.NoStream {
-				log.Println("Wrong expected revision. Current revision no stream")
-			} else {
-				log.Println("Wrong expected revision. Current revision:", currentRevision.Revision)
-			}
-		}
-
-		type expectedRevisionType struct {
-			Revision     uint64
-			IsAny        bool
-			StreamExists bool
-			NoStream     bool
-		}
-
-		var expectedRevision *expectedRevisionType
-
-		if wrongVersion.ExpectedRevisionOption_20_6_0 != nil {
-			switch wrongVersion.ExpectedRevisionOption_20_6_0.(type) {
-			case *streams2.AppendResp_WrongExpectedVersion_ExpectedRevision_20_6_0:
-				revision := wrongVersion.
-					ExpectedRevisionOption_20_6_0.(*streams2.AppendResp_WrongExpectedVersion_ExpectedRevision_20_6_0)
-				expectedRevision = &expectedRevisionType{
-					Revision: revision.ExpectedRevision_20_6_0,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_Any_20_6_0:
-				expectedRevision = &expectedRevisionType{
-					IsAny: true,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_StreamExists_20_6_0:
-				expectedRevision = &expectedRevisionType{
-					StreamExists: true,
-				}
-			}
-		} else if wrongVersion.ExpectedRevisionOption != nil {
-			switch wrongVersion.ExpectedRevisionOption.(type) {
-			case *streams2.AppendResp_WrongExpectedVersion_ExpectedRevision:
-				revision := wrongVersion.
-					ExpectedRevisionOption.(*streams2.AppendResp_WrongExpectedVersion_ExpectedRevision)
-				expectedRevision = &expectedRevisionType{
-					Revision: revision.ExpectedRevision,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_ExpectedAny:
-				expectedRevision = &expectedRevisionType{
-					IsAny: true,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_ExpectedStreamExists:
-				expectedRevision = &expectedRevisionType{
-					StreamExists: true,
-				}
-			case *streams2.AppendResp_WrongExpectedVersion_ExpectedNoStream:
-				expectedRevision = &expectedRevisionType{
-					NoStream: true,
-				}
-			}
-		}
-
-		if expectedRevision != nil {
-			if expectedRevision.StreamExists {
-				log.Println("Wrong expected revision. Stream Exists!")
-			} else if expectedRevision.IsAny {
-				log.Println("Wrong expected revision. Any!")
-			} else if expectedRevision.NoStream {
-				log.Println("Wrong expected revision. No Stream!")
-			} else {
-				log.Println("Wrong expected revision. Expected revision: ", expectedRevision.Revision)
-			}
-		}
-
-		if wrongVersion.CurrentRevisionOption_20_6_0 != nil ||
-			wrongVersion.ExpectedRevisionOption_20_6_0 != nil {
-			return WriteResult{}, errors.New(AppendToStream_WrongExpectedVersion_20_6_0_Err)
-		}
-		return WriteResult{}, errors.New(AppendToStream_WrongExpectedVersionErr)
-	}
-
-	return WriteResult{
-		CommitPosition:      0,
-		PreparePosition:     0,
-		NextExpectedVersion: 1,
-	}, nil
+	return client.appendResponseAdapter.CreateResponse(response), nil
 }
 
 const FailedToDeleteStreamErr = "FailedToDeleteStreamErr"
@@ -264,7 +120,71 @@ func (client *ClientImpl) TombstoneStream(
 	return client.tombstoneResponseAdapter.Create(tombstoneResponse), nil
 }
 
+const (
+	FailedToReceiveResponseErr = "FailedToReceiveResponseErr"
+	StreamNotFoundErr          = "StreamNotFoundErr"
+	FatalError                 = "FatalError"
+)
+
 func (client *ClientImpl) ReadStreamEvents(
+	ctx context.Context,
+	readRequest ReadRequest) ([]ReadResponseEvent, error) {
+
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	var headers, trailers metadata.MD
+	ctx, cancel := context.WithCancel(ctx)
+	readStreamClient, err := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
+		grpc.Header(&headers), grpc.Trailer(&trailers))
+	if err != nil {
+		defer cancel()
+		err = client.grpcClient.HandleError(handle, headers, trailers, err)
+		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
+	}
+
+	var result []ReadResponseEvent
+
+	var errorCode *string
+
+	for {
+		protoReadResult, err := readStreamClient.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			err = client.grpcClient.HandleError(handle, headers, trailers, err)
+			fmt.Println("Failed to receive subscription response. Reason: ", err)
+			temp := FailedToReceiveResponseErr
+			errorCode = &temp
+			break
+		}
+
+		readResult := client.readResponseAdapter.Create(protoReadResult)
+		if _, streamIsNotFound := readResult.GetStreamNotFound(); streamIsNotFound {
+			temp := StreamNotFoundErr
+			errorCode = &temp
+			break
+		} else if _, isCheckpoint := readResult.GetCheckpoint(); isCheckpoint {
+			continue
+		}
+
+		event, _ := readResult.GetEvent()
+		result = append(result, event)
+	}
+
+	if errorCode == nil {
+		defer cancel()
+		return result, nil
+	}
+
+	defer cancel()
+	return nil, errors.New(*errorCode)
+}
+
+func (client *ClientImpl) ReadStreamEventsReader(
 	ctx context.Context,
 	readRequest ReadRequest) (ReadClient, error) {
 
@@ -290,7 +210,6 @@ func (client *ClientImpl) ReadStreamEvents(
 	}
 
 	readClient := client.readClientFactory.Create(readStreamClient, cancel, streamId)
-
 	return readClient, nil
 }
 

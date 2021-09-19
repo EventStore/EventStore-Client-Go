@@ -10,12 +10,18 @@ import (
 type ReadResponse struct {
 	// ReadResponseEvent
 	// ReadResponseCheckpoint
+	// ReadResponseStreamNotFound
 	Result isReadResponseResult
 }
 
 func (response ReadResponse) GetEvent() (ReadResponseEvent, bool) {
 	event, isEvent := response.Result.(ReadResponseEvent)
 	return event, isEvent
+}
+
+func (response ReadResponse) GetStreamNotFound() (ReadResponseStreamNotFound, bool) {
+	streamNotFound, isEvent := response.Result.(ReadResponseStreamNotFound)
+	return streamNotFound, isEvent
 }
 
 func (response ReadResponse) GetCheckpoint() (ReadResponseCheckpoint, bool) {
@@ -26,6 +32,12 @@ func (response ReadResponse) GetCheckpoint() (ReadResponseCheckpoint, bool) {
 type isReadResponseResult interface {
 	isReadResponseResult()
 }
+
+type ReadResponseStreamNotFound struct {
+	StreamId string
+}
+
+func (this ReadResponseStreamNotFound) isReadResponseResult() {}
 
 type ReadResponseEvent struct {
 	Event *ReadResponseRecordedEvent
@@ -135,12 +147,14 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 			CommitPosition:  protoCheckpointResponse.CommitPosition,
 			PreparePosition: protoCheckpointResponse.PreparePosition,
 		}
+	case *streams2.ReadResp_StreamNotFound_:
+		protoStreamNotFound := protoResponse.Content.(*streams2.ReadResp_StreamNotFound_).StreamNotFound
+		result.Result = ReadResponseStreamNotFound{
+			StreamId: string(protoStreamNotFound.StreamIdentifier.StreamName),
+		}
 
 	default:
-		if protoResponse.GetStreamNotFound() != nil {
-			panic(fmt.Sprintf("Received stream not found for stream %s",
-				string(protoResponse.GetStreamNotFound().GetStreamIdentifier().GetStreamName())))
-		} else if protoResponse.GetConfirmation() != nil {
+		if protoResponse.GetConfirmation() != nil {
 			panic(fmt.Sprintf("Received stream confirmation for stream %s",
 				protoResponse.GetConfirmation().SubscriptionId))
 		}

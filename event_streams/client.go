@@ -11,7 +11,7 @@ type Client interface {
 		ctx context.Context,
 		options AppendRequestContentOptions,
 		events []ProposedEvent,
-	) (WriteResult, error)
+	) (AppendResponse, error)
 
 	DeleteStream(
 		context context.Context,
@@ -24,6 +24,10 @@ type Client interface {
 	) (TombstoneResponse, error)
 
 	ReadStreamEvents(
+		ctx context.Context,
+		readRequest ReadRequest) ([]ReadResponseEvent, error)
+
+	ReadStreamEventsReader(
 		ctx context.Context,
 		readRequest ReadRequest) (ReadClient, error)
 

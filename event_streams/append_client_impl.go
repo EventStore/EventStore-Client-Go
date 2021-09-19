@@ -8,7 +8,7 @@ import (
 
 func newAppendClientImpl(
 	protoClient streams2.Streams_AppendClient,
-	responseAdapter responseAdapter) *AppendClientImpl {
+	responseAdapter appendResponseAdapter) *AppendClientImpl {
 	return &AppendClientImpl{
 		protoClient:     protoClient,
 		responseAdapter: responseAdapter,
@@ -18,7 +18,7 @@ func newAppendClientImpl(
 type AppendClientImpl struct {
 	grpcClient      connection.GrpcClient
 	protoClient     streams2.Streams_AppendClient
-	responseAdapter responseAdapter
+	responseAdapter appendResponseAdapter
 }
 
 func (this *AppendClientImpl) Send(
