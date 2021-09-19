@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
@@ -39,13 +40,13 @@ func Test_CloseConnection(t *testing.T) {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
 
-	err = client.Close()
-	require.NoError(t, err)
+	stdErr := client.Close()
+	require.NoError(t, stdErr)
 	_, err = client.AppendToStream(ctx,
 		streamID.String(),
 		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		proposedEvents)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, "esdb connection is closed", err.Error())
+	assert.Equal(t, connection.EsdbConnectionIsClosed, err.Code())
 }

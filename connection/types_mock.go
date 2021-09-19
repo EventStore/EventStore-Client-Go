@@ -7,6 +7,7 @@ package connection
 import (
 	reflect "reflect"
 
+	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	uuid "github.com/gofrs/uuid"
 	gomock "github.com/golang/mock/gomock"
 	grpc "google.golang.org/grpc"
@@ -100,11 +101,11 @@ func (mr *MockGrpcClientMockRecorder) Close() *gomock.Call {
 }
 
 // GetConnectionHandle mocks base method.
-func (m *MockGrpcClient) GetConnectionHandle() (ConnectionHandle, error) {
+func (m *MockGrpcClient) GetConnectionHandle() (ConnectionHandle, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetConnectionHandle")
 	ret0, _ := ret[0].(ConnectionHandle)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -115,15 +116,20 @@ func (mr *MockGrpcClientMockRecorder) GetConnectionHandle() *gomock.Call {
 }
 
 // HandleError mocks base method.
-func (m *MockGrpcClient) HandleError(handle ConnectionHandle, headers, trailers metadata.MD, err error) error {
+func (m *MockGrpcClient) HandleError(handle ConnectionHandle, headers, trailers metadata.MD, err error, mapUnknownErrorToOtherError ...errors.ErrorCode) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleError", handle, headers, trailers, err)
-	ret0, _ := ret[0].(error)
+	varargs := []interface{}{handle, headers, trailers, err}
+	for _, a := range mapUnknownErrorToOtherError {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "HandleError", varargs...)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // HandleError indicates an expected call of HandleError.
-func (mr *MockGrpcClientMockRecorder) HandleError(handle, headers, trailers, err interface{}) *gomock.Call {
+func (mr *MockGrpcClientMockRecorder) HandleError(handle, headers, trailers, err interface{}, mapUnknownErrorToOtherError ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleError", reflect.TypeOf((*MockGrpcClient)(nil).HandleError), handle, headers, trailers, err)
+	varargs := append([]interface{}{handle, headers, trailers, err}, mapUnknownErrorToOtherError...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleError", reflect.TypeOf((*MockGrpcClient)(nil).HandleError), varargs...)
 }

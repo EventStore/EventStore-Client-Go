@@ -2,12 +2,11 @@ package event_streams
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/davecgh/go-spew/spew"
 	"google.golang.org/grpc"
@@ -25,110 +24,114 @@ type ClientImpl struct {
 }
 
 const (
-	AppendToStream_FailedToObtainAppenderErr = "AppendToStream_FailedToObtainAppenderErr"
-	AppendToStream_FailedSendHeaderErr       = "AppendToStream_FailedSendHeaderErr"
-	AppendToStream_FailedSendMessageErr      = "AppendToStream_FailedSendMessageErr"
-	AppendToStream_FailedToCloseStreamErr    = "AppendToStream_FailedToCloseStreamErr"
+	AppendToStream_FailedToObtainAppenderErr errors.ErrorCode = "AppendToStream_FailedToObtainAppenderErr"
+	AppendToStream_FailedSendHeaderErr       errors.ErrorCode = "AppendToStream_FailedSendHeaderErr"
+	AppendToStream_FailedSendMessageErr      errors.ErrorCode = "AppendToStream_FailedSendMessageErr"
+	AppendToStream_FailedToCloseStreamErr    errors.ErrorCode = "AppendToStream_FailedToCloseStreamErr"
 )
 
 func (client *ClientImpl) AppendToStream(
 	ctx context.Context,
 	options AppendRequestContentOptions,
 	events []ProposedEvent,
-) (AppendResponse, error) {
+) (AppendResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return AppendResponse{}, err
 	}
 
 	var headers, trailers metadata.MD
-	appendClient, err := client.grpcStreamsClient.Append(ctx,
+	appendClient, protoErr := client.grpcStreamsClient.Append(ctx,
 		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return AppendResponse{}, errors.New(AppendToStream_FailedToObtainAppenderErr)
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			AppendToStream_FailedToObtainAppenderErr)
+		return AppendResponse{}, err
 	}
 
 	headerRequest := AppendRequest{Content: options}
-	err = appendClient.Send(headerRequest.Build())
+	protoErr = appendClient.Send(headerRequest.Build())
 
-	if err != nil {
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return AppendResponse{}, errors.New(AppendToStream_FailedSendHeaderErr)
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			AppendToStream_FailedSendHeaderErr)
+		return AppendResponse{}, err
 	}
 
 	for _, event := range events {
 		message := AppendRequest{Content: event.ToProposedMessage()}
-		err = appendClient.Send(message.Build())
+		protoErr = appendClient.Send(message.Build())
 
-		if err != nil {
-			err = client.grpcClient.HandleError(handle, headers, trailers, err)
-			return AppendResponse{}, errors.New(AppendToStream_FailedSendMessageErr)
+		if protoErr != nil {
+			err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+				AppendToStream_FailedSendMessageErr)
+			return AppendResponse{}, err
 		}
 	}
 
-	response, err := appendClient.CloseAndRecv()
-	if err != nil {
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return AppendResponse{}, errors.New(AppendToStream_FailedToCloseStreamErr)
+	response, protoErr := appendClient.CloseAndRecv()
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			AppendToStream_FailedToCloseStreamErr)
+		return AppendResponse{}, err
 	}
 
 	return client.appendResponseAdapter.CreateResponse(response), nil
 }
 
-const FailedToDeleteStreamErr = "FailedToDeleteStreamErr"
+const FailedToDeleteStreamErr errors.ErrorCode = "FailedToDeleteStreamErr"
 
 func (client *ClientImpl) DeleteStream(
 	context context.Context,
 	deleteRequest DeleteRequest,
-) (DeleteResponse, error) {
+) (DeleteResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return DeleteResponse{}, err
 	}
 
 	var headers, trailers metadata.MD
-	deleteResponse, err := client.grpcStreamsClient.Delete(context, deleteRequest.Build(),
+	deleteResponse, protoErr := client.grpcStreamsClient.Delete(context, deleteRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		log.Println("Failed to perform delete, details:", err)
-		return DeleteResponse{}, errors.New(FailedToDeleteStreamErr)
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToDeleteStreamErr)
+		return DeleteResponse{}, err
 	}
 
 	return client.deleteResponseAdapter.Create(deleteResponse), nil
 }
 
-const FailedToTombstoneStreamErr = "FailedToTombstoneStreamErr"
+const FailedToTombstoneStreamErr errors.ErrorCode = "FailedToTombstoneStreamErr"
 
 func (client *ClientImpl) TombstoneStream(
 	context context.Context,
 	tombstoneRequest TombstoneRequest,
-) (TombstoneResponse, error) {
+) (TombstoneResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return TombstoneResponse{}, err
 	}
 	var headers, trailers metadata.MD
-	tombstoneResponse, err := client.grpcStreamsClient.Tombstone(context, tombstoneRequest.Build(),
+	tombstoneResponse, protoErr := client.grpcStreamsClient.Tombstone(context, tombstoneRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return TombstoneResponse{}, errors.New(FailedToTombstoneStreamErr)
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToTombstoneStreamErr)
+		return TombstoneResponse{}, err
 	}
 
 	return client.tombstoneResponseAdapter.Create(tombstoneResponse), nil
 }
 
 const (
-	FailedToReceiveResponseErr = "FailedToReceiveResponseErr"
-	StreamNotFoundErr          = "StreamNotFoundErr"
-	FatalError                 = "FatalError"
+	FailedToReceiveResponseErr     errors.ErrorCode = "FailedToReceiveResponseErr"
+	StreamNotFoundErr              errors.ErrorCode = "StreamNotFoundErr"
+	FailedToConstructReadStreamErr errors.ErrorCode = "FailedToConstructReadStreamErr"
+	FatalError                     errors.ErrorCode = "FatalError"
 )
 
 func (client *ClientImpl) ReadStreamEvents(
 	ctx context.Context,
-	readRequest ReadRequest) ([]ReadResponseEvent, error) {
+	readRequest ReadRequest) ([]ReadResponseEvent, errors.Error) {
 
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -137,17 +140,18 @@ func (client *ClientImpl) ReadStreamEvents(
 
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
-	readStreamClient, err := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
+	readStreamClient, protoErr := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
+	if protoErr != nil {
 		defer cancel()
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			FailedToConstructReadStreamErr)
+		return nil, err
 	}
 
 	var result []ReadResponseEvent
 
-	var errorCode *string
+	var errorCode *errors.ErrorCode
 
 	for {
 		protoReadResult, err := readStreamClient.Recv()
@@ -181,12 +185,12 @@ func (client *ClientImpl) ReadStreamEvents(
 	}
 
 	defer cancel()
-	return nil, errors.New(*errorCode)
+	return nil, errors.NewErrorCode(*errorCode)
 }
 
 func (client *ClientImpl) ReadStreamEventsReader(
 	ctx context.Context,
-	readRequest ReadRequest) (ReadClient, error) {
+	readRequest ReadRequest) (ReadClient, errors.Error) {
 
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -195,12 +199,13 @@ func (client *ClientImpl) ReadStreamEventsReader(
 
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
-	readStreamClient, err := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
+	readStreamClient, protoErr := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
+	if protoErr != nil {
 		defer cancel()
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			FailedToConstructReadStreamErr)
+		return nil, err
 	}
 
 	streamId := "$all"
@@ -214,37 +219,35 @@ func (client *ClientImpl) ReadStreamEventsReader(
 }
 
 const (
-	FailedToCreateReaderErr                = "FailedToCreateReaderErr"
-	FailedToReceiveSubscriptionResponseErr = "FailedToReceiveSubscriptionResponseErr"
-	FailedToSubscribe_StreamNotFoundErr    = "FailedToSubscribe_StreamNotFoundErr"
-	FailedToSubscribeErr                   = "FailedToSubscribeErr"
+	FailedToCreateReaderErr                errors.ErrorCode = "FailedToCreateReaderErr"
+	FailedToReceiveSubscriptionResponseErr errors.ErrorCode = "FailedToReceiveSubscriptionResponseErr"
+	FailedToSubscribe_StreamNotFoundErr    errors.ErrorCode = "FailedToSubscribe_StreamNotFoundErr"
 )
 
 func (client *ClientImpl) SubscribeToStream(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
 	request SubscribeToStreamRequest,
-) (ReadClient, error) {
+) (ReadClient, errors.Error) {
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
 
 	fmt.Println(spew.Sdump(request.Build()))
 
-	readStreamClient, err := client.grpcStreamsClient.Read(ctx, request.Build(),
+	readStreamClient, protoErr := client.grpcStreamsClient.Read(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
-	if err != nil {
+	if protoErr != nil {
 		defer cancel()
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		fmt.Println("Failed to construct subscription. Reason: ", err)
-		return nil, errors.New(FailedToCreateReaderErr)
+		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToCreateReaderErr)
+		return nil, err
 	}
 
-	readResult, err := readStreamClient.Recv()
-	if err != nil {
+	readResult, protoErr := readStreamClient.Recv()
+	if protoErr != nil {
 		defer cancel()
-		err = client.grpcClient.HandleError(handle, headers, trailers, err)
-		fmt.Println("Failed to receive subscription response. Reason: ", err)
-		return nil, errors.New(FailedToReceiveSubscriptionResponseErr)
+		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			FailedToReceiveSubscriptionResponseErr)
+		return nil, err
 	}
 
 	switch readResult.Content.(type) {
@@ -262,9 +265,9 @@ func (client *ClientImpl) SubscribeToStream(
 
 			fmt.Println("Failed to initiate subscription because the stream was not found.",
 				string(streamNotFoundResult.StreamNotFound.StreamIdentifier.StreamName))
-			return nil, errors.New(FailedToSubscribe_StreamNotFoundErr)
+			return nil, errors.NewErrorCode(FailedToSubscribe_StreamNotFoundErr)
 		}
 	}
 	defer cancel()
-	return nil, errors.New(FailedToSubscribeErr)
+	return nil, errors.NewErrorCode(FatalError)
 }

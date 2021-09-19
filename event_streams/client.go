@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/EventStore/EventStore-Client-Go/errors"
 )
 
 type Client interface {
@@ -11,29 +12,29 @@ type Client interface {
 		ctx context.Context,
 		options AppendRequestContentOptions,
 		events []ProposedEvent,
-	) (AppendResponse, error)
+	) (AppendResponse, errors.Error)
 
 	DeleteStream(
 		context context.Context,
 		deleteRequest DeleteRequest,
-	) (DeleteResponse, error)
+	) (DeleteResponse, errors.Error)
 
 	TombstoneStream(
 		context context.Context,
 		tombstoneRequest TombstoneRequest,
-	) (TombstoneResponse, error)
+	) (TombstoneResponse, errors.Error)
 
 	ReadStreamEvents(
 		ctx context.Context,
-		readRequest ReadRequest) ([]ReadResponseEvent, error)
+		readRequest ReadRequest) ([]ReadResponseEvent, errors.Error)
 
 	ReadStreamEventsReader(
 		ctx context.Context,
-		readRequest ReadRequest) (ReadClient, error)
+		readRequest ReadRequest) (ReadClient, errors.Error)
 
 	SubscribeToStream(
 		ctx context.Context,
 		handle connection.ConnectionHandle,
 		request SubscribeToStreamRequest,
-	) (ReadClient, error)
+	) (ReadClient, errors.Error)
 }

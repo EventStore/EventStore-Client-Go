@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/stretchr/testify/require"
 
@@ -52,7 +53,7 @@ func Test_AppendingZeroEvents_ExpectedStreamStateAny(t *testing.T) {
 		event_streams.ReadRequestOptionsStreamRevisionStart{},
 		2,
 		false)
-	require.EqualError(t, err, event_streams.StreamNotFoundErr)
+	require.Equal(t, err.Code(), event_streams.StreamNotFoundErr)
 }
 
 func Test_AppendingZeroEvents_expectedStreamStateNoStream(t *testing.T) {
@@ -87,7 +88,7 @@ func Test_AppendingZeroEvents_expectedStreamStateNoStream(t *testing.T) {
 		event_streams.ReadRequestOptionsStreamRevisionStart{},
 		2,
 		false)
-	require.EqualError(t, err, event_streams.StreamNotFoundErr)
+	require.Equal(t, err.Code(), errors.StreamNotFoundErr)
 }
 
 func Test_CreateStreamIfDoesNotExist_expectedStreamAny(t *testing.T) {
@@ -190,49 +191,121 @@ func Test_MultipleIdempotentWrites_ExpectedStreamAny(t *testing.T) {
 	require.EqualValues(t, 3, success.GetCurrentRevision())
 }
 
-func Test_multiple_idempotent_writes_with_same_id_bug_case_expectedStreamAny(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var evnt = _fixture.CreateTestEvents().First();
-	//var events = new[] {evnt, evnt, evnt, evnt, evnt, evnt};
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(stream, StreamState.Any, events);
-	//
-	//Assert.Equal(new StreamRevision(5), writeResult.NextExpectedStreamRevision);
+func Test_MultipleIdempotentWritesWithSameIdBugCase_ExpectedStreamAny(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
+	streamName := "stream_any"
+	event := createTestEvent()
+	events := []event_streams.ProposedEvent{event, event, event, event, event, event}
+
+	writeResult, err := client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		events)
+	require.NoError(t, err)
+	success, _ := writeResult.GetSuccess()
+	require.EqualValues(t, 5, success.GetCurrentRevision())
 }
 
-func Test_in_case_where_multiple_writes_of_multiple_events_with_the_same_ids_using_expected_version_any_then_next_expected_version_is_unreliable(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var evnt = _fixture.CreateTestEvents().First();
-	//var events = new[] {evnt, evnt, evnt, evnt, evnt, evnt};
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(stream, StreamState.Any, events);
-	//
-	//Assert.Equal(new StreamRevision(5), writeResult.NextExpectedStreamRevision);
-	//
-	//writeResult = await _fixture.Client.AppendToStreamAsync(stream, StreamState.Any, events);
-	//
-	//Assert.Equal(new StreamRevision(0), writeResult.NextExpectedStreamRevision);
+func Test_MultipleWriteEventsWithSameIds_ExpectedVersionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
+	streamName := "stream_any"
+	event := createTestEvent()
+	events := []event_streams.ProposedEvent{event, event, event, event, event, event}
+
+	writeResult, err := client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		events)
+	require.NoError(t, err)
+	success, _ := writeResult.GetSuccess()
+	require.EqualValues(t, 5, success.GetCurrentRevision())
+
+	writeResult, err = client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		events)
+	require.NoError(t, err)
+	success, _ = writeResult.GetSuccess()
+	require.EqualValues(t, 0, success.GetCurrentRevision())
 }
 
-func Test_in_case_where_multiple_writes_of_multiple_events_with_the_same_ids_using_expected_version_nostream_then_next_expected_version_is_correct(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var evnt = _fixture.CreateTestEvents().First();
-	//var events = new[] {evnt, evnt, evnt, evnt, evnt, evnt};
-	//var streamRevision = StreamRevision.FromInt64(events.Length - 1);
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(stream, StreamState.NoStream, events);
-	//
-	//Assert.Equal(streamRevision, writeResult.NextExpectedStreamRevision);
-	//
-	//writeResult = await _fixture.Client.AppendToStreamAsync(stream, StreamState.NoStream, events);
-	//
-	//Assert.Equal(streamRevision, writeResult.NextExpectedStreamRevision);
+func Test_MultipleWriteEventsWithSameIds_ExpectedVersionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+	streamName := "stream_no_stream"
+	event := createTestEvent()
+	events := []event_streams.ProposedEvent{event, event, event, event, event, event}
+
+	writeResult, err := client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		events)
+	require.NoError(t, err)
+	success, _ := writeResult.GetSuccess()
+	require.EqualValues(t, 5, success.GetCurrentRevision())
+
+	writeResult, err = client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		events)
+	require.NoError(t, err)
+	success, _ = writeResult.GetSuccess()
+	require.EqualValues(t, 5, success.GetCurrentRevision())
 }
 
 func Test_writing_with_correct_expected_version_to_deleted_stream_throws_stream_deleted(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	streamName := "stream_no_stream"
+
+	_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+	require.NoError(t, err)
+
+	event := createTestEvent()
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+
+	_, err = client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		[]event_streams.ProposedEvent{event})
+	require.NoError(t, err)
 	//var stream = _fixture.GetStreamName();
 	//
 	//await _fixture.Client.TombstoneAsync(stream, StreamState.NoStream);

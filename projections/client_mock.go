@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	connection "github.com/EventStore/EventStore-Client-Go/connection"
+	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,10 +37,10 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // AbortProjection mocks base method.
-func (m *MockClient) AbortProjection(ctx context.Context, handle connection.ConnectionHandle, options AbortOptionsRequest) error {
+func (m *MockClient) AbortProjection(ctx context.Context, handle connection.ConnectionHandle, options AbortOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AbortProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -50,10 +51,10 @@ func (mr *MockClientMockRecorder) AbortProjection(ctx, handle, options interface
 }
 
 // CreateProjection mocks base method.
-func (m *MockClient) CreateProjection(ctx context.Context, handle connection.ConnectionHandle, options CreateOptionsRequest) error {
+func (m *MockClient) CreateProjection(ctx context.Context, handle connection.ConnectionHandle, options CreateOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -64,10 +65,10 @@ func (mr *MockClientMockRecorder) CreateProjection(ctx, handle, options interfac
 }
 
 // DeleteProjection mocks base method.
-func (m *MockClient) DeleteProjection(ctx context.Context, handle connection.ConnectionHandle, options DeleteOptionsRequest) error {
+func (m *MockClient) DeleteProjection(ctx context.Context, handle connection.ConnectionHandle, options DeleteOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -78,10 +79,10 @@ func (mr *MockClientMockRecorder) DeleteProjection(ctx, handle, options interfac
 }
 
 // DisableProjection mocks base method.
-func (m *MockClient) DisableProjection(ctx context.Context, handle connection.ConnectionHandle, options DisableOptionsRequest) error {
+func (m *MockClient) DisableProjection(ctx context.Context, handle connection.ConnectionHandle, options DisableOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DisableProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -92,10 +93,10 @@ func (mr *MockClientMockRecorder) DisableProjection(ctx, handle, options interfa
 }
 
 // EnableProjection mocks base method.
-func (m *MockClient) EnableProjection(ctx context.Context, handle connection.ConnectionHandle, options EnableOptionsRequest) error {
+func (m *MockClient) EnableProjection(ctx context.Context, handle connection.ConnectionHandle, options EnableOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnableProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -106,11 +107,11 @@ func (mr *MockClientMockRecorder) EnableProjection(ctx, handle, options interfac
 }
 
 // GetProjectionResult mocks base method.
-func (m *MockClient) GetProjectionResult(ctx context.Context, handle connection.ConnectionHandle, options ResultOptionsRequest) (ResultResponse, error) {
+func (m *MockClient) GetProjectionResult(ctx context.Context, handle connection.ConnectionHandle, options ResultOptionsRequest) (ResultResponse, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProjectionResult", ctx, handle, options)
 	ret0, _ := ret[0].(ResultResponse)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -121,11 +122,11 @@ func (mr *MockClientMockRecorder) GetProjectionResult(ctx, handle, options inter
 }
 
 // GetProjectionState mocks base method.
-func (m *MockClient) GetProjectionState(ctx context.Context, handle connection.ConnectionHandle, options StateOptionsRequest) (StateResponse, error) {
+func (m *MockClient) GetProjectionState(ctx context.Context, handle connection.ConnectionHandle, options StateOptionsRequest) (StateResponse, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProjectionState", ctx, handle, options)
 	ret0, _ := ret[0].(StateResponse)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -136,11 +137,11 @@ func (mr *MockClientMockRecorder) GetProjectionState(ctx, handle, options interf
 }
 
 // GetProjectionStatistics mocks base method.
-func (m *MockClient) GetProjectionStatistics(ctx context.Context, handle connection.ConnectionHandle, options StatisticsOptionsRequest) (StatisticsClientSync, error) {
+func (m *MockClient) GetProjectionStatistics(ctx context.Context, handle connection.ConnectionHandle, options StatisticsOptionsRequest) (StatisticsClientSync, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProjectionStatistics", ctx, handle, options)
 	ret0, _ := ret[0].(StatisticsClientSync)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -151,11 +152,11 @@ func (mr *MockClientMockRecorder) GetProjectionStatistics(ctx, handle, options i
 }
 
 // ListAllProjections mocks base method.
-func (m *MockClient) ListAllProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, error) {
+func (m *MockClient) ListAllProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListAllProjections", ctx, handle)
 	ret0, _ := ret[0].([]StatisticsClientResponse)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -166,11 +167,11 @@ func (mr *MockClientMockRecorder) ListAllProjections(ctx, handle interface{}) *g
 }
 
 // ListContinuousProjections mocks base method.
-func (m *MockClient) ListContinuousProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, error) {
+func (m *MockClient) ListContinuousProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListContinuousProjections", ctx, handle)
 	ret0, _ := ret[0].([]StatisticsClientResponse)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -181,11 +182,11 @@ func (mr *MockClientMockRecorder) ListContinuousProjections(ctx, handle interfac
 }
 
 // ListOneTimeProjections mocks base method.
-func (m *MockClient) ListOneTimeProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, error) {
+func (m *MockClient) ListOneTimeProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListOneTimeProjections", ctx, handle)
 	ret0, _ := ret[0].([]StatisticsClientResponse)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -196,10 +197,10 @@ func (mr *MockClientMockRecorder) ListOneTimeProjections(ctx, handle interface{}
 }
 
 // ResetProjection mocks base method.
-func (m *MockClient) ResetProjection(ctx context.Context, handle connection.ConnectionHandle, options ResetOptionsRequest) error {
+func (m *MockClient) ResetProjection(ctx context.Context, handle connection.ConnectionHandle, options ResetOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -210,10 +211,10 @@ func (mr *MockClientMockRecorder) ResetProjection(ctx, handle, options interface
 }
 
 // RestartProjectionsSubsystem mocks base method.
-func (m *MockClient) RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) error {
+func (m *MockClient) RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestartProjectionsSubsystem", ctx, handle)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -224,10 +225,10 @@ func (mr *MockClientMockRecorder) RestartProjectionsSubsystem(ctx, handle interf
 }
 
 // UpdateProjection mocks base method.
-func (m *MockClient) UpdateProjection(ctx context.Context, handle connection.ConnectionHandle, options UpdateOptionsRequest) error {
+func (m *MockClient) UpdateProjection(ctx context.Context, handle connection.ConnectionHandle, options UpdateOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateProjection", ctx, handle, options)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 

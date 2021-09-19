@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -20,8 +21,13 @@ type ConnectionHandle interface {
 }
 
 type GrpcClient interface {
-	HandleError(handle ConnectionHandle, headers metadata.MD, trailers metadata.MD, err error) error
-	GetConnectionHandle() (ConnectionHandle, error)
+	HandleError(
+		handle ConnectionHandle,
+		headers metadata.MD,
+		trailers metadata.MD,
+		err error,
+		mapUnknownErrorToOtherError ...errors.ErrorCode) errors.Error
+	GetConnectionHandle() (ConnectionHandle, errors.Error)
 	Close()
 }
 

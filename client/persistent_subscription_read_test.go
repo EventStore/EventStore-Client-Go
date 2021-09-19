@@ -50,11 +50,10 @@ func Test_PersistentSubscription_ReadExistingStream_AckToReceiveNewEvents(t *tes
 
 	// since buffer size is two, after reading two outstanding messages
 	// we must acknowledge a message in order to receive third one
-	err = readConnectionClient.Ack(firstReadEvent)
-	require.NoError(t, err)
+	protoErr := readConnectionClient.Ack(firstReadEvent)
+	require.NoError(t, protoErr)
 
 	thirdReadEvent := readConnectionClient.Recv()
-	require.NoError(t, err)
 	require.NotNil(t, thirdReadEvent)
 }
 
@@ -147,8 +146,6 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEv
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppendEventsAfterwards(t *testing.T) {
-	// enable these tests once we switch to EventStore version 21.6.0 and greater
-	t.Skip()
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
@@ -200,8 +197,6 @@ func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppe
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromEnd_EventsInIt(t *testing.T) {
-	// enable these tests once we switch to EventStore version 21.6.0 and greater
-	t.Skip()
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
@@ -265,8 +260,6 @@ waitLoop:
 }
 
 func Test_PersistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAfterwards(t *testing.T) {
-	// enable these tests once we switch to EventStore version 21.6.0 and greater
-	t.Skip()
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
@@ -309,8 +302,6 @@ func Test_PersistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAf
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEventsAfterwards(t *testing.T) {
-	// enable these tests once we switch to EventStore version 21.6.0 and greater
-	t.Skip()
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
@@ -364,8 +355,6 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEv
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testing.T) {
-	// enable these tests once we switch to EventStore version 21.6.0 and greater
-	t.Skip()
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
@@ -420,8 +409,6 @@ func Test_PersistentSubscription_ToExistingStream_StartFrom4_EventsInIt(t *testi
 }
 
 func Test_PersistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsInStream_EventsInItAppendEventsAfterwards(t *testing.T) {
-	// enable these tests once we switch to EventStore version 21.6.0 and greater
-	t.Skip()
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
@@ -515,11 +502,10 @@ func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *te
 
 	// since buffer size is two, after reading two outstanding messages
 	// we must acknowledge a message in order to receive third one
-	err = readConnectionClient.Nack("test reason", persistent.Nack_Park, firstReadEvent)
-	require.NoError(t, err)
+	protoErr := readConnectionClient.Nack("test reason", persistent.Nack_Park, firstReadEvent)
+	require.NoError(t, protoErr)
 
 	thirdReadEvent := readConnectionClient.Recv()
-	require.NoError(t, err)
 	require.NotNil(t, thirdReadEvent)
 }
 
@@ -555,8 +541,8 @@ func Test_PersistentSubscription_ReadExistingStream_Cancelled(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, firstReadEvent)
 
-	err = readConnectionClient.Close()
-	require.NoError(t, err)
+	stdErr := readConnectionClient.Close()
+	require.NoError(t, stdErr)
 
 	droppedConnectionEvent := readConnectionClient.Recv().Dropped
 	require.NotNil(t, droppedConnectionEvent)

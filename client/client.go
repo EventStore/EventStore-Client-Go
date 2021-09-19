@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	"github.com/EventStore/EventStore-Client-Go/projections"
@@ -50,7 +51,7 @@ func (client *Client) ConnectToPersistentSubscription(
 	bufferSize int32,
 	groupName string,
 	streamName []byte,
-) (persistent.SyncReadConnection, error) {
+) (persistent.SyncReadConnection, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -70,7 +71,7 @@ func (client *Client) ConnectToPersistentSubscription(
 func (client *Client) CreatePersistentSubscription(
 	ctx context.Context,
 	streamConfig persistent.SubscriptionStreamConfig,
-) error {
+) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -84,7 +85,7 @@ func (client *Client) CreatePersistentSubscription(
 func (client *Client) CreatePersistentSubscriptionAll(
 	ctx context.Context,
 	allOptions persistent.SubscriptionAllOptionConfig,
-) error {
+) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -98,7 +99,7 @@ func (client *Client) CreatePersistentSubscriptionAll(
 func (client *Client) UpdatePersistentStreamSubscription(
 	ctx context.Context,
 	streamConfig persistent.SubscriptionStreamConfig,
-) error {
+) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -112,7 +113,7 @@ func (client *Client) UpdatePersistentStreamSubscription(
 func (client *Client) UpdatePersistentSubscriptionAll(
 	ctx context.Context,
 	allOptions persistent.SubscriptionUpdateAllOptionConfig,
-) error {
+) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -126,7 +127,7 @@ func (client *Client) UpdatePersistentSubscriptionAll(
 func (client *Client) DeletePersistentSubscription(
 	ctx context.Context,
 	deleteOptions persistent.DeleteOptions,
-) error {
+) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -140,7 +141,7 @@ func (client *Client) DeletePersistentSubscription(
 func (client *Client) DeletePersistentSubscriptionAll(
 	ctx context.Context,
 	groupName string,
-) error {
+) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -151,7 +152,9 @@ func (client *Client) DeletePersistentSubscriptionAll(
 	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName)
 }
 
-func (client *Client) CreateProjection(ctx context.Context, options projections.CreateOptionsRequest) error {
+func (client *Client) CreateProjection(
+	ctx context.Context,
+	options projections.CreateOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -163,7 +166,9 @@ func (client *Client) CreateProjection(ctx context.Context, options projections.
 	return projectionsClient.CreateProjection(ctx, handle, options)
 }
 
-func (client *Client) UpdateProjection(ctx context.Context, options projections.UpdateOptionsRequest) error {
+func (client *Client) UpdateProjection(
+	ctx context.Context,
+	options projections.UpdateOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -175,7 +180,9 @@ func (client *Client) UpdateProjection(ctx context.Context, options projections.
 	return projectionsClient.UpdateProjection(ctx, handle, options)
 }
 
-func (client *Client) AbortProjection(ctx context.Context, options projections.AbortOptionsRequest) error {
+func (client *Client) AbortProjection(
+	ctx context.Context,
+	options projections.AbortOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -187,7 +194,9 @@ func (client *Client) AbortProjection(ctx context.Context, options projections.A
 	return projectionsClient.AbortProjection(ctx, handle, options)
 }
 
-func (client *Client) DisableProjection(ctx context.Context, options projections.DisableOptionsRequest) error {
+func (client *Client) DisableProjection(
+	ctx context.Context,
+	options projections.DisableOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -199,7 +208,9 @@ func (client *Client) DisableProjection(ctx context.Context, options projections
 	return projectionsClient.DisableProjection(ctx, handle, options)
 }
 
-func (client *Client) ResetProjection(ctx context.Context, options projections.ResetOptionsRequest) error {
+func (client *Client) ResetProjection(
+	ctx context.Context,
+	options projections.ResetOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -211,7 +222,9 @@ func (client *Client) ResetProjection(ctx context.Context, options projections.R
 	return projectionsClient.ResetProjection(ctx, handle, options)
 }
 
-func (client *Client) DeleteProjection(ctx context.Context, options projections.DeleteOptionsRequest) error {
+func (client *Client) DeleteProjection(
+	ctx context.Context,
+	options projections.DeleteOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -223,7 +236,9 @@ func (client *Client) DeleteProjection(ctx context.Context, options projections.
 	return projectionsClient.DeleteProjection(ctx, handle, options)
 }
 
-func (client *Client) EnableProjection(ctx context.Context, options projections.EnableOptionsRequest) error {
+func (client *Client) EnableProjection(
+	ctx context.Context,
+	options projections.EnableOptionsRequest) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -235,7 +250,7 @@ func (client *Client) EnableProjection(ctx context.Context, options projections.
 	return projectionsClient.EnableProjection(ctx, handle, options)
 }
 
-func (client *Client) RestartProjectionsSubsystem(ctx context.Context) error {
+func (client *Client) RestartProjectionsSubsystem(ctx context.Context) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
@@ -249,7 +264,7 @@ func (client *Client) RestartProjectionsSubsystem(ctx context.Context) error {
 
 func (client *Client) GetProjectionState(
 	ctx context.Context,
-	options projections.StateOptionsRequest) (projections.StateResponse, error) {
+	options projections.StateOptionsRequest) (projections.StateResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -263,7 +278,7 @@ func (client *Client) GetProjectionState(
 
 func (client *Client) GetProjectionResult(
 	ctx context.Context,
-	options projections.ResultOptionsRequest) (projections.ResultResponse, error) {
+	options projections.ResultOptionsRequest) (projections.ResultResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -277,7 +292,7 @@ func (client *Client) GetProjectionResult(
 
 func (client *Client) GetProjectionStatistics(
 	ctx context.Context,
-	options projections.StatisticsOptionsRequest) (projections.StatisticsClientSync, error) {
+	options projections.StatisticsOptionsRequest) (projections.StatisticsClientSync, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -290,7 +305,7 @@ func (client *Client) GetProjectionStatistics(
 }
 
 func (client *Client) ListAllProjections(
-	ctx context.Context) ([]projections.StatisticsClientResponse, error) {
+	ctx context.Context) ([]projections.StatisticsClientResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -303,7 +318,7 @@ func (client *Client) ListAllProjections(
 }
 
 func (client *Client) ListContinuousProjections(
-	ctx context.Context) ([]projections.StatisticsClientResponse, error) {
+	ctx context.Context) ([]projections.StatisticsClientResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -316,7 +331,7 @@ func (client *Client) ListContinuousProjections(
 }
 
 func (client *Client) ListOneTimeProjections(
-	ctx context.Context) ([]projections.StatisticsClientResponse, error) {
+	ctx context.Context) ([]projections.StatisticsClientResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err

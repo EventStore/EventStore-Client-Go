@@ -241,8 +241,8 @@ func Test_AbortProjection(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
-	result, err := statisticsClient.Read()
-	require.NoError(t, err)
+	result, stdErr := statisticsClient.Read()
+	require.NoError(t, stdErr)
 	require.EqualValues(t, projections.StatisticsStatusAborted, result.Status)
 }
 
@@ -265,8 +265,8 @@ func Test_DisableProjection(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
-	result, err := statisticsClient.Read()
-	require.NoError(t, err)
+	result, stdErr := statisticsClient.Read()
+	require.NoError(t, stdErr)
 	require.EqualValues(t, projections.StatisticsStatusStopped, result.Status)
 }
 
@@ -289,8 +289,8 @@ func Test_EnableProjection(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
-	result, err := statisticsClient.Read()
-	require.NoError(t, err)
+	result, stdErr := statisticsClient.Read()
+	require.NoError(t, stdErr)
 	require.EqualValues(t, projections.StatisticsStatusRunning, result.Status)
 }
 
@@ -353,8 +353,8 @@ func Test_GetResultOfProjection(t *testing.T) {
 
 	structResult := projectionResult.(*projections.ResultResponseStruct)
 
-	err = json.Unmarshal(structResult.Value(), &result)
-	require.NoError(t, err)
+	stdErr := json.Unmarshal(structResult.Value(), &result)
+	require.NoError(t, stdErr)
 	require.EqualValues(t, 1, result.Count)
 }
 
@@ -417,8 +417,8 @@ func Test_GetStateOfProjection(t *testing.T) {
 
 	structResult := projectionResult.(*projections.StateResponseStruct)
 
-	err = json.Unmarshal(structResult.Value(), &result)
-	require.NoError(t, err)
+	stdErr := json.Unmarshal(structResult.Value(), &result)
+	require.NoError(t, stdErr)
 	require.EqualValues(t, 1, result.Count)
 }
 
@@ -436,8 +436,8 @@ func Test_GetStatusOfProjection(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
-	result, err := statisticsClient.Read()
-	require.NoError(t, err)
+	result, stdErr := statisticsClient.Read()
+	require.NoError(t, stdErr)
 	require.EqualValues(t, StandardProjectionStreams, result.Name)
 }
 
@@ -460,8 +460,8 @@ func Test_ResetProjection(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
-	result, err := statisticsClient.Read()
-	require.NoError(t, err)
+	result, stdErr := statisticsClient.Read()
+	require.NoError(t, stdErr)
 	require.EqualValues(t, projections.StatisticsStatusRunning, result.Status)
 }
 

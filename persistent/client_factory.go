@@ -13,6 +13,8 @@ type ClientFactory interface {
 
 type ClientFactoryImpl struct{}
 
-func (clientFactory ClientFactoryImpl) CreateClient(grpcClient connection.GrpcClient, client persistentProto.PersistentSubscriptionsClient) Client {
+func (clientFactory ClientFactoryImpl) CreateClient(
+	grpcClient connection.GrpcClient,
+	client persistentProto.PersistentSubscriptionsClient) Client {
 	return newClientImpl(grpcClient, client)
 }

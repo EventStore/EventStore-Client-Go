@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 )
@@ -12,7 +13,7 @@ func (client *Client) AppendToStream(
 	streamID string,
 	expectedStreamRevision event_streams.IsAppendRequestExpectedStreamRevision,
 	events []event_streams.ProposedEvent,
-) (event_streams.AppendResponse, error) {
+) (event_streams.AppendResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.AppendResponse{}, err
@@ -115,7 +116,7 @@ func (client *Client) DeleteStreamRevision(
 	ctx context.Context,
 	streamID string,
 	streamRevision uint64,
-) (event_streams.DeleteResponse, error) {
+) (event_streams.DeleteResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.DeleteResponse{}, err
@@ -133,7 +134,7 @@ func (client *Client) DeleteStreamRevision(
 
 func (client *Client) DeleteStreamRevisionNoStream(
 	ctx context.Context,
-	streamID string) (event_streams.DeleteResponse, error) {
+	streamID string) (event_streams.DeleteResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.DeleteResponse{}, err
@@ -149,7 +150,7 @@ func (client *Client) DeleteStreamRevisionNoStream(
 
 func (client *Client) DeleteStreamRevisionAny(
 	ctx context.Context,
-	streamID string) (event_streams.DeleteResponse, error) {
+	streamID string) (event_streams.DeleteResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.DeleteResponse{}, err
@@ -165,7 +166,7 @@ func (client *Client) DeleteStreamRevisionAny(
 
 func (client *Client) DeleteStreamRevisionStreamExists(
 	ctx context.Context,
-	streamID string) (event_streams.DeleteResponse, error) {
+	streamID string) (event_streams.DeleteResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.DeleteResponse{}, err
@@ -204,7 +205,7 @@ func (client *Client) DeleteStreamRevisionStreamExists(
 func (client *Client) TombstoneStream(
 	ctx context.Context,
 	streamID string,
-	revision uint64) (event_streams.TombstoneResponse, error) {
+	revision uint64) (event_streams.TombstoneResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.TombstoneResponse{}, err
@@ -222,7 +223,7 @@ func (client *Client) TombstoneStream(
 
 func (client *Client) TombstoneStreamNoStreamRevision(
 	ctx context.Context,
-	streamID string) (event_streams.TombstoneResponse, error) {
+	streamID string) (event_streams.TombstoneResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.TombstoneResponse{}, err
@@ -238,7 +239,7 @@ func (client *Client) TombstoneStreamNoStreamRevision(
 
 func (client *Client) TombstoneStreamAnyRevision(
 	ctx context.Context,
-	streamID string) (event_streams.TombstoneResponse, error) {
+	streamID string) (event_streams.TombstoneResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.TombstoneResponse{}, err
@@ -254,7 +255,7 @@ func (client *Client) TombstoneStreamAnyRevision(
 
 func (client *Client) TombstoneStreamRevisionStreamExists(
 	ctx context.Context,
-	streamID string) (event_streams.TombstoneResponse, error) {
+	streamID string) (event_streams.TombstoneResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.TombstoneResponse{}, err
@@ -296,7 +297,7 @@ func (client *Client) ReadStreamEvents(
 	direction event_streams.ReadRequestDirection,
 	revision event_streams.IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
-	resolveLinks bool) ([]event_streams.ReadResponseEvent, error) {
+	resolveLinks bool) ([]event_streams.ReadResponseEvent, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -322,7 +323,7 @@ func (client *Client) GetStreamReader(
 	direction event_streams.ReadRequestDirection,
 	revision event_streams.IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
-	resolveLinks bool) (event_streams.ReadClient, error) {
+	resolveLinks bool) (event_streams.ReadClient, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -366,7 +367,7 @@ func (client *Client) ReadAllEvents(
 	position event_streams.IsReadRequestOptionsAllPosition,
 	count uint64,
 	resolveLinks bool,
-) (event_streams.ReadClient, error) {
+) (event_streams.ReadClient, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -407,7 +408,7 @@ func (client *Client) SubscribeToStream(
 	streamID string,
 	revision event_streams.IsSubscribeRequestStreamOptionsStreamRevision,
 	resolveLinks bool,
-) (event_streams.ReadClient, error) {
+) (event_streams.ReadClient, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -483,7 +484,7 @@ func (client *Client) SubscribeToAll(
 	ctx context.Context,
 	position event_streams.IsSubscribeRequestOptionsAllPosition,
 	resolveLinks bool,
-) (event_streams.ReadClient, error) {
+) (event_streams.ReadClient, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -543,7 +544,7 @@ func (client *Client) SubscribeToAllFiltered(
 	position event_streams.IsSubscribeRequestOptionsAllPosition,
 	resolveLinks bool,
 	filter event_streams.SubscribeRequestFilter,
-) (event_streams.ReadClient, error) {
+) (event_streams.ReadClient, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err

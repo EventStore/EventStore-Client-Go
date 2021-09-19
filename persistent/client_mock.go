@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	connection "github.com/EventStore/EventStore-Client-Go/connection"
+	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,10 +37,10 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CreateAllSubscription mocks base method.
-func (m *MockClient) CreateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionAllOptionConfig) error {
+func (m *MockClient) CreateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionAllOptionConfig) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAllSubscription", ctx, handle, allOptions)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -50,10 +51,10 @@ func (mr *MockClientMockRecorder) CreateAllSubscription(ctx, handle, allOptions 
 }
 
 // CreateStreamSubscription mocks base method.
-func (m *MockClient) CreateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) error {
+func (m *MockClient) CreateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateStreamSubscription", ctx, handle, streamConfig)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -64,10 +65,10 @@ func (mr *MockClientMockRecorder) CreateStreamSubscription(ctx, handle, streamCo
 }
 
 // DeleteAllSubscription mocks base method.
-func (m *MockClient) DeleteAllSubscription(ctx context.Context, handle connection.ConnectionHandle, groupName string) error {
+func (m *MockClient) DeleteAllSubscription(ctx context.Context, handle connection.ConnectionHandle, groupName string) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAllSubscription", ctx, handle, groupName)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -78,10 +79,10 @@ func (mr *MockClientMockRecorder) DeleteAllSubscription(ctx, handle, groupName i
 }
 
 // DeleteStreamSubscription mocks base method.
-func (m *MockClient) DeleteStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, deleteOptions DeleteOptions) error {
+func (m *MockClient) DeleteStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, deleteOptions DeleteOptions) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteStreamSubscription", ctx, handle, deleteOptions)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -92,11 +93,11 @@ func (mr *MockClientMockRecorder) DeleteStreamSubscription(ctx, handle, deleteOp
 }
 
 // SubscribeToStreamSync mocks base method.
-func (m *MockClient) SubscribeToStreamSync(ctx context.Context, handle connection.ConnectionHandle, bufferSize int32, groupName string, streamName []byte) (SyncReadConnection, error) {
+func (m *MockClient) SubscribeToStreamSync(ctx context.Context, handle connection.ConnectionHandle, bufferSize int32, groupName string, streamName []byte) (SyncReadConnection, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubscribeToStreamSync", ctx, handle, bufferSize, groupName, streamName)
 	ret0, _ := ret[0].(SyncReadConnection)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -107,10 +108,10 @@ func (mr *MockClientMockRecorder) SubscribeToStreamSync(ctx, handle, bufferSize,
 }
 
 // UpdateAllSubscription mocks base method.
-func (m *MockClient) UpdateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionUpdateAllOptionConfig) error {
+func (m *MockClient) UpdateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionUpdateAllOptionConfig) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateAllSubscription", ctx, handle, allOptions)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -121,10 +122,10 @@ func (mr *MockClientMockRecorder) UpdateAllSubscription(ctx, handle, allOptions 
 }
 
 // UpdateStreamSubscription mocks base method.
-func (m *MockClient) UpdateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) error {
+func (m *MockClient) UpdateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) errors.Error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateStreamSubscription", ctx, handle, streamConfig)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
