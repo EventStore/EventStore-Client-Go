@@ -706,6 +706,394 @@ func Test_AppendToStream_WithAppendLimit(t *testing.T) {
 	})
 }
 
+func Test_AppendMultipleEvents(t *testing.T) {
+	container := GetEmptyDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	t.Run("sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent"
+
+		events := testCreateEvents(6)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_0em1_1e0_2e1_3e2_4e3_4e4_0any_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_1e0_2e1_3e2_4e3_4e4_0any_idempotent"
+
+		events := testCreateEvents(6)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e5_non_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e5_non_idempotent"
+
+		events := testCreateEvents(6)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 5,
+			},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+2),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events)+1)
+	})
+
+	t.Run("sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e6_returns_wev", func(t *testing.T) {
+		streamName := "sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e6_returns_wev"
+
+		events := testCreateEvents(6)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 6,
+			},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		_, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
+		require.True(t, isWrongExpectedVersion)
+	})
+
+	t.Run("sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e4_returns_wev", func(t *testing.T) {
+		streamName := "sequence_0em1_1e0_2e1_3e2_4e3_5e4_0e4_returns_wev"
+
+		events := testCreateEvents(6)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 4,
+			},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		_, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
+		require.True(t, isWrongExpectedVersion)
+	})
+
+	t.Run("sequence_0em1_0e0_non_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_0e0_non_idempotent"
+
+		events := testCreateEvents(1)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 0,
+			},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+2),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events)+1)
+	})
+
+	t.Run("sequence_0em1_0any_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_0any_idempotent"
+
+		events := testCreateEvents(1)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_0em1_0em1_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_0em1_idempotent"
+
+		events := testCreateEvents(1)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_0em1_1e0_2e1_1any_1any_idempotent", func(t *testing.T) {
+		streamName := "sequence_0em1_1e0_2e1_1any_1any_idempotent"
+
+		events := testCreateEvents(3)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{events[1]})
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{events[1]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_S_0em1_1em1_E_S_0em1_E_idempotent", func(t *testing.T) {
+		streamName := "sequence_S_0em1_1em1_E_S_0em1_E_idempotent"
+
+		events := testCreateEvents(2)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_S_0em1_1em1_E_S_0any_E_idempotent", func(t *testing.T) {
+		streamName := "sequence_S_0em1_1em1_E_S_0any_E_idempotent"
+
+		events := testCreateEvents(2)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{events[0]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_S_0em1_1em1_E_S_1e0_E_idempotent", func(t *testing.T) {
+		streamName := "sequence_S_0em1_1em1_E_S_1e0_E_idempotent"
+
+		events := testCreateEvents(2)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 0,
+			},
+			[]event_streams.ProposedEvent{events[1]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_S_0em1_1em1_E_S_1any_E_idempotent", func(t *testing.T) {
+		streamName := "sequence_S_0em1_1em1_E_S_1any_E_idempotent"
+
+		events := testCreateEvents(2)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{events[1]})
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			uint64(len(events)+1),
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, len(events))
+	})
+
+	t.Run("sequence_S_0em1_1em1_E_S_0em1_1em1_2em1_E_idempotency_return_wev", func(t *testing.T) {
+		streamName := "sequence_S_0em1_1em1_E_S_0em1_1em1_2em1_E_idempotency_return_wev"
+
+		events := testCreateEvents(3)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events[:2])
+		require.NoError(t, err)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		_, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
+		require.True(t, isWrongExpectedVersion)
+	})
+}
+
 //func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
 //	container := GetEmptyDatabase()
 //	defer container.Close()
