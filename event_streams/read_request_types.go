@@ -5,6 +5,8 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 )
 
+const ReadCountMax = ^uint64(0)
+
 type ReadRequest struct {
 	// ReadRequestStreamOptions
 	// ReadRequestStreamOptionsAll

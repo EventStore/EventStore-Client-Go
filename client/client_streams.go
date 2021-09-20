@@ -196,7 +196,7 @@ func (client *Client) ReadStreamEvents(
 	direction event_streams.ReadRequestDirection,
 	revision event_streams.IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
-	resolveLinks bool) ([]event_streams.ReadResponseEvent, errors.Error) {
+	resolveLinks bool) (event_streams.ReadResponseEventList, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err

@@ -151,25 +151,23 @@ func (client *ClientImpl) ReadStreamEvents(
 
 	var result []ReadResponseEvent
 
-	var errorCode *errors.ErrorCode
+	var readError errors.Error
 
 	for {
-		protoReadResult, err := readStreamClient.Recv()
-		if err != nil {
-			if err == io.EOF {
+		protoReadResult, protoError := readStreamClient.Recv()
+		if protoError != nil {
+			if protoError == io.EOF {
 				break
 			}
-			err = client.grpcClient.HandleError(handle, headers, trailers, err)
+			err = client.grpcClient.HandleError(handle, headers, trailers, protoError)
 			fmt.Println("Failed to receive subscription response. Reason: ", err)
-			temp := FailedToReceiveResponseErr
-			errorCode = &temp
+			readError = err
 			break
 		}
 
 		readResult := client.readResponseAdapter.Create(protoReadResult)
 		if _, streamIsNotFound := readResult.GetStreamNotFound(); streamIsNotFound {
-			temp := StreamNotFoundErr
-			errorCode = &temp
+			readError = errors.NewErrorCode(StreamNotFoundErr)
 			break
 		} else if _, isCheckpoint := readResult.GetCheckpoint(); isCheckpoint {
 			continue
@@ -179,13 +177,13 @@ func (client *ClientImpl) ReadStreamEvents(
 		result = append(result, event)
 	}
 
-	if errorCode == nil {
+	if readError == nil {
 		defer cancel()
 		return result, nil
 	}
 
 	defer cancel()
-	return nil, errors.NewErrorCode(*errorCode)
+	return nil, readError
 }
 
 func (client *ClientImpl) ReadStreamEventsReader(
