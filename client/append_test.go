@@ -21,7 +21,7 @@ func createTestEvent() event_streams.ProposedEvent {
 	}
 }
 
-func Test_AppendingZeroEvents_ExpectedStreamStateAny(t *testing.T) {
+func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -32,134 +32,129 @@ func Test_AppendingZeroEvents_ExpectedStreamStateAny(t *testing.T) {
 		}
 	}()
 
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
-	streamName := "test_any"
+	t.Run("With Expected Revision NoStream", func(t *testing.T) {
+		streamName := "test_no_stream"
 
-	iterations := 2
-	for ; iterations > 0; iterations-- {
+		iterations := 2
+		for ; iterations > 0; iterations-- {
+			writeResult, err := client.AppendToStream(context.Background(),
+				streamName,
+				event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+				[]event_streams.ProposedEvent{})
+			require.NoError(t, err)
+			success, isSuccess := writeResult.GetSuccess()
+			require.True(t, isSuccess)
+			require.True(t, success.GetCurrentRevisionNoStream())
+		}
+
+		_, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			2,
+			false)
+		require.Equal(t, err.Code(), errors.StreamNotFoundErr)
+	})
+
+	t.Run("With Expected Revision Any", func(t *testing.T) {
+		streamName := "test_any"
+
+		iterations := 2
+		for ; iterations > 0; iterations-- {
+			writeResult, err := client.AppendToStream(context.Background(),
+				streamName,
+				event_streams.AppendRequestExpectedStreamRevisionAny{},
+				[]event_streams.ProposedEvent{})
+			require.NoError(t, err)
+			success, isSuccess := writeResult.GetSuccess()
+			require.True(t, isSuccess)
+			require.True(t, success.GetCurrentRevisionNoStream())
+		}
+
+		_, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			2,
+			false)
+		require.Equal(t, err.Code(), event_streams.StreamNotFoundErr)
+	})
+}
+
+func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	t.Run("With Expected Revision Any", func(t *testing.T) {
+		streamName := "stream_any"
+
+		testEvent := createTestEvent()
+
 		writeResult, err := client.AppendToStream(context.Background(),
 			streamName,
-			expectedStreamRevision,
-			[]event_streams.ProposedEvent{})
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, isSuccess := writeResult.GetSuccess()
-		require.True(t, isSuccess)
-		require.True(t, success.GetCurrentRevisionNoStream())
-	}
+		success, _ := writeResult.GetSuccess()
+		require.EqualValues(t, 0, success.GetCurrentRevision())
 
-	_, err := client.ReadStreamEvents(context.Background(),
-		streamName,
-		event_streams.ReadRequestDirectionForward,
-		event_streams.ReadRequestOptionsStreamRevisionStart{},
-		2,
-		false)
-	require.Equal(t, err.Code(), event_streams.StreamNotFoundErr)
-}
+		events, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			2,
+			false)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+	})
 
-func Test_AppendingZeroEvents_expectedStreamStateNoStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	t.Run("With Expected Revision NoStream, Append One By One", func(t *testing.T) {
+		streamName := "stream_one_by_one"
 
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
-	streamName := "test_no_stream"
+		testEvent := createTestEvent()
 
-	iterations := 2
-	for ; iterations > 0; iterations-- {
 		writeResult, err := client.AppendToStream(context.Background(),
 			streamName,
-			expectedStreamRevision,
-			[]event_streams.ProposedEvent{})
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, isSuccess := writeResult.GetSuccess()
-		require.True(t, isSuccess)
-		require.True(t, success.GetCurrentRevisionNoStream())
-	}
+		success, _ := writeResult.GetSuccess()
+		require.EqualValues(t, 0, success.GetCurrentRevision())
 
-	_, err := client.ReadStreamEvents(context.Background(),
-		streamName,
-		event_streams.ReadRequestDirectionForward,
-		event_streams.ReadRequestOptionsStreamRevisionStart{},
-		2,
-		false)
-	require.Equal(t, err.Code(), errors.StreamNotFoundErr)
+		events, err := client.ReadStreamEvents(context.Background(),
+			streamName,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			2,
+			false)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+	})
+
+	t.Run("With Expected Revision NoStream, Append Multiple At Once", func(t *testing.T) {
+		streamName := "stream_multiple_at_once"
+
+		testEvents := testCreateEvents(100)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testEvents)
+		require.NoError(t, err)
+		currentRevision, isCurrentRevision := writeResult.GetCurrentRevision()
+		require.True(t, isCurrentRevision)
+		require.EqualValues(t, 99, currentRevision)
+	})
 }
 
-func Test_CreateStreamIfDoesNotExist_expectedStreamAny(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
-	streamName := "stream_any"
-
-	testEvent := createTestEvent()
-
-	writeResult, err := client.AppendToStream(context.Background(),
-		streamName,
-		expectedStreamRevision,
-		[]event_streams.ProposedEvent{testEvent})
-	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.EqualValues(t, 0, success.GetCurrentRevision())
-
-	events, err := client.ReadStreamEvents(context.Background(),
-		streamName,
-		event_streams.ReadRequestDirectionForward,
-		event_streams.ReadRequestOptionsStreamRevisionStart{},
-		2,
-		false)
-	require.NoError(t, err)
-	require.Len(t, events, 1)
-}
-
-func Test_CreateStreamIfDoesNotExist_expectedStreamNoStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
-	streamName := "stream_no_stream"
-
-	testEvent := createTestEvent()
-
-	writeResult, err := client.AppendToStream(context.Background(),
-		streamName,
-		expectedStreamRevision,
-		[]event_streams.ProposedEvent{testEvent})
-	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.EqualValues(t, 0, success.GetCurrentRevision())
-
-	events, err := client.ReadStreamEvents(context.Background(),
-		streamName,
-		event_streams.ReadRequestDirectionForward,
-		event_streams.ReadRequestOptionsStreamRevisionStart{},
-		2,
-		false)
-	require.NoError(t, err)
-	require.Len(t, events, 1)
-}
-
-func Test_MultipleIdempotentWrites_ExpectedStreamAny(t *testing.T) {
+func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -191,7 +186,7 @@ func Test_MultipleIdempotentWrites_ExpectedStreamAny(t *testing.T) {
 	require.EqualValues(t, 3, success.GetCurrentRevision())
 }
 
-func Test_MultipleIdempotentWritesWithSameIdBugCase_ExpectedStreamAny(t *testing.T) {
+func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -216,7 +211,7 @@ func Test_MultipleIdempotentWritesWithSameIdBugCase_ExpectedStreamAny(t *testing
 	require.EqualValues(t, 5, success.GetCurrentRevision())
 }
 
-func Test_MultipleWriteEventsWithSameIds_ExpectedVersionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
+func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -249,7 +244,7 @@ func Test_MultipleWriteEventsWithSameIds_ExpectedVersionAny_NextExpectedVersionI
 	require.EqualValues(t, 0, success.GetCurrentRevision())
 }
 
-func Test_MultipleWriteEventsWithSameIds_ExpectedVersionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
+func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -307,7 +302,311 @@ func Test_ReturnsPositionWhenWriting(t *testing.T) {
 	require.Greater(t, position.CommitPosition, uint64(0))
 }
 
-func Test_WritingWithExpectedVersionNoStream_ToDeletedStream_StreamDeletedErr(t *testing.T) {
+func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	t.Run("Stream Does Not Exist, Revision Any", func(t *testing.T) {
+		streamName := "stream_does_not_exist_any"
+
+		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		require.NoError(t, err)
+
+		event := createTestEvent()
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{event})
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+
+	t.Run("Stream Does Not Exist, Revision NoStream", func(t *testing.T) {
+		streamName := "stream_does_not_exist_no_stream"
+
+		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		require.NoError(t, err)
+
+		event := createTestEvent()
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{event})
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+
+	t.Run("Stream Does Not Exist, Invalid Finite Revision", func(t *testing.T) {
+		streamName := "stream_does_not_exist_invalid_finite"
+
+		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		require.NoError(t, err)
+
+		event := createTestEvent()
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevision{
+			Revision: 5,
+		}
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{event})
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+
+	t.Run("Existing Stream Is Tombstoned As Any, Append With Revision Any", func(t *testing.T) {
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+		streamName := "existing_stream_tombstoned_append_with_revision_any"
+
+		testEvent := createTestEvent()
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+
+		_, err = client.TombstoneStreamAnyRevision(context.Background(), streamName)
+		require.NoError(t, err)
+
+		testEvent2 := createTestEvent()
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent2})
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+}
+
+func Test_AppendToExistingStream(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	t.Run("First Append With NoStream, Append With Expected Revision Finite", func(t *testing.T) {
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+		streamName := "stream_first_append_no_stream_and_expected_revision_finite"
+
+		testEvent := createTestEvent()
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+		success, _ := writeResult.GetSuccess()
+
+		testEvent2 := createTestEvent()
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: success.GetCurrentRevision(),
+			},
+			[]event_streams.ProposedEvent{testEvent2})
+		require.NoError(t, err)
+
+		success, _ = writeResult.GetSuccess()
+		require.EqualValues(t, 1, success.GetCurrentRevision())
+	})
+
+	t.Run("First Append With NoStream, Append With Expected Revision Any", func(t *testing.T) {
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+		streamName := "stream_first_append_no_stream_and_append_with_any"
+
+		testEvent := createTestEvent()
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+		success, _ := writeResult.GetSuccess()
+		require.EqualValues(t, 0, success.GetCurrentRevision())
+
+		testEvent2 := createTestEvent()
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{testEvent2})
+		require.NoError(t, err)
+
+		success, _ = writeResult.GetSuccess()
+		require.EqualValues(t, 1, success.GetCurrentRevision())
+	})
+
+	t.Run("First Append With NoStream, Append With Expected Revision StreamExists", func(t *testing.T) {
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+		streamName := "stream_first_append_no_stream_and_append_with_stream_exists"
+
+		testEvent := createTestEvent()
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+		success, _ := writeResult.GetSuccess()
+		require.EqualValues(t, 0, success.GetCurrentRevision())
+
+		testEvent2 := createTestEvent()
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
+			[]event_streams.ProposedEvent{testEvent2})
+		require.NoError(t, err)
+
+		success, _ = writeResult.GetSuccess()
+		require.EqualValues(t, 1, success.GetCurrentRevision())
+	})
+
+	t.Run("First Append With Any, Append With Expected Revision StreamExists", func(t *testing.T) {
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
+		streamName := "stream_first_append_any_and_append_with_stream_exists"
+
+		testEvent := createTestEvent()
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+		success, _ := writeResult.GetSuccess()
+		require.EqualValues(t, 0, success.GetCurrentRevision())
+
+		testEvent2 := createTestEvent()
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
+			[]event_streams.ProposedEvent{testEvent2})
+		require.NoError(t, err)
+
+		success, _ = writeResult.GetSuccess()
+		require.EqualValues(t, 1, success.GetCurrentRevision())
+	})
+
+	t.Run("Stream Does Not Exist, Append With Expected Revision StreamExists", func(t *testing.T) {
+		streamName := "stream_does_not_exist_append_with_stream_exists"
+
+		testEvent := createTestEvent()
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+
+		require.True(t, writeResult.IsCurrentRevisionNoStream())
+	})
+
+	t.Run("Tombstone Stream And Append With Expected Revision StreamExists", func(t *testing.T) {
+		streamName := "stream_hard_deleted"
+
+		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		require.NoError(t, err)
+
+		event := createTestEvent()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
+			[]event_streams.ProposedEvent{event})
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+
+	t.Run("Stream Deleted (soft delete) Before Append With Expected Revision StreamExists", func(t *testing.T) {
+		streamName := "stream_soft_deleted"
+
+		_, err := client.DeleteStreamRevisionNoStream(context.Background(), streamName)
+		require.NoError(t, err)
+
+		event := createTestEvent()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
+			[]event_streams.ProposedEvent{event})
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+
+	t.Run("With Wrong Expected Revision When Stream Already Exists", func(t *testing.T) {
+		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+		streamName := "wrong_expected_revision_stream_already_exists"
+
+		testEvent := createTestEvent()
+
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			expectedStreamRevision,
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+
+		testEvent2 := createTestEvent()
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 999,
+			},
+			[]event_streams.ProposedEvent{testEvent2})
+		require.NoError(t, err)
+
+		currentRevision, isFiniteCurrentRevision := writeResult.GetWrongCurrentRevision()
+		require.True(t, isFiniteCurrentRevision)
+		require.EqualValues(t, 0, currentRevision)
+
+		expectedRevision, isFiniteExpectedRevision := writeResult.GetWrongExpectedRevision()
+		require.True(t, isFiniteExpectedRevision)
+		require.EqualValues(t, 999, expectedRevision)
+	})
+
+	t.Run("With Wrong Expected Revision When Stream Does Not Exist", func(t *testing.T) {
+		streamName := "wrong_expected_revision_stream_does_not_exist"
+
+		testEvent := createTestEvent()
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevision{
+				Revision: 5,
+			},
+			[]event_streams.ProposedEvent{testEvent})
+		require.NoError(t, err)
+
+		require.True(t, writeResult.IsCurrentRevisionNoStream())
+
+		expectedRevision, isFiniteExpectedRevision := writeResult.GetWrongExpectedRevision()
+		require.True(t, isFiniteExpectedRevision)
+		require.EqualValues(t, 5, expectedRevision)
+	})
+}
+
+func Test_AppendToExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+}
+
+func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -320,151 +619,20 @@ func Test_WritingWithExpectedVersionNoStream_ToDeletedStream_StreamDeletedErr(t 
 
 	streamName := "stream_no_stream"
 
-	_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
-	require.NoError(t, err)
+	testEvent := createTestEvent()
 
-	event := createTestEvent()
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
-
-	_, err = client.AppendToStream(context.Background(),
+	writeResult, err := client.AppendToStream(context.Background(),
 		streamName,
-		expectedStreamRevision,
-		[]event_streams.ProposedEvent{event})
-	require.Equal(t, errors.StreamDeletedErr, err.Code())
-}
-
-func Test_WritingWithExpectedVersionAny_ToDeletedStream_StreamDeletedErr(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	streamName := "stream_no_stream"
-
-	_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		event_streams.AppendRequestExpectedStreamRevision{
+			Revision: 1,
+		},
+		[]event_streams.ProposedEvent{testEvent})
 	require.NoError(t, err)
-
-	event := createTestEvent()
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
-
-	_, err = client.AppendToStream(context.Background(),
-		streamName,
-		expectedStreamRevision,
-		[]event_streams.ProposedEvent{event})
-	require.Equal(t, errors.StreamDeletedErr, err.Code())
-}
-
-func Test_WritingWithInvalidExpectedVersion_ToDeletedStream_StreamDeletedErr(t *testing.T) {
-	container := GetPrePopulatedDatabase()
-	defer container.Close()
-	client := CreateTestClient(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	streamName := "stream_no_stream"
-
-	_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
-	require.NoError(t, err)
-
-	event := createTestEvent()
-	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevision{
-		Revision: 5,
-	}
-
-	_, err = client.AppendToStream(context.Background(),
-		streamName,
-		expectedStreamRevision,
-		[]event_streams.ProposedEvent{event})
-	require.Equal(t, errors.StreamDeletedErr, err.Code())
-}
-
-func Test_append_with_correct_expected_version_to_existing_stream(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.NoStream,
-	//	_fixture.CreateTestEvents(1));
-	//
-	//writeResult = await _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	writeResult.NextExpectedStreamRevision,
-	//	_fixture.CreateTestEvents());
-	//
-	//Assert.Equal(new StreamRevision(1), writeResult.NextExpectedStreamRevision);
-}
-
-func Test_append_with_any_expected_version_to_existing_stream(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.NoStream,
-	//	_fixture.CreateTestEvents(1));
-	//
-	//Assert.Equal(new StreamRevision(0), writeResult.NextExpectedStreamRevision);
-	//
-	//writeResult = await _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.Any,
-	//	_fixture.CreateTestEvents(1));
-	//
-	//Assert.Equal(new StreamRevision(1), writeResult.NextExpectedStreamRevision);
-}
-
-func Test_appending_with_wrong_expected_version_to_existing_stream_throws_wrong_expected_version(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.AppendToStreamAsync(stream, StreamState.NoStream, _fixture.CreateTestEvents());
-	//
-	//var ex = await Assert.ThrowsAsync<WrongExpectedVersionException>(
-	//	() => _fixture.Client.AppendToStreamAsync(stream, new StreamRevision(999), _fixture.CreateTestEvents()));
-	//Assert.Equal(new StreamRevision(0), ex.ActualStreamRevision);
-	//Assert.Equal(new StreamRevision(999), ex.ExpectedStreamRevision);
-}
-
-func Test_appending_with_wrong_expected_version_to_existing_stream_returns_wrong_expected_version(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(stream, new StreamRevision(1),
-	//	_fixture.CreateTestEvents(), options => {
-	//	options.ThrowOnAppendFailure = false;
-	//});
-	//
-	//var wrongExpectedVersionResult = (WrongExpectedVersionResult)writeResult;
-	//
-	//Assert.Equal(new StreamRevision(1), wrongExpectedVersionResult.NextExpectedStreamRevision);
-}
-
-func Test_append_with_stream_exists_expected_version_to_existing_stream(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.AppendToStreamAsync(stream, StreamState.NoStream, _fixture.CreateTestEvents());
-	//
-	//await _fixture.Client.AppendToStreamAsync(stream, StreamState.StreamExists,
-	//	_fixture.CreateTestEvents());
-}
-
-func Test_append_with_stream_exists_expected_version_to_stream_with_multiple_events(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//for (var i = 0; i < 5; i++) {
-	//	await _fixture.Client.AppendToStreamAsync(stream, StreamState.Any, _fixture.CreateTestEvents(1));
-	//}
-	//
-	//await _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.StreamExists,
-	//	_fixture.CreateTestEvents());
+	wrongExpectedVersion, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
+	require.True(t, isWrongExpectedVersion)
+	expectedRevision, isFiniteExpectedRevision := wrongExpectedVersion.GetExpectedRevision()
+	require.True(t, isFiniteExpectedRevision)
+	require.EqualValues(t, 1, expectedRevision)
 }
 
 func Test_append_with_stream_exists_expected_version_if_metadata_stream_exists(t *testing.T) {
@@ -478,184 +646,6 @@ func Test_append_with_stream_exists_expected_version_if_metadata_stream_exists(t
 	//StreamState.StreamExists,
 	//_fixture.CreateTestEvents());
 }
-
-func Test_appending_with_stream_exists_expected_version_and_stream_does_not_exist_throws_wrong_expected_version(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var ex = await Assert.ThrowsAsync<WrongExpectedVersionException>(
-	//	() => _fixture.Client.AppendToStreamAsync(stream, StreamState.StreamExists,
-	//	_fixture.CreateTestEvents()));
-	//
-	//Assert.Equal(StreamRevision.None, ex.ActualStreamRevision);
-}
-
-func Test_appending_with_stream_exists_expected_version_and_stream_does_not_exist_returns_wrong_expected_version(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(stream, StreamState.StreamExists,
-	//	_fixture.CreateTestEvents(), options => {
-	//	options.ThrowOnAppendFailure = false;
-	//});
-	//
-	//var wrongExpectedVersionResult = Assert.IsType<WrongExpectedVersionResult>(writeResult);
-	//
-	//Assert.Equal(StreamRevision.None, wrongExpectedVersionResult.NextExpectedStreamRevision);
-}
-
-func Test_appending_with_stream_exists_expected_version_to_hard_deleted_stream_throws_stream_deleted(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.TombstoneAsync(stream, StreamState.NoStream);
-	//
-	//await Assert.ThrowsAsync<StreamDeletedException>(() => _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.StreamExists,
-	//	_fixture.CreateTestEvents()));
-}
-
-func Test_appending_with_stream_exists_expected_version_to_soft_deleted_stream_throws_stream_deleted(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.SoftDeleteAsync(stream, StreamState.NoStream);
-	//
-	//await Assert.ThrowsAsync<StreamDeletedException>(() => _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.StreamExists,
-	//	_fixture.CreateTestEvents()));
-}
-
-func Test_can_append_multiple_events_at_once(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var writeResult = await _fixture.Client.AppendToStreamAsync(
-	//	stream, StreamState.NoStream, _fixture.CreateTestEvents(100));
-	//
-	//Assert.Equal(new StreamRevision(99), writeResult.NextExpectedStreamRevision);
-}
-
-func Test_returns_failure_status_when_conditionally_appending_with_version_mismatch(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var result = await _fixture.Client.ConditionalAppendToStreamAsync(stream, new StreamRevision(7),
-	//	_fixture.CreateTestEvents());
-	//
-	//Assert.Equal(ConditionalWriteResult.FromWrongExpectedVersion(
-	//	new WrongExpectedVersionException(stream, new StreamRevision(7), StreamRevision.None)),
-	//result);
-}
-
-func Test_returns_success_status_when_conditionally_appending_with_matching_version(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var result = await _fixture.Client.ConditionalAppendToStreamAsync(stream, StreamState.Any,
-	//	_fixture.CreateTestEvents());
-	//
-	//Assert.Equal(ConditionalWriteResult.FromWriteResult(new SuccessResult(0, result.LogPosition)),
-	//result);
-}
-
-func Test_returns_failure_status_when_conditionally_appending_to_a_deleted_stream(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.AppendToStreamAsync(stream, StreamState.NoStream, _fixture.CreateTestEvents());
-	//
-	//await _fixture.Client.TombstoneAsync(stream, StreamState.Any);
-	//
-	//var result = await _fixture.Client.ConditionalAppendToStreamAsync(stream, StreamState.Any,
-	//	_fixture.CreateTestEvents());
-	//
-	//Assert.Equal(ConditionalWriteResult.StreamDeleted, result);
-}
-
-//func collectStreamEvents(stream event_streams.ReadClient) ([]*messages.ResolvedEvent, error) {
-//	events := []*messages.ResolvedEvent{}
-//
-//	for {
-//		event, err := stream.Recv()
-//		if err != nil {
-//			if err == io.EOF {
-//				break
-//			}
-//
-//			return nil, err
-//		}
-//
-//		events = append(events, event)
-//	}
-//
-//	return events, nil
-//}
-
-//func TestAppendToStreamSingleEventNoStream(t *testing.T) {
-//	container := GetEmptyDatabase()
-//	defer container.Close()
-//
-//	client := CreateTestClient(container, t)
-//	defer client.Close()
-//	testEvent := event_streams.ProposedEvent{
-//		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
-//		EventType:    "TestEvent",
-//		ContentType:  "application/octet-stream",
-//		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-//		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-//	}
-//	proposedEvents := []event_streams.ProposedEvent{
-//		testEvent,
-//	}
-//
-//	streamID, _ := uuid.NewV4()
-//	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-//	defer cancel()
-//	_, err := client.AppendToStream(context, streamID.String(),
-//		event_streams.AppendRequestExpectedStreamRevisionNoStream{}, proposedEvents)
-//	if err != nil {
-//		t.Fatalf("Unexpected failure %+v", err)
-//	}
-//
-//	stream, err := client.ReadStreamEvents(context,
-//		event_streams.ReadRequestDirectionForward,
-//		streamID.String(),
-//		event_streams.ReadRequestOptionsStreamRevisionStart{},
-//		1,
-//		false)
-//	if err != nil {
-//		t.Fatalf("Unexpected failure %+v", err)
-//	}
-//
-//	defer stream.Close()
-//
-//	events, err := collectStreamEvents(stream)
-//	if err != nil {
-//		t.Fatalf("Unexpected failure %+v", err)
-//	}
-//
-//	assert.Equal(t, int32(1), int32(len(events)), "Expected the correct number of messages to be returned")
-//	assert.Equal(t, testEvent.EventID, events[0].GetOriginalEvent().EventID)
-//	assert.Equal(t, testEvent.EventType, events[0].GetOriginalEvent().EventType)
-//	assert.Equal(t, streamID.String(), events[0].GetOriginalEvent().StreamID)
-//	assert.Equal(t, testEvent.Data, events[0].GetOriginalEvent().Data)
-//	assert.Equal(t, testEvent.UserMetadata, events[0].GetOriginalEvent().UserMetadata)
-//}
-
-//func TestAppendWithInvalidStreamRevision(t *testing.T) {
-//	container := GetEmptyDatabase()
-//	defer container.Close()
-//
-//	client := CreateTestClient(container, t)
-//	defer client.Close()
-//	events := []messages.ProposedEvent{
-//		createTestEvent(),
-//	}
-//
-//	streamID, _ := uuid.NewV4()
-//	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-//	defer cancel()
-//	_, err := client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionStreamExists, events)
-//
-//	if !errors.Is(err, client_errors.ErrWrongExpectedStreamRevision) {
-//		t.Fatalf("Expected WrongExpectedVersion, got %+v", err)
-//	}
-//}
 
 //func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
 //	container := GetEmptyDatabase()

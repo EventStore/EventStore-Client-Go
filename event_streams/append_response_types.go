@@ -15,11 +15,51 @@ func (this AppendResponse) GetSuccess() (AppendResponseSuccess, bool) {
 	return AppendResponseSuccess{}, false
 }
 
+func (this AppendResponse) GetCurrentRevision() (uint64, bool) {
+	success, isSuccess := this.GetSuccess()
+
+	if !isSuccess {
+		return 0, false
+	}
+
+	return success.GetCurrentRevision(), true
+}
+
 func (this AppendResponse) GetWrongExpectedVersion() (AppendResponseWrongExpectedVersion, bool) {
 	if response, ok := this.Result.(AppendResponseWrongExpectedVersion); ok {
 		return response, true
 	}
 	return AppendResponseWrongExpectedVersion{}, false
+}
+
+func (this AppendResponse) IsCurrentRevisionNoStream() bool {
+	wrongExpectedVersion, isWrongExpectedRevision := this.GetWrongExpectedVersion()
+
+	if !isWrongExpectedRevision {
+		return false
+	}
+
+	return wrongExpectedVersion.IsCurrentRevisionNoStream()
+}
+
+func (this AppendResponse) GetWrongCurrentRevision() (uint64, bool) {
+	wrongExpectedVersion, isWrongExpectedVersion := this.GetWrongExpectedVersion()
+
+	if !isWrongExpectedVersion {
+		return 0, false
+	}
+
+	return wrongExpectedVersion.GetCurrentRevision()
+}
+
+func (this AppendResponse) GetWrongExpectedRevision() (uint64, bool) {
+	wrongExpectedVersion, isWrongExpectedVersion := this.GetWrongExpectedVersion()
+
+	if !isWrongExpectedVersion {
+		return 0, false
+	}
+
+	return wrongExpectedVersion.GetExpectedRevision()
 }
 
 type isAppendResponseResult interface {
@@ -117,6 +157,44 @@ type AppendResponseWrongExpectedVersion struct {
 }
 
 func (this AppendResponseWrongExpectedVersion) isAppendResponseResult() {
+}
+
+func (this AppendResponseWrongExpectedVersion) GetExpectedRevision() (uint64, bool) {
+	if revision, ok := this.ExpectedRevision.(AppendResponseWrongExpectedRevision); ok {
+		return revision.ExpectedRevision, true
+	} else if revision, ok := this.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevision_20_6_0); ok {
+		return revision.ExpectedRevision, true
+	}
+
+	return 0, false
+}
+
+func (this AppendResponseWrongExpectedVersion) IsExpectedRevisionNoStream() bool {
+	if _, ok := this.ExpectedRevision.(AppendResponseWrongExpectedRevisionNoStream); ok {
+		return true
+	}
+
+	return false
+}
+
+func (this AppendResponseWrongExpectedVersion) IsCurrentRevisionNoStream() bool {
+	if _, ok := this.CurrentRevision.(AppendResponseWrongCurrentRevisionNoStream); ok {
+		return true
+	} else if _, ok := this.CurrentRevision_20_6_0.(AppendResponseWrongCurrentRevisionNoStream_20_6_0); ok {
+		return true
+	}
+
+	return false
+}
+
+func (this AppendResponseWrongExpectedVersion) GetCurrentRevision() (uint64, bool) {
+	if revision, ok := this.CurrentRevision.(AppendResponseWrongCurrentRevision); ok {
+		return revision.CurrentRevision, true
+	} else if revision, ok := this.CurrentRevision_20_6_0.(AppendResponseWrongCurrentRevision_20_6_0); ok {
+		return revision.CurrentRevision, true
+	}
+
+	return 0, false
 }
 
 type isAppendResponseWrongCurrentRevision_20_6_0 interface {
