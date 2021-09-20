@@ -2,6 +2,9 @@ package event_streams
 
 import (
 	"fmt"
+	"reflect"
+
+	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/gofrs/uuid"
@@ -39,6 +42,30 @@ type ReadResponseStreamNotFound struct {
 
 func (this ReadResponseStreamNotFound) isReadResponseResult() {}
 
+type ReadResponseEventList []ReadResponseEvent
+
+func (list ReadResponseEventList) Reverse() ReadResponseEventList {
+	result := make(ReadResponseEventList, len(list))
+	copy(result, list)
+	n := reflect.ValueOf(result).Len()
+	swap := reflect.Swapper(result)
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		swap(i, j)
+	}
+
+	return result
+}
+
+func (list ReadResponseEventList) ToProposedEvents() []ProposedEvent {
+	var result []ProposedEvent
+
+	for _, responseEvent := range list {
+		result = append(result, responseEvent.ToProposedEvent())
+	}
+
+	return result
+}
+
 type ReadResponseEvent struct {
 	Event *ReadResponseRecordedEvent
 	Link  *ReadResponseRecordedEvent
@@ -46,6 +73,22 @@ type ReadResponseEvent struct {
 	//	ReadResponseEventCommitPosition
 	//	ReadResponseEventNoPosition
 	Position IsReadResponsePosition
+}
+
+func (this ReadResponseEvent) ToProposedEvent() ProposedEvent {
+	// metadata[system_metadata.SystemMetadataKeysContentType] = string(this.ContentType)
+	// metadata[system_metadata.SystemMetadataKeysType] = this.EventType
+	contentType := this.Event.Metadata[system_metadata.SystemMetadataKeysContentType]
+	if contentType != string(ContentTypeJson) && contentType != string(ContentTypeOctetStream) {
+		panic("Invalid content type ")
+	}
+	return ProposedEvent{
+		EventID:      this.Event.Id,
+		EventType:    this.Event.Metadata[system_metadata.SystemMetadataKeysType],
+		ContentType:  ContentType(contentType),
+		Data:         this.Event.Data,
+		UserMetadata: this.Event.CustomMetadata,
+	}
 }
 
 func (this ReadResponseEvent) isReadResponseResult() {}

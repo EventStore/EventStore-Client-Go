@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/errors"
@@ -12,11 +13,15 @@ import (
 )
 
 func createTestEvent() event_streams.ProposedEvent {
+	return createTestEventWithMetadataSize(4)
+}
+
+func createTestEventWithMetadataSize(metadataSize int) event_streams.ProposedEvent {
 	return event_streams.ProposedEvent{
 		EventID:      uuid.Must(uuid.NewV4()),
 		EventType:    "TestEvent",
 		ContentType:  "application/octet-stream",
-		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
+		UserMetadata: []byte(strings.Repeat("$", metadataSize)),
 		Data:         []byte{0xb, 0xe, 0xe, 0xf},
 	}
 }

@@ -1,7 +1,13 @@
 package client_test
 
 import (
+	"context"
+	"testing"
+
+	"github.com/EventStore/EventStore-Client-Go/event_streams"
+	"github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	uuid "github.com/gofrs/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 type Created struct {
@@ -27,6 +33,74 @@ type Event struct {
 	ContentType    string         `json:"contentType"`
 	Position       Position       `json:"position"`
 	Created        Created        `json:"created"`
+}
+
+func Test_Read_Forwards_Linked_Stream(t *testing.T) {
+	container := GetEmptyDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	deletedStream := "deleted_stream"
+	linkedStream := "linked_stream"
+
+	_, err := client.AppendToStream(context.Background(),
+		deletedStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		testCreateEvents(1))
+	require.NoError(t, err)
+
+	two := 2
+	streamMetaData := event_streams.StreamMetadata{
+		MaxCount: &two,
+	}
+
+	_, err = client.SetStreamMetadata(context.Background(),
+		deletedStream,
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
+		streamMetaData,
+	)
+	require.NoError(t, err)
+
+	_, err = client.AppendToStream(context.Background(),
+		deletedStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		testCreateEvents(1))
+	require.NoError(t, err)
+
+	_, err = client.AppendToStream(context.Background(),
+		deletedStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		testCreateEvents(1))
+	require.NoError(t, err)
+
+	newUUID, _ := uuid.NewV4()
+	linkedEvent := event_streams.ProposedEvent{
+		EventID:      newUUID,
+		EventType:    string(systemmetadata.SystemEventLinkTo),
+		ContentType:  event_streams.ContentTypeOctetStream,
+		Data:         []byte("0@" + deletedStream),
+		UserMetadata: []byte{},
+	}
+	_, err = client.AppendToStream(context.Background(),
+		linkedStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		[]event_streams.ProposedEvent{linkedEvent})
+	require.NoError(t, err)
+
+	readEvents, err := client.ReadStreamEvents(context.Background(),
+		linkedStream,
+		event_streams.ReadRequestDirectionForward,
+		event_streams.ReadRequestOptionsStreamRevisionStart{},
+		232323,
+		true)
+	require.NoError(t, err)
+	require.Len(t, readEvents, 1)
 }
 
 //func TestReadStreamEventsForwardsFromZeroPosition(t *testing.T) {

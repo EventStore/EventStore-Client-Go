@@ -558,6 +558,15 @@ func testCreateEvents(count uint32) []event_streams.ProposedEvent {
 	return result
 }
 
+func testCreateEventsWithMetadata(count uint32, metadataSize int) []event_streams.ProposedEvent {
+	result := make([]event_streams.ProposedEvent, count)
+	var i uint32 = 0
+	for ; i < count; i++ {
+		result[i] = createTestEventWithMetadataSize(metadataSize)
+	}
+	return result
+}
+
 func testCreateEventsWithBytesCap(bytesCap uint) []event_streams.ProposedEvent {
 	byteCount := uint(0)
 	result := make([]event_streams.ProposedEvent, 0)

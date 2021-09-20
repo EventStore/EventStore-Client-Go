@@ -266,6 +266,31 @@ func (client *Client) ReadAllEvents(
 	position event_streams.IsReadRequestOptionsAllPosition,
 	count uint64,
 	resolveLinks bool,
+) (event_streams.ReadResponseEventList, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
+		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+
+	return eventStreamsClient.ReadStreamEvents(ctx, event_streams.ReadRequest{
+		StreamOption: event_streams.ReadRequestStreamOptionsAll{
+			Position: position,
+		},
+		Direction:    direction,
+		ResolveLinks: resolveLinks,
+		Count:        count,
+		Filter:       event_streams.ReadRequestNoFilter{},
+	})
+}
+
+func (client *Client) GetAllEventsReader(
+	ctx context.Context,
+	direction event_streams.ReadRequestDirection,
+	position event_streams.IsReadRequestOptionsAllPosition,
+	count uint64,
+	resolveLinks bool,
 ) (event_streams.ReadClient, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
