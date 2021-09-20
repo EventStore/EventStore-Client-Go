@@ -282,7 +282,32 @@ func Test_MultipleWriteEventsWithSameIds_ExpectedVersionNoStream_NextExpectedVer
 	require.EqualValues(t, 5, success.GetCurrentRevision())
 }
 
-func Test_writing_with_correct_expected_version_to_deleted_stream_throws_stream_deleted(t *testing.T) {
+func Test_ReturnsPositionWhenWriting(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	streamName := "stream_no_stream"
+	event := createTestEvent()
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
+	writeResult, _ := client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		[]event_streams.ProposedEvent{event})
+
+	writeSuccess, _ := writeResult.GetSuccess()
+	position, _ := writeSuccess.GetPosition()
+	require.Greater(t, position.PreparePosition, uint64(0))
+	require.Greater(t, position.CommitPosition, uint64(0))
+}
+
+func Test_WritingWithExpectedVersionNoStream_ToDeletedStream_StreamDeletedErr(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
@@ -305,43 +330,61 @@ func Test_writing_with_correct_expected_version_to_deleted_stream_throws_stream_
 		streamName,
 		expectedStreamRevision,
 		[]event_streams.ProposedEvent{event})
+	require.Equal(t, errors.StreamDeletedErr, err.Code())
+}
+
+func Test_WritingWithExpectedVersionAny_ToDeletedStream_StreamDeletedErr(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	streamName := "stream_no_stream"
+
+	_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
 	require.NoError(t, err)
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.TombstoneAsync(stream, StreamState.NoStream);
-	//
-	//await Assert.ThrowsAsync<StreamDeletedException>(() => _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.NoStream,
-	//	_fixture.CreateTestEvents(1)));
+
+	event := createTestEvent()
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
+
+	_, err = client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		[]event_streams.ProposedEvent{event})
+	require.Equal(t, errors.StreamDeletedErr, err.Code())
 }
 
-func Test_returns_log_position_when_writing(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//var result = await _fixture.Client.AppendToStreamAsync(
-	//	stream,
-	//	StreamState.NoStream,
-	//	_fixture.CreateTestEvents(1));
-	//Assert.True(0 < result.LogPosition.PreparePosition);
-	//Assert.True(0 < result.LogPosition.CommitPosition);
-}
+func Test_WritingWithInvalidExpectedVersion_ToDeletedStream_StreamDeletedErr(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
-func Test_writing_with_any_expected_version_to_deleted_stream_throws_stream_deleted(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//await _fixture.Client.TombstoneAsync(stream, StreamState.NoStream);
-	//
-	//await Assert.ThrowsAsync<StreamDeletedException>(
-	//	() => _fixture.Client.AppendToStreamAsync(stream, StreamState.Any, _fixture.CreateTestEvents(1)));
-}
+	streamName := "stream_no_stream"
 
-func Test_writing_with_invalid_expected_version_to_deleted_stream_throws_stream_deleted(t *testing.T) {
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.TombstoneAsync(stream, StreamState.NoStream);
-	//
-	//await Assert.ThrowsAsync<StreamDeletedException>(
-	//	() => _fixture.Client.AppendToStreamAsync(stream, new StreamRevision(5), _fixture.CreateTestEvents()));
+	_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+	require.NoError(t, err)
+
+	event := createTestEvent()
+	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevision{
+		Revision: 5,
+	}
+
+	_, err = client.AppendToStream(context.Background(),
+		streamName,
+		expectedStreamRevision,
+		[]event_streams.ProposedEvent{event})
+	require.Equal(t, errors.StreamDeletedErr, err.Code())
 }
 
 func Test_append_with_correct_expected_version_to_existing_stream(t *testing.T) {

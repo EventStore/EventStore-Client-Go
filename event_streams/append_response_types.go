@@ -54,6 +54,13 @@ func (this AppendResponseSuccess) GetCurrentRevision() uint64 {
 	return 0
 }
 
+func (this AppendResponseSuccess) GetPosition() (AppendResponseSuccessPosition, bool) {
+	if revision, ok := this.Position.(AppendResponseSuccessPosition); ok {
+		return revision, true
+	}
+	return AppendResponseSuccessPosition{}, false
+}
+
 type isAppendResponseSuccessPosition interface {
 	isAppendResponseSuccessPosition()
 }
