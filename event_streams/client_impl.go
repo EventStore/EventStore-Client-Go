@@ -60,7 +60,6 @@ func (client *ClientImpl) AppendToStream(
 
 	for _, event := range events {
 		message := AppendRequest{Content: event.ToProposedMessage()}
-		fmt.Println(spew.Sdump(message.Build()))
 		protoErr = appendClient.Send(message.Build())
 
 		if protoErr != nil {

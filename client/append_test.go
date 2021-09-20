@@ -22,7 +22,7 @@ func createTestEvent() event_streams.ProposedEvent {
 }
 
 func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -82,7 +82,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 }
 
 func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -155,7 +155,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 }
 
 func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -187,7 +187,7 @@ func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -212,7 +212,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *tes
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -245,7 +245,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVe
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -278,7 +278,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpec
 }
 
 func Test_ReturnsPositionWhenWriting(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -303,7 +303,7 @@ func Test_ReturnsPositionWhenWriting(t *testing.T) {
 }
 
 func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -388,7 +388,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 }
 
 func Test_AppendToExistingStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -595,7 +595,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 }
 
 func Test_AppendToExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -607,7 +607,7 @@ func Test_AppendToExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedV
 }
 
 func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -636,7 +636,7 @@ func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpect
 }
 
 func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := GetEmptyDatabase()
 	defer container.Close()
 	client := CreateTestClient(container, t)
 	defer func() {
@@ -672,6 +672,38 @@ func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
 	//stream,
 	//StreamState.StreamExists,
 	//_fixture.CreateTestEvents());
+}
+
+func Test_AppendToStream_WithAppendLimit(t *testing.T) {
+	container := GetEmptyDatabase(CreateEventStoreEnvironmentVar(EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES, "1024"))
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	t.Run("Less than limit", func(t *testing.T) {
+		streamName := "stream_less_than_limit"
+		events := testCreateEventsWithBytesCap(1024)
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+	})
+
+	t.Run("More than limit", func(t *testing.T) {
+		streamName := "stream_more_than_limit"
+		events := testCreateEventsWithBytesCap(2056)
+		_, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.Equal(t, errors.MaximumAppendSizeExceededErr, err.Code())
+	})
 }
 
 //func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {

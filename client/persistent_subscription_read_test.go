@@ -557,3 +557,20 @@ func testCreateEvents(count uint32) []event_streams.ProposedEvent {
 	}
 	return result
 }
+
+func testCreateEventsWithBytesCap(bytesCap uint) []event_streams.ProposedEvent {
+	byteCount := uint(0)
+	result := make([]event_streams.ProposedEvent, 0)
+
+	for {
+		newEvent := createTestEvent()
+		byteCount += uint(len(newEvent.Data))
+
+		if byteCount > bytesCap {
+			break
+		}
+		result = append(result, newEvent)
+	}
+
+	return result
+}

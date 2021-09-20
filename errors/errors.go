@@ -9,4 +9,5 @@ const (
 	UnknownErr                     ErrorCode = "UnknownErr"
 	StreamDeletedErr               ErrorCode = "StreamDeletedErr"
 	NotLeaderErr                   ErrorCode = "NotLeaderErr"
+	MaximumAppendSizeExceededErr   ErrorCode = "MaximumAppendSizeExceededErr"
 )

@@ -28,8 +28,9 @@ type grpcClientImpl struct {
 }
 
 const (
-	protoStreamDeleted  = "stream-deleted"
-	protoStreamNotFound = "stream-not-found"
+	protoStreamDeleted             = "stream-deleted"
+	protoStreamNotFound            = "stream-not-found"
+	protoMaximumAppendSizeExceeded = "maximum-append-size-exceeded"
 )
 
 func isProtoException(trailers metadata.MD, protoException string) bool {
@@ -48,6 +49,8 @@ func (client grpcClientImpl) HandleError(
 		return errors.NewError(errors.StreamDeletedErr, err)
 	} else if isProtoException(trailers, protoStreamNotFound) {
 		return errors.NewError(errors.StreamNotFoundErr, err)
+	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
+		return errors.NewError(errors.MaximumAppendSizeExceededErr, err)
 	}
 
 	values := trailers.Get("exception")
