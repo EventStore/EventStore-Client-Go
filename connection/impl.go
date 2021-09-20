@@ -31,6 +31,7 @@ const (
 	protoStreamDeleted             = "stream-deleted"
 	protoStreamNotFound            = "stream-not-found"
 	protoMaximumAppendSizeExceeded = "maximum-append-size-exceeded"
+	protoWrongExpectedVersion      = "wrong-expected-version"
 )
 
 func isProtoException(trailers metadata.MD, protoException string) bool {
@@ -51,6 +52,10 @@ func (client grpcClientImpl) HandleError(
 		return errors.NewError(errors.StreamNotFoundErr, err)
 	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
 		return errors.NewError(errors.MaximumAppendSizeExceededErr, err)
+	} else if isProtoException(trailers, protoStreamNotFound) {
+		return errors.NewError(errors.StreamNotFoundErr, err)
+	} else if isProtoException(trailers, protoWrongExpectedVersion) {
+		return errors.NewError(errors.WrongExpectedStreamRevisionErr, err)
 	}
 
 	values := trailers.Get("exception")
@@ -88,6 +93,8 @@ func (client grpcClientImpl) HandleError(
 		return errors.NewError(errors.PermissionDeniedErr, err)
 	} else if protoStatus.Code() == codes.Unauthenticated { // PermissionDenied -> ErrUnauthenticated
 		return errors.NewError(errors.UnauthenticatedErr, err)
+	} else if protoStatus.Code() == codes.DeadlineExceeded { // PermissionDenied -> ErrPemissionDenied
+		return errors.NewError(errors.DeadlineExceededErr, err)
 	}
 
 	msg := reconnect{

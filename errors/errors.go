@@ -4,6 +4,7 @@ const (
 	WrongExpectedStreamRevisionErr ErrorCode = "WrongExpectedStreamRevisionErr"
 	FailedPreconditionErr          ErrorCode = "FailedPreconditionErr"
 	PermissionDeniedErr            ErrorCode = "PermissionDeniedErr"
+	DeadlineExceededErr            ErrorCode = "DeadlineExceededErr"
 	UnauthenticatedErr             ErrorCode = "UnauthenticatedErr"
 	StreamNotFoundErr              ErrorCode = "StreamNotFoundErr"
 	UnknownErr                     ErrorCode = "UnknownErr"

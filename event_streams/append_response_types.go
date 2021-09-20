@@ -62,6 +62,25 @@ func (this AppendResponse) GetWrongExpectedRevision() (uint64, bool) {
 	return wrongExpectedVersion.GetExpectedRevision()
 }
 
+func (this AppendResponse) GetPosition() (Position, bool) {
+	success, isSuccess := this.GetSuccess()
+
+	if !isSuccess {
+		return Position{}, false
+	}
+
+	position, isPosition := success.GetPosition()
+
+	if !isPosition {
+		return Position{}, false
+	}
+
+	return Position{
+		CommitPosition:  position.CommitPosition,
+		PreparePosition: position.PreparePosition,
+	}, true
+}
+
 type isAppendResponseResult interface {
 	isAppendResponseResult()
 }

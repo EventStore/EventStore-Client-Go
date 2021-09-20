@@ -9,6 +9,17 @@ type DeleteResponse struct {
 	Position isDeleteResponsePosition
 }
 
+func (response DeleteResponse) GetPosition() (Position, bool) {
+	if position, isPosition := response.Position.(DeleteResponsePosition); isPosition {
+		return Position{
+			CommitPosition:  position.CommitPosition,
+			PreparePosition: position.PreparePosition,
+		}, true
+	}
+
+	return Position{}, false
+}
+
 type isDeleteResponsePosition interface {
 	isDeleteResponsePositionOption()
 }

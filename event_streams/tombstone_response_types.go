@@ -9,6 +9,33 @@ type TombstoneResponse struct {
 	Position isTombstoneResponsePosition
 }
 
+func (response TombstoneResponse) GetCommitPosition() (uint64, bool) {
+	if position, isPosition := response.Position.(TombstoneResponsePosition); isPosition {
+		return position.CommitPosition, true
+	}
+
+	return 0, false
+}
+
+func (response TombstoneResponse) GetPreparePosition() (uint64, bool) {
+	if position, isPosition := response.Position.(TombstoneResponsePosition); isPosition {
+		return position.PreparePosition, true
+	}
+
+	return 0, false
+}
+
+func (response TombstoneResponse) GetPosition() (Position, bool) {
+	if position, isPosition := response.Position.(TombstoneResponsePosition); isPosition {
+		return Position{
+			CommitPosition:  position.CommitPosition,
+			PreparePosition: position.PreparePosition,
+		}, true
+	}
+
+	return Position{}, false
+}
+
 type isTombstoneResponsePosition interface {
 	isTombstoneResponsePosition()
 }

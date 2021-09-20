@@ -316,7 +316,9 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 	t.Run("Stream Does Not Exist, Revision Any", func(t *testing.T) {
 		streamName := "stream_does_not_exist_any"
 
-		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		_, err := client.TombstoneStream(context.Background(),
+			streamName,
+			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := createTestEvent()
@@ -332,7 +334,9 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 	t.Run("Stream Does Not Exist, Revision NoStream", func(t *testing.T) {
 		streamName := "stream_does_not_exist_no_stream"
 
-		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		_, err := client.TombstoneStream(context.Background(),
+			streamName,
+			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := createTestEvent()
@@ -348,7 +352,9 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 	t.Run("Stream Does Not Exist, Invalid Finite Revision", func(t *testing.T) {
 		streamName := "stream_does_not_exist_invalid_finite"
 
-		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		_, err := client.TombstoneStream(context.Background(),
+			streamName,
+			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := createTestEvent()
@@ -375,7 +381,9 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
 
-		_, err = client.TombstoneStreamAnyRevision(context.Background(), streamName)
+		_, err = client.TombstoneStream(context.Background(),
+			streamName,
+			event_streams.TombstoneRequestExpectedStreamRevisionAny{})
 		require.NoError(t, err)
 
 		testEvent2 := createTestEvent()
@@ -516,7 +524,9 @@ func Test_AppendToExistingStream(t *testing.T) {
 	t.Run("Tombstone Stream And Append With Expected Revision StreamExists", func(t *testing.T) {
 		streamName := "stream_hard_deleted"
 
-		_, err := client.TombstoneStreamNoStreamRevision(context.Background(), streamName)
+		_, err := client.TombstoneStream(context.Background(),
+			streamName,
+			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := createTestEvent()
@@ -531,7 +541,9 @@ func Test_AppendToExistingStream(t *testing.T) {
 	t.Run("Stream Deleted (soft delete) Before Append With Expected Revision StreamExists", func(t *testing.T) {
 		streamName := "stream_soft_deleted"
 
-		_, err := client.DeleteStreamRevisionNoStream(context.Background(), streamName)
+		_, err := client.DeleteStream(context.Background(),
+			streamName,
+			event_streams.DeleteRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := createTestEvent()

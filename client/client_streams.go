@@ -112,29 +112,10 @@ func (client *Client) AppendToStream(
 //	}, nil
 //}
 
-func (client *Client) DeleteStreamRevision(
+func (client *Client) DeleteStream(
 	ctx context.Context,
 	streamID string,
-	streamRevision uint64,
-) (event_streams.DeleteResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.DeleteResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
-
-	return eventStreamsClient.DeleteStream(ctx, event_streams.DeleteRequest{
-		StreamIdentifier: streamID,
-		ExpectedStreamRevision: event_streams.DeleteRequestExpectedStreamRevision{
-			Revision: streamRevision,
-		},
-	})
-}
-
-func (client *Client) DeleteStreamRevisionNoStream(
-	ctx context.Context,
-	streamID string) (event_streams.DeleteResponse, errors.Error) {
+	revision event_streams.IsDeleteRequestExpectedStreamRevision) (event_streams.DeleteResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.DeleteResponse{}, err
@@ -144,39 +125,7 @@ func (client *Client) DeleteStreamRevisionNoStream(
 
 	return eventStreamsClient.DeleteStream(ctx, event_streams.DeleteRequest{
 		StreamIdentifier:       streamID,
-		ExpectedStreamRevision: event_streams.DeleteRequestExpectedStreamRevisionNoStream{},
-	})
-}
-
-func (client *Client) DeleteStreamRevisionAny(
-	ctx context.Context,
-	streamID string) (event_streams.DeleteResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.DeleteResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
-
-	return eventStreamsClient.DeleteStream(ctx, event_streams.DeleteRequest{
-		StreamIdentifier:       streamID,
-		ExpectedStreamRevision: event_streams.DeleteRequestExpectedStreamRevisionAny{},
-	})
-}
-
-func (client *Client) DeleteStreamRevisionStreamExists(
-	ctx context.Context,
-	streamID string) (event_streams.DeleteResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.DeleteResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
-
-	return eventStreamsClient.DeleteStream(ctx, event_streams.DeleteRequest{
-		StreamIdentifier:       streamID,
-		ExpectedStreamRevision: event_streams.DeleteRequestExpectedStreamRevisionStreamExists{},
+		ExpectedStreamRevision: revision,
 	})
 }
 
@@ -205,25 +154,7 @@ func (client *Client) DeleteStreamRevisionStreamExists(
 func (client *Client) TombstoneStream(
 	ctx context.Context,
 	streamID string,
-	revision uint64) (event_streams.TombstoneResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.TombstoneResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
-
-	return eventStreamsClient.TombstoneStream(ctx, event_streams.TombstoneRequest{
-		StreamIdentifier: streamID,
-		ExpectedStreamRevision: event_streams.TombstoneRequestExpectedStreamRevision{
-			Revision: revision,
-		},
-	})
-}
-
-func (client *Client) TombstoneStreamNoStreamRevision(
-	ctx context.Context,
-	streamID string) (event_streams.TombstoneResponse, errors.Error) {
+	revision event_streams.IsTombstoneRequestExpectedStreamRevision) (event_streams.TombstoneResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return event_streams.TombstoneResponse{}, err
@@ -233,39 +164,7 @@ func (client *Client) TombstoneStreamNoStreamRevision(
 
 	return eventStreamsClient.TombstoneStream(ctx, event_streams.TombstoneRequest{
 		StreamIdentifier:       streamID,
-		ExpectedStreamRevision: event_streams.TombstoneRequestExpectedStreamRevisionNoStream{},
-	})
-}
-
-func (client *Client) TombstoneStreamAnyRevision(
-	ctx context.Context,
-	streamID string) (event_streams.TombstoneResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.TombstoneResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
-
-	return eventStreamsClient.TombstoneStream(ctx, event_streams.TombstoneRequest{
-		StreamIdentifier:       streamID,
-		ExpectedStreamRevision: event_streams.TombstoneRequestExpectedStreamRevisionAny{},
-	})
-}
-
-func (client *Client) TombstoneStreamRevisionStreamExists(
-	ctx context.Context,
-	streamID string) (event_streams.TombstoneResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.TombstoneResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
-
-	return eventStreamsClient.TombstoneStream(ctx, event_streams.TombstoneRequest{
-		StreamIdentifier:       streamID,
-		ExpectedStreamRevision: event_streams.TombstoneRequestExpectedStreamRevisionStreamExists{},
+		ExpectedStreamRevision: revision,
 	})
 }
 
