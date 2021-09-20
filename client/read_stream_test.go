@@ -249,8 +249,37 @@ func Test_Read_Backwards(t *testing.T) {
 		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
 	})
 
-	t.Run("Stream Deleted Throws", func(t *testing.T) {
-		streamId := "stream_deleted_throws"
+	t.Run("Deleted Stream", func(t *testing.T) {
+		streamId := "deleted_stream"
+
+		events := testCreateEvents(1)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		currentRevision, isCurrentRevision := writeResult.GetCurrentRevision()
+		require.True(t, isCurrentRevision)
+		require.Zero(t, currentRevision)
+
+		_, err = client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+		require.NoError(t, err)
+
+		_, err = client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionBackward,
+			event_streams.ReadRequestOptionsStreamRevisionEnd{},
+			event_streams.ReadCountMax,
+			false)
+		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+	})
+
+	t.Run("Tombstoned Stream StreamDeletedErr", func(t *testing.T) {
+		streamId := "tombstoned_stream_err"
 
 		_, err := client.TombstoneStream(context.Background(),
 			streamId,
@@ -427,8 +456,37 @@ func Test_Read_Forwards(t *testing.T) {
 		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
 	})
 
-	t.Run("Stream Deleted Throws", func(t *testing.T) {
-		streamId := "stream_deleted_throws"
+	t.Run("Deleted Stream", func(t *testing.T) {
+		streamId := "deleted_stream"
+
+		events := testCreateEvents(1)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			events)
+		require.NoError(t, err)
+
+		currentRevision, isCurrentRevision := writeResult.GetCurrentRevision()
+		require.True(t, isCurrentRevision)
+		require.Zero(t, currentRevision)
+
+		_, err = client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+		require.NoError(t, err)
+
+		_, err = client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadCountMax,
+			false)
+		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+	})
+
+	t.Run("Tombstoned Stream StreamDeletedErr", func(t *testing.T) {
+		streamId := "tombstoned_stream"
 
 		_, err := client.TombstoneStream(context.Background(),
 			streamId,

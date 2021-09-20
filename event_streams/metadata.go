@@ -10,6 +10,7 @@ import (
 type StreamMetadataResult interface {
 	IsNone() bool
 	GetStreamMetadata() StreamMetadata
+	GetMetaStreamRevision() uint64
 }
 
 type StreamMetadataNone struct{}
@@ -20,6 +21,10 @@ func (metadataNone StreamMetadataNone) IsNone() bool {
 
 func (metadataNone StreamMetadataNone) GetStreamMetadata() StreamMetadata {
 	return StreamMetadata{}
+}
+
+func (metadataNone StreamMetadataNone) GetMetaStreamRevision() uint64 {
+	return 0
 }
 
 type StreamMetadataResultImpl struct {
@@ -36,33 +41,31 @@ func (result StreamMetadataResultImpl) GetStreamMetadata() StreamMetadata {
 	return result.StreamMetadata
 }
 
+func (result StreamMetadataResultImpl) GetMetaStreamRevision() uint64 {
+	return result.MetaStreamRevision
+}
+
 func NewStreamMetadataResultImpl(streamId string, event ReadResponseEvent) StreamMetadataResultImpl {
 	var metaData StreamMetadata
 	if err := json.Unmarshal(event.Event.Data, &metaData); err != nil {
 		panic(err)
 	}
 
-	revision, isCommitPosition := event.GetCommitPosition()
-
-	if !isCommitPosition {
-		panic("No position received")
-	}
-
 	return StreamMetadataResultImpl{
 		StreamId:           streamId,
 		StreamMetadata:     metaData,
-		MetaStreamRevision: revision,
+		MetaStreamRevision: event.Event.StreamRevision,
 	}
 }
 
 const StreamMetadataType = "$metadata"
 
 type StreamMetadata struct {
-	MaxAge         *time.Duration
-	TruncateBefore *uint64
-	CacheControl   *time.Duration
-	Acl            *StreamAcl
-	MaxCount       *int
+	MaxAge         *time.Duration `json:"$maxAge"`
+	TruncateBefore *uint64        `json:"$tb"`
+	CacheControl   *time.Duration `json:"$cacheControl"`
+	Acl            *StreamAcl     `json:"$acl"`
+	MaxCount       *int           `json:"$maxCount"`
 	CustomMetadata []byte
 }
 
