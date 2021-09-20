@@ -285,6 +285,6 @@ func (this ReadRequestOptionsAllEndPosition) isReadRequestOptionsAllPosition() {
 type ReadRequestDirection string
 
 const (
-	ReadRequestDirectionForward ReadRequestDirection = "ReadRequestDirectionForward"
-	ReadRequestDirectionEnd     ReadRequestDirection = "ReadRequestDirectionEnd"
+	ReadRequestDirectionForward  ReadRequestDirection = "ReadRequestDirectionForward"
+	ReadRequestDirectionBackward ReadRequestDirection = "ReadRequestDirectionBackward"
 )

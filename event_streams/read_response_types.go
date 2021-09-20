@@ -45,12 +45,20 @@ type ReadResponseEvent struct {
 	// Types that are assignable to Position:
 	//	ReadResponseEventCommitPosition
 	//	ReadResponseEventNoPosition
-	Position isReadResponsePosition
+	Position IsReadResponsePosition
 }
 
 func (this ReadResponseEvent) isReadResponseResult() {}
 
-type isReadResponsePosition interface {
+func (this ReadResponseEvent) GetCommitPosition() (uint64, bool) {
+	if commitPosition, isCommitPosition := this.Position.(ReadResponseEventCommitPosition); isCommitPosition {
+		return commitPosition.CommitPosition, true
+	}
+
+	return 0, false
+}
+
+type IsReadResponsePosition interface {
 	isReadResponsePosition()
 }
 

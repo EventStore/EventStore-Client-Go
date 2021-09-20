@@ -8,14 +8,21 @@ import (
 type ProposedEvent struct {
 	EventID      uuid.UUID
 	EventType    string
-	ContentType  string
+	ContentType  ContentType
 	Data         []byte
 	UserMetadata []byte
 }
 
+type ContentType string
+
+const (
+	ContentTypeJson        ContentType = "application/json"
+	ContentTypeOctetStream ContentType = "application/octet-stream"
+)
+
 func (this ProposedEvent) ToProposedMessage() AppendRequestContentProposedMessage {
 	metadata := map[string]string{}
-	metadata[system_metadata.SystemMetadataKeysContentType] = this.ContentType
+	metadata[system_metadata.SystemMetadataKeysContentType] = string(this.ContentType)
 	metadata[system_metadata.SystemMetadataKeysType] = this.EventType
 	return AppendRequestContentProposedMessage{
 		Id:             this.EventID,

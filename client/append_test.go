@@ -635,7 +635,34 @@ func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpect
 	require.EqualValues(t, 1, expectedRevision)
 }
 
-func Test_append_with_stream_exists_expected_version_if_metadata_stream_exists(t *testing.T) {
+func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	streamName := "stream_no_stream"
+	maxCount := 10
+	streamMetadata := event_streams.StreamMetadata{MaxCount: &maxCount}
+
+	_, err := client.SetStreamMetadata(context.Background(),
+		streamName,
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
+		streamMetadata)
+	require.NoError(t, err)
+
+	testEvent := createTestEvent()
+
+	_, err = client.AppendToStream(context.Background(),
+		streamName,
+		event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
+		[]event_streams.ProposedEvent{testEvent})
+	require.NoError(t, err)
 	//var stream = _fixture.GetStreamName();
 	//
 	//await _fixture.Client.SetStreamMetadataAsync(stream, StreamState.Any,

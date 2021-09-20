@@ -602,3 +602,54 @@ func (client *Client) SubscribeToAllFiltered(
 //	defer cancel()
 //	return nil, fmt.Errorf("Failed to initiate subscription.")
 //}
+
+func (client *Client) SetStreamMetadata(
+	ctx context.Context,
+	streamID string,
+	expectedStreamRevision event_streams.IsAppendRequestExpectedStreamRevision,
+	metadata event_streams.StreamMetadata) (event_streams.AppendResponse, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return event_streams.AppendResponse{}, err
+	}
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
+		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+
+	streamMetadataEvent := event_streams.NewMetadataEvent(metadata)
+
+	return eventStreamsClient.AppendToStream(ctx, event_streams.AppendRequestContentOptions{
+		StreamIdentifier:       event_streams.GetMetaStreamOf(streamID),
+		ExpectedStreamRevision: expectedStreamRevision,
+	}, []event_streams.ProposedEvent{streamMetadataEvent})
+}
+
+func (client *Client) GetStreamMetadata(
+	ctx context.Context,
+	streamID string) (event_streams.StreamMetadataResult, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return event_streams.StreamMetadataNone{}, err
+	}
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
+		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+
+	events, err := eventStreamsClient.ReadStreamEvents(ctx, event_streams.ReadRequest{
+		StreamOption: event_streams.ReadRequestStreamOptions{
+			StreamIdentifier: event_streams.GetMetaStreamOf(streamID),
+			Revision:         event_streams.ReadRequestOptionsStreamRevisionEnd{},
+		},
+		Direction:    event_streams.ReadRequestDirectionBackward,
+		ResolveLinks: false,
+		Count:        1,
+		Filter:       event_streams.ReadRequestNoFilter{},
+	})
+	if err != nil {
+		return event_streams.StreamMetadataNone{}, err
+	}
+
+	if len(events) == 0 {
+		return event_streams.StreamMetadataNone{}, nil
+	}
+
+	return event_streams.NewStreamMetadataResultImpl(streamID, events[0]), nil
+}

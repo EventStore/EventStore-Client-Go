@@ -306,6 +306,7 @@ func clientInterceptor(
 ) error {
 	err := invoker(ctx, method, req, reply, cc, opts...)
 	fmt.Println("interceptor:", method)
+	fmt.Println(spew.Sdump(req))
 	fmt.Println(spew.Sdump(reply), "; ", err)
 	return err
 }
