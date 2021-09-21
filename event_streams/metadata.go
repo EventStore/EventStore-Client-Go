@@ -2,6 +2,9 @@ package event_streams
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/gofrs/uuid"
@@ -60,13 +63,168 @@ func NewStreamMetadataResultImpl(streamId string, event ReadResponseEvent) Strea
 
 const StreamMetadataType = "$metadata"
 
+const (
+	maxAgeJsonProperty         = "$maxAge"
+	truncateBeforeJsonProperty = "$tb"
+	cacheControlJsonProperty   = "$cacheControl"
+	aclJsonProperty            = "$acl"
+	maxCountJsonProperty       = "$maxCount"
+)
+
+type CustomMetadataType map[string]interface{}
+
 type StreamMetadata struct {
 	MaxAge         *time.Duration `json:"$maxAge"`
 	TruncateBefore *uint64        `json:"$tb"`
 	CacheControl   *time.Duration `json:"$cacheControl"`
 	Acl            *StreamAcl     `json:"$acl"`
 	MaxCount       *int           `json:"$maxCount"`
-	CustomMetadata []byte
+	CustomMetadata CustomMetadataType
+}
+
+func (b StreamMetadata) MarshalJSON() ([]byte, error) {
+	dat := map[string]interface{}{}
+
+	for key, value := range b.CustomMetadata {
+		if !isCustomMetaValueAllowed(value) {
+			return nil, errors.New(fmt.Sprintf("custom meta data value at key=%s is not allowed", key))
+		}
+		dat[key] = value
+	}
+
+	dat[maxAgeJsonProperty] = b.MaxAge
+	dat[truncateBeforeJsonProperty] = b.TruncateBefore
+	dat[cacheControlJsonProperty] = b.CacheControl
+	dat[maxCountJsonProperty] = b.MaxCount
+	dat[aclJsonProperty] = b.Acl
+
+	return json.Marshal(dat)
+}
+
+func (b *StreamMetadata) UnmarshalJSON(data []byte) error {
+	var rawDataMap map[string]*json.RawMessage
+	if err := json.Unmarshal(data, &rawDataMap); err != nil {
+		panic(err)
+	}
+
+	if rawDataMap[maxAgeJsonProperty] != nil {
+		var temp time.Duration
+
+		stdErr := json.Unmarshal(*rawDataMap[maxAgeJsonProperty], &temp)
+		if stdErr != nil {
+			return stdErr
+		}
+
+		b.MaxAge = &temp
+	}
+
+	if rawDataMap[truncateBeforeJsonProperty] != nil {
+		var temp uint64
+		stdErr := json.Unmarshal(*rawDataMap[truncateBeforeJsonProperty], &temp)
+		if stdErr != nil {
+			return stdErr
+		}
+
+		b.TruncateBefore = &temp
+	}
+
+	if rawDataMap[cacheControlJsonProperty] != nil {
+		var temp time.Duration
+		stdErr := json.Unmarshal(*rawDataMap[cacheControlJsonProperty], &temp)
+		if stdErr != nil {
+			return stdErr
+		}
+
+		b.CacheControl = &temp
+	}
+
+	if rawDataMap[maxCountJsonProperty] != nil {
+		var temp int
+		stdErr := json.Unmarshal(*rawDataMap[maxCountJsonProperty], &temp)
+		if stdErr != nil {
+			return stdErr
+		}
+
+		b.MaxCount = &temp
+	}
+
+	if rawDataMap[aclJsonProperty] != nil {
+		var temp StreamAcl
+		stdErr := json.Unmarshal(*rawDataMap[aclJsonProperty], &temp)
+		if stdErr != nil {
+			return stdErr
+		}
+
+		b.Acl = &temp
+	}
+
+	rawUserMetaDataMap := rawDataMap
+	delete(rawUserMetaDataMap, maxCountJsonProperty)
+	delete(rawUserMetaDataMap, cacheControlJsonProperty)
+	delete(rawUserMetaDataMap, truncateBeforeJsonProperty)
+	delete(rawUserMetaDataMap, maxAgeJsonProperty)
+	delete(rawUserMetaDataMap, aclJsonProperty)
+
+	if len(rawUserMetaDataMap) > 0 {
+		userMetaDataBytes, stdErr := json.Marshal(rawUserMetaDataMap)
+
+		if stdErr != nil {
+			return stdErr
+		}
+
+		var userMetaData map[string]interface{}
+
+		if !areAllCustomMetaValuesAllowed(userMetaData) {
+			return errors.New("found custom meta data value which is not allowed")
+		}
+
+		stdErr = json.Unmarshal(userMetaDataBytes, &userMetaData)
+
+		if stdErr != nil {
+			return stdErr
+		}
+
+		b.CustomMetadata = userMetaData
+	}
+
+	return nil
+}
+
+func areAllCustomMetaValuesAllowed(userMetaData map[string]interface{}) bool {
+	for _, value := range userMetaData {
+		if !isCustomMetaValueAllowed(value) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isCustomMetaValueAllowed(value interface{}) bool {
+	valueType := reflect.TypeOf(value)
+
+	switch valueType.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Chan:
+		fallthrough
+	case reflect.Complex64:
+		fallthrough
+	case reflect.Complex128:
+		fallthrough
+	case reflect.Func:
+		fallthrough
+	case reflect.Map:
+		fallthrough
+	case reflect.Struct:
+		fallthrough
+	case reflect.Ptr:
+		fallthrough
+	case reflect.Slice:
+		return false
+	default:
+		return true
+	}
 }
 
 func NewStreamMetadata(
@@ -75,7 +233,7 @@ func NewStreamMetadata(
 	CacheControl *time.Duration,
 	Acl *StreamAcl,
 	MaxCount *int,
-	CustomMetadata []byte) StreamMetadata {
+	CustomMetadata CustomMetadataType) StreamMetadata {
 	if MaxAge != nil && *MaxAge <= 0 {
 		panic("Stream Metadata MaxAge is <= 0")
 	}
