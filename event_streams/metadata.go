@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/gofrs/uuid"
 )
 
 type StreamMetadataResult interface {
 	IsNone() bool
+	GetStreamId() string
 	GetStreamMetadata() StreamMetadata
 	GetMetaStreamRevision() uint64
 }
@@ -20,6 +20,10 @@ type StreamMetadataNone struct{}
 
 func (metadataNone StreamMetadataNone) IsNone() bool {
 	return true
+}
+
+func (metadataNone StreamMetadataNone) GetStreamId() string {
+	return ""
 }
 
 func (metadataNone StreamMetadataNone) GetStreamMetadata() StreamMetadata {
@@ -34,6 +38,10 @@ type StreamMetadataResultImpl struct {
 	StreamId           string
 	StreamMetadata     StreamMetadata
 	MetaStreamRevision uint64
+}
+
+func (result StreamMetadataResultImpl) GetStreamId() string {
+	return result.StreamId
 }
 
 func (result StreamMetadataResultImpl) IsNone() bool {
@@ -74,12 +82,12 @@ const (
 type CustomMetadataType map[string]interface{}
 
 type StreamMetadata struct {
-	MaxAge         *time.Duration `json:"$maxAge"`
-	TruncateBefore *uint64        `json:"$tb"`
-	CacheControl   *time.Duration `json:"$cacheControl"`
-	Acl            *StreamAcl     `json:"$acl"`
-	MaxCount       *int           `json:"$maxCount"`
-	CustomMetadata CustomMetadataType
+	MaxAgeInSeconds       *uint64    `json:"$maxAge"`
+	TruncateBefore        *uint64    `json:"$tb"`
+	CacheControlInSeconds *uint64    `json:"$cacheControl"`
+	Acl                   *StreamAcl `json:"$acl"`
+	MaxCount              *int       `json:"$maxCount"`
+	CustomMetadata        CustomMetadataType
 }
 
 func (b StreamMetadata) MarshalJSON() ([]byte, error) {
@@ -92,9 +100,9 @@ func (b StreamMetadata) MarshalJSON() ([]byte, error) {
 		dat[key] = value
 	}
 
-	dat[maxAgeJsonProperty] = b.MaxAge
+	dat[maxAgeJsonProperty] = b.MaxAgeInSeconds
 	dat[truncateBeforeJsonProperty] = b.TruncateBefore
-	dat[cacheControlJsonProperty] = b.CacheControl
+	dat[cacheControlJsonProperty] = b.CacheControlInSeconds
 	dat[maxCountJsonProperty] = b.MaxCount
 	dat[aclJsonProperty] = b.Acl
 
@@ -108,14 +116,14 @@ func (b *StreamMetadata) UnmarshalJSON(data []byte) error {
 	}
 
 	if rawDataMap[maxAgeJsonProperty] != nil {
-		var temp time.Duration
+		var temp uint64
 
 		stdErr := json.Unmarshal(*rawDataMap[maxAgeJsonProperty], &temp)
 		if stdErr != nil {
 			return stdErr
 		}
 
-		b.MaxAge = &temp
+		b.MaxAgeInSeconds = &temp
 	}
 
 	if rawDataMap[truncateBeforeJsonProperty] != nil {
@@ -129,13 +137,13 @@ func (b *StreamMetadata) UnmarshalJSON(data []byte) error {
 	}
 
 	if rawDataMap[cacheControlJsonProperty] != nil {
-		var temp time.Duration
+		var temp uint64
 		stdErr := json.Unmarshal(*rawDataMap[cacheControlJsonProperty], &temp)
 		if stdErr != nil {
 			return stdErr
 		}
 
-		b.CacheControl = &temp
+		b.CacheControlInSeconds = &temp
 	}
 
 	if rawDataMap[maxCountJsonProperty] != nil {
@@ -224,35 +232,6 @@ func isCustomMetaValueAllowed(value interface{}) bool {
 		return false
 	default:
 		return true
-	}
-}
-
-func NewStreamMetadata(
-	MaxAge *time.Duration,
-	TruncateBefore *uint64,
-	CacheControl *time.Duration,
-	Acl *StreamAcl,
-	MaxCount *int,
-	CustomMetadata CustomMetadataType) StreamMetadata {
-	if MaxAge != nil && *MaxAge <= 0 {
-		panic("Stream Metadata MaxAge is <= 0")
-	}
-
-	if CacheControl != nil && *CacheControl <= 0 {
-		panic("Stream Metadata Cache Control is <= 0")
-	}
-
-	if MaxCount != nil && *MaxCount <= 0 {
-		panic("Stream Metadata Max Count is <= 0")
-	}
-
-	return StreamMetadata{
-		MaxAge:         MaxAge,
-		TruncateBefore: TruncateBefore,
-		CacheControl:   CacheControl,
-		Acl:            Acl,
-		MaxCount:       MaxCount,
-		CustomMetadata: CustomMetadata,
 	}
 }
 

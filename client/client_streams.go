@@ -568,6 +568,9 @@ func (client *Client) GetStreamMetadata(
 		Filter:       event_streams.ReadRequestNoFilter{},
 	})
 	if err != nil {
+		if err.Code() == errors.StreamNotFoundErr {
+			return event_streams.StreamMetadataNone{}, nil
+		}
 		return event_streams.StreamMetadataNone{}, err
 	}
 
