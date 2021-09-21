@@ -360,9 +360,6 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 		}))
 	}
 
-	opts = append(opts, grpc.WithUnaryInterceptor(clientInterceptor))
-	opts = append(opts, grpc.WithStreamInterceptor(streamInterceptor))
-
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", conf, err)
