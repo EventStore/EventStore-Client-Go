@@ -32,6 +32,7 @@ const (
 	protoStreamNotFound            = "stream-not-found"
 	protoMaximumAppendSizeExceeded = "maximum-append-size-exceeded"
 	protoWrongExpectedVersion      = "wrong-expected-version"
+	protoNotLeader                 = "not-leader"
 )
 
 func isProtoException(trailers metadata.MD, protoException string) bool {
@@ -56,11 +57,7 @@ func (client grpcClientImpl) HandleError(
 		return errors.NewError(errors.StreamNotFoundErr, err)
 	} else if isProtoException(trailers, protoWrongExpectedVersion) {
 		return errors.NewError(errors.WrongExpectedStreamRevisionErr, err)
-	}
-
-	values := trailers.Get("exception")
-
-	if values != nil && values[0] == "not-leader" {
+	} else if isProtoException(trailers, protoNotLeader) {
 		hostValues := trailers.Get("leader-endpoint-host")
 		portValues := trailers.Get("leader-endpoint-port")
 

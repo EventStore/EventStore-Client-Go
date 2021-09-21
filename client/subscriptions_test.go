@@ -14,6 +14,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_SubscribeToStream(t *testing.T) {
+	container := GetPrePopulatedDatabase()
+	defer container.Close()
+	client := CreateTestClient(container, t)
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	t.Run("subscribe_to_non_existing_stream", func(t *testing.T) {
+		// streamId := "subscribe_to_non_existing_stream"
+	})
+}
+
 func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *testing.T) {
 	container := GetPrePopulatedDatabase()
 	defer container.Close()

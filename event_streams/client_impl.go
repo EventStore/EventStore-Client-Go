@@ -91,7 +91,6 @@ func (client *ClientImpl) DeleteStream(
 	}
 
 	var headers, trailers metadata.MD
-	fmt.Println("========", spew.Sdump(deleteRequest.Build()))
 	deleteResponse, protoErr := client.grpcStreamsClient.Delete(context, deleteRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
