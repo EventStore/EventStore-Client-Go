@@ -40,51 +40,7 @@ func isProtoException(trailers metadata.MD, protoException string) bool {
 	return values != nil && values[0] == protoException
 }
 
-func (client grpcClientImpl) HandleError(
-	handle ConnectionHandle,
-	_header metadata.MD,
-	trailers metadata.MD,
-	err error,
-	mapUnknownErrorToOtherError ...errors.ErrorCode) errors.Error {
-
-	if isProtoException(trailers, protoStreamDeleted) {
-		return errors.NewError(errors.StreamDeletedErr, err)
-	} else if isProtoException(trailers, protoStreamNotFound) {
-		return errors.NewError(errors.StreamNotFoundErr, err)
-	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
-		return errors.NewError(errors.MaximumAppendSizeExceededErr, err)
-	} else if isProtoException(trailers, protoStreamNotFound) {
-		return errors.NewError(errors.StreamNotFoundErr, err)
-	} else if isProtoException(trailers, protoWrongExpectedVersion) {
-		return errors.NewError(errors.WrongExpectedStreamRevisionErr, err)
-	} else if isProtoException(trailers, protoNotLeader) {
-		hostValues := trailers.Get("leader-endpoint-host")
-		portValues := trailers.Get("leader-endpoint-port")
-
-		if hostValues != nil && portValues != nil {
-			host := hostValues[0]
-			port, aToIErr := strconv.Atoi(portValues[0])
-
-			if aToIErr == nil {
-				endpoint := EndPoint{
-					Host: host,
-					Port: uint16(port),
-				}
-
-				msg := reconnect{
-					correlation: handle.Id(),
-					endpoint:    &endpoint,
-				}
-
-				client.channel <- msg
-				log.Printf("[error] Not leader exception occurred")
-				return errors.NewError(errors.NotLeaderErr, err)
-			}
-		}
-	}
-
-	log.Printf("[error] unexpected exception: %v", err)
-
+func ErrorFromStdErrorByStatus(err error) errors.Error {
 	protoStatus, _ := status.FromError(err)
 	if protoStatus.Code() == codes.PermissionDenied { // PermissionDenied -> ErrPemissionDenied
 		return errors.NewError(errors.PermissionDeniedErr, err)
@@ -92,6 +48,73 @@ func (client grpcClientImpl) HandleError(
 		return errors.NewError(errors.UnauthenticatedErr, err)
 	} else if protoStatus.Code() == codes.DeadlineExceeded { // PermissionDenied -> ErrPemissionDenied
 		return errors.NewError(errors.DeadlineExceededErr, err)
+	} else if protoStatus.Code() == codes.Canceled {
+		return errors.NewError(errors.CanceledErr, err)
+	}
+	return nil
+}
+
+func getErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error {
+	if isProtoException(trailers, protoStreamDeleted) {
+		return errors.NewError(errors.StreamDeletedErr, stdErr)
+	} else if isProtoException(trailers, protoStreamNotFound) {
+		return errors.NewError(errors.StreamNotFoundErr, stdErr)
+	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
+		return errors.NewError(errors.MaximumAppendSizeExceededErr, stdErr)
+	} else if isProtoException(trailers, protoStreamNotFound) {
+		return errors.NewError(errors.StreamNotFoundErr, stdErr)
+	} else if isProtoException(trailers, protoWrongExpectedVersion) {
+		return errors.NewError(errors.WrongExpectedStreamRevisionErr, stdErr)
+	} else if isProtoException(trailers, protoNotLeader) {
+		return errors.NewError(errors.NotLeaderErr, stdErr)
+	}
+
+	return nil
+}
+
+func (client grpcClientImpl) HandleError(
+	handle ConnectionHandle,
+	_header metadata.MD,
+	trailers metadata.MD,
+	stdErr error,
+	mapUnknownErrorToOtherError ...errors.ErrorCode) errors.Error {
+
+	err := getErrorFromProtoException(trailers, stdErr)
+	if err != nil {
+		if err.Code() == errors.NotLeaderErr {
+			hostValues := trailers.Get("leader-endpoint-host")
+			portValues := trailers.Get("leader-endpoint-port")
+
+			if hostValues != nil && portValues != nil {
+				host := hostValues[0]
+				port, aToIErr := strconv.Atoi(portValues[0])
+
+				if aToIErr == nil {
+					endpoint := EndPoint{
+						Host: host,
+						Port: uint16(port),
+					}
+
+					msg := reconnect{
+						correlation: handle.Id(),
+						endpoint:    &endpoint,
+					}
+
+					client.channel <- msg
+					log.Printf("[error] Not leader exception occurred")
+					return err
+				}
+			}
+		} else {
+			return err
+		}
+	}
+
+	log.Printf("[error] unexpected exception: %v", stdErr)
+
+	err = ErrorFromStdErrorByStatus(stdErr)
+	if err != nil {
+		return err
 	}
 
 	msg := reconnect{
@@ -101,10 +124,10 @@ func (client grpcClientImpl) HandleError(
 	client.channel <- msg
 
 	if mapUnknownErrorToOtherError != nil && len(mapUnknownErrorToOtherError) == 1 {
-		return errors.NewError(mapUnknownErrorToOtherError[0], err)
+		return errors.NewError(mapUnknownErrorToOtherError[0], stdErr)
 	}
 
-	return errors.NewError(errors.UnknownErr, err)
+	return errors.NewError(errors.UnknownErr, stdErr)
 }
 
 func (client grpcClientImpl) GetConnectionHandle() (ConnectionHandle, errors.Error) {
