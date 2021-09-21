@@ -212,7 +212,7 @@ func (client *ClientImpl) ReadStreamEventsReader(
 		streamId = streamOption.StreamIdentifier
 	}
 
-	readClient := client.readClientFactory.Create(readStreamClient, cancel, streamId)
+	readClient := client.readClientFactory.Create(client.grpcClient, readStreamClient, cancel, streamId)
 	return readClient, nil
 }
 
@@ -252,7 +252,11 @@ func (client *ClientImpl) SubscribeToStream(
 	case *streams2.ReadResp_Confirmation:
 		{
 			confirmation := readResult.GetConfirmation()
-			readClient := client.readClientFactory.Create(readStreamClient, cancel, confirmation.SubscriptionId)
+			readClient := client.readClientFactory.Create(
+				client.grpcClient,
+				readStreamClient,
+				cancel,
+				confirmation.SubscriptionId)
 
 			return readClient, nil
 		}
