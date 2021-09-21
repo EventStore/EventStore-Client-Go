@@ -25,13 +25,6 @@ func (this AppendResponse) GetCurrentRevision() (uint64, bool) {
 	return success.GetCurrentRevision(), true
 }
 
-func (this AppendResponse) GetWrongExpectedVersion() (AppendResponseWrongExpectedVersion, bool) {
-	if response, ok := this.Result.(AppendResponseWrongExpectedVersion); ok {
-		return response, true
-	}
-	return AppendResponseWrongExpectedVersion{}, false
-}
-
 func (this AppendResponse) IsCurrentRevisionNoStream() bool {
 	wrongExpectedVersion, isWrongExpectedRevision := this.GetWrongExpectedVersion()
 
@@ -40,6 +33,13 @@ func (this AppendResponse) IsCurrentRevisionNoStream() bool {
 	}
 
 	return wrongExpectedVersion.IsCurrentRevisionNoStream()
+}
+
+func (this AppendResponse) GetWrongExpectedVersion() (AppendResponseWrongExpectedVersion, bool) {
+	if response, ok := this.Result.(AppendResponseWrongExpectedVersion); ok {
+		return response, true
+	}
+	return AppendResponseWrongExpectedVersion{}, false
 }
 
 func (this AppendResponse) GetWrongCurrentRevision() (uint64, bool) {

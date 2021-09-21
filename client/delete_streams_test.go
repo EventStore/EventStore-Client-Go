@@ -3,9 +3,9 @@ package client_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/errors"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
@@ -114,8 +114,72 @@ func Test_DeleteStream(t *testing.T) {
 		require.True(t, tombstonePosition.GreaterThan(writePosition))
 	})
 
-	t.Run("Append After Deleted With Any", func(t *testing.T) {
-		streamId := "append_after_deleted_with_any"
+	type AppendAfterDeleteAnyNoStream struct {
+		name     string
+		revision event_streams.IsAppendRequestExpectedStreamRevision
+	}
+
+	revisions := []AppendAfterDeleteAnyNoStream{
+		{
+			name:     "Any",
+			revision: event_streams.AppendRequestExpectedStreamRevisionAny{},
+		},
+		{
+			name:     "No Stream",
+			revision: event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		},
+	}
+
+	for _, revision := range revisions {
+		t.Run("Recreated After Deleted With "+revision.name, func(t *testing.T) {
+			streamId := "append_after_deleted_with_" + revision.name
+
+			writeResult, err := client.AppendToStream(context.Background(),
+				streamId,
+				event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+				testCreateEvents(1))
+			require.NoError(t, err)
+
+			currentRevision, _ := writeResult.GetCurrentRevision()
+
+			_, err = client.DeleteStream(context.Background(),
+				streamId,
+				event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+			require.NoError(t, err)
+
+			events := testCreateEvents(3)
+
+			writeResult, err = client.AppendToStream(context.Background(),
+				streamId,
+				revision.revision, // Focus of the test
+				events)
+			require.NoError(t, err)
+
+			currentRevision, _ = writeResult.GetCurrentRevision()
+			require.EqualValues(t, 3, currentRevision)
+
+			readEvents, err := client.ReadStreamEvents(context.Background(),
+				streamId,
+				event_streams.ReadRequestDirectionForward,
+				event_streams.ReadRequestOptionsStreamRevisionStart{},
+				event_streams.ReadCountMax,
+				false)
+			require.NoError(t, err)
+
+			require.Len(t, readEvents, 3)
+			require.Equal(t, events, readEvents.ToProposedEvents())
+
+			metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+			require.NoError(t, err)
+
+			streamMetadata := metaData.GetStreamMetadata()
+			require.EqualValues(t, 1, *streamMetadata.TruncateBefore)
+			require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
+		})
+	}
+
+	t.Run("Recreated After Deleted With Expected Stream Revision", func(t *testing.T) {
+		streamId := "append_after_deleted_with_exact_revision"
 
 		writeResult, err := client.AppendToStream(context.Background(),
 			streamId,
@@ -134,7 +198,9 @@ func Test_DeleteStream(t *testing.T) {
 
 		writeResult, err = client.AppendToStream(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			event_streams.AppendRequestExpectedStreamRevision{ // Focus of the test
+				Revision: currentRevision,
+			},
 			events)
 		require.NoError(t, err)
 
@@ -148,7 +214,6 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.ReadCountMax,
 			false)
 		require.NoError(t, err)
-
 		require.Len(t, readEvents, 3)
 		require.Equal(t, events, readEvents.ToProposedEvents())
 
@@ -158,5 +223,301 @@ func Test_DeleteStream(t *testing.T) {
 		streamMetadata := metaData.GetStreamMetadata()
 		require.EqualValues(t, 1, *streamMetadata.TruncateBefore)
 		require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
+	})
+
+	t.Run("Recreated Preserves Metadata Except truncated Before", func(t *testing.T) {
+		t.Skip("Skipped because it does not behave as equivalent DotNet test recreated_preserves_metadata_except_truncate_before")
+		streamId := "recreated_preserves_metadata_except_truncate_before"
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(2))
+		require.NoError(t, err)
+		currentStreamRevision, _ := writeResult.GetCurrentRevision()
+		require.EqualValues(t, 1, currentStreamRevision)
+
+		maxCount := 100
+		truncateBefore := event_streams.ReadCountMax - 1
+		streamMetadata := event_streams.StreamMetadata{
+			MaxAgeInSeconds:       nil,
+			TruncateBefore:        &truncateBefore,
+			CacheControlInSeconds: nil,
+			Acl: &event_streams.StreamAcl{
+				DeleteRoles: []string{"some-role"},
+			},
+			MaxCount: &maxCount,
+			CustomMetadata: event_streams.CustomMetadataType{
+				"key1": true,
+				"key2": 17,
+				"key3": "some value",
+			},
+		}
+
+		streamMetadataResponse, err := client.SetStreamMetadata(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			streamMetadata)
+		require.NoError(t, err)
+		streamMetaCurrentRevision, isCurrentRevision := streamMetadataResponse.GetCurrentRevision()
+		require.True(t, isCurrentRevision)
+		require.EqualValues(t, 0, streamMetaCurrentRevision)
+
+		events := testCreateEvents(3)
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevision{ // Focus of the test
+				Revision: 1,
+			},
+			events)
+		require.NoError(t, err)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadCountMax,
+			false)
+		require.NoError(t, err)
+		require.Len(t, readEvents, 3)
+		require.Equal(t, events, readEvents.ToProposedEvents())
+
+		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		require.NoError(t, err)
+
+		expectedStreamMetadata := streamMetadata
+		*expectedStreamMetadata.TruncateBefore = 2
+		require.EqualValues(t, 2, metaData.GetMetaStreamRevision())
+		require.Equal(t, expectedStreamMetadata, metaData.GetStreamMetadata())
+	})
+
+	t.Run("Soft Deleted Stream Can Be Hard Deleted", func(t *testing.T) {
+		streamId := "can_be_hard_deleted"
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(2))
+		require.NoError(t, err)
+		currentStreamRevision, _ := writeResult.GetCurrentRevision()
+		require.EqualValues(t, 1, currentStreamRevision)
+
+		_, err = client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+		require.NoError(t, err)
+
+		_, err = client.TombstoneStream(context.Background(),
+			streamId,
+			event_streams.TombstoneRequestExpectedStreamRevisionAny{})
+		require.NoError(t, err)
+
+		_, err = client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadCountMax,
+			false)
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+
+		_, err = client.GetStreamMetadata(context.Background(), streamId)
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			testCreateEvents(1))
+		require.Equal(t, errors.StreamDeletedErr, err.Code())
+	})
+
+	t.Run("Allows Recreating For First Write Only", func(t *testing.T) {
+		streamId := "allows_recreating_for_first_write_only"
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(2))
+		require.NoError(t, err)
+		currentStreamRevision, _ := writeResult.GetCurrentRevision()
+		require.EqualValues(t, 1, currentStreamRevision)
+
+		_, err = client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+		require.NoError(t, err)
+
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(3))
+		require.NoError(t, err)
+		currentStreamRevision, _ = writeResult.GetCurrentRevision()
+		require.EqualValues(t, 4, currentStreamRevision)
+
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(1))
+		require.NoError(t, err)
+		_, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
+		require.True(t, isWrongExpectedVersion)
+	})
+
+	t.Run("Appends Multiple Writes Expected Version Any", func(t *testing.T) {
+		streamId := "appends_multiple_writes_expected_version_any"
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(2))
+		require.NoError(t, err)
+		currentStreamRevision, _ := writeResult.GetCurrentRevision()
+		require.EqualValues(t, 1, currentStreamRevision)
+
+		_, err = client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+		require.NoError(t, err)
+
+		firstEvents := testCreateEvents(3)
+
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			firstEvents)
+		require.NoError(t, err)
+		currentStreamRevision, _ = writeResult.GetCurrentRevision()
+		require.EqualValues(t, 4, currentStreamRevision)
+
+		secondEvents := testCreateEvents(2)
+		writeResult, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			secondEvents)
+		require.NoError(t, err)
+		currentStreamRevision, _ = writeResult.GetCurrentRevision()
+		require.EqualValues(t, 6, currentStreamRevision)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadCountMax,
+			false)
+		require.NoError(t, err)
+		require.Equal(t, append(firstEvents, secondEvents...), readEvents.ToProposedEvents())
+
+		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		require.NoError(t, err)
+		streamMetadata := metaData.GetStreamMetadata()
+		require.EqualValues(t, 2, *streamMetadata.TruncateBefore)
+		require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
+	})
+
+	t.Run("Recreated On Empty When Metadata Set", func(t *testing.T) {
+		streamId := "recreated_on_empty_when_metadata_set"
+
+		_, err := client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevisionNoStream{})
+		require.NoError(t, err)
+
+		maxCount := 100
+		truncateBefore := event_streams.ReadCountMax
+		streamMetadata := event_streams.StreamMetadata{
+			MaxAgeInSeconds:       nil,
+			TruncateBefore:        &truncateBefore,
+			CacheControlInSeconds: nil,
+			Acl: &event_streams.StreamAcl{
+				DeleteRoles: []string{"some-role"},
+			},
+			MaxCount: &maxCount,
+			CustomMetadata: event_streams.CustomMetadataType{
+				"key1": true,
+				"key2": float64(17),
+				"key3": "some value",
+			},
+		}
+
+		streamMetadataResponse, err := client.SetStreamMetadata(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
+			streamMetadata)
+		require.NoError(t, err)
+		streamMetaCurrentRevision, isCurrentRevision := streamMetadataResponse.GetCurrentRevision()
+		require.True(t, isCurrentRevision)
+		require.EqualValues(t, 1, streamMetaCurrentRevision)
+
+		_, err = client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadCountMax,
+			false)
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
+
+		expectedMetaData := streamMetadata
+		*expectedMetaData.TruncateBefore = 0
+		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		require.NoError(t, err)
+		require.EqualValues(t, 2, metaData.GetMetaStreamRevision())
+		require.Equal(t, expectedMetaData, metaData.GetStreamMetadata())
+	})
+
+	t.Run("Recreated On Non Empty When Metadata Set", func(t *testing.T) {
+		t.Skip("Skipped because metadata write recreates a stream with all events")
+		streamId := "recreated_on_non_empty_when_metadata_set"
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(2))
+		require.NoError(t, err)
+		currentStreamRevision, _ := writeResult.GetCurrentRevision()
+		require.EqualValues(t, 1, currentStreamRevision)
+
+		_, err = client.DeleteStream(context.Background(),
+			streamId,
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+		require.NoError(t, err)
+
+		maxCount := 100
+		streamMetadata := event_streams.StreamMetadata{
+			MaxAgeInSeconds:       nil,
+			TruncateBefore:        nil,
+			CacheControlInSeconds: nil,
+			Acl: &event_streams.StreamAcl{
+				DeleteRoles: []string{"some-role"},
+			},
+			MaxCount: &maxCount,
+			CustomMetadata: event_streams.CustomMetadataType{
+				"key1": true,
+				"key2": float64(17),
+				"key3": "some value",
+			},
+		}
+
+		streamMetadataResponse, err := client.SetStreamMetadata(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
+			streamMetadata)
+		require.NoError(t, err)
+		streamMetaCurrentRevision, isCurrentRevision := streamMetadataResponse.GetCurrentRevision()
+		require.True(t, isCurrentRevision)
+		require.EqualValues(t, 1, streamMetaCurrentRevision)
+
+		time.Sleep(10 * time.Second)
+
+		readEvents, err := client.ReadStreamEvents(context.Background(),
+			streamId,
+			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadCountMax,
+			false)
+		require.NoError(t, err)
+		require.Empty(t, readEvents)
+
+		expectedMetaData := streamMetadata
+		*expectedMetaData.TruncateBefore = 2
+		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		require.NoError(t, err)
+		require.Equal(t, expectedMetaData, metaData.GetStreamMetadata())
 	})
 }
