@@ -12,4 +12,7 @@ const (
 	StreamDeletedErr               ErrorCode = "StreamDeletedErr"
 	NotLeaderErr                   ErrorCode = "NotLeaderErr"
 	MaximumAppendSizeExceededErr   ErrorCode = "MaximumAppendSizeExceededErr"
+	UserNotFoundErr                ErrorCode = "UserNotFoundErr"
+	EndOfStream                    ErrorCode = "EndOfStream"
+	FatalError                     ErrorCode = "FatalError"
 )

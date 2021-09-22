@@ -10,6 +10,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/projections"
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	projectionsProto "github.com/EventStore/EventStore-Client-Go/protos/projections"
+	"github.com/EventStore/EventStore-Client-Go/user_management"
 )
 
 type Configuration = connection.Configuration
@@ -25,6 +26,7 @@ type Client struct {
 	persistentClientFactory   persistent.ClientFactory
 	projectionClientFactory   projections.ClientFactory
 	eventStreamsClientFactory event_streams.ClientFactory
+	userManagementFactory     user_management.ClientFactory
 }
 
 // NewClient ...
@@ -36,6 +38,7 @@ func NewClient(configuration *connection.Configuration) (*Client, error) {
 		persistentClientFactory:   persistent.ClientFactoryImpl{},
 		projectionClientFactory:   projections.ClientFactoryImpl{},
 		eventStreamsClientFactory: event_streams.ClientFactoryImpl{},
+		userManagementFactory:     user_management.ClientFactoryImpl{},
 	}, nil
 }
 
@@ -341,4 +344,8 @@ func (client *Client) ListOneTimeProjections(
 		projectionsProto.NewProjectionsClient(handle.Connection()))
 
 	return projectionsClient.ListOneTimeProjections(ctx, handle)
+}
+
+func (client *Client) UserManagement() user_management.Client {
+	return client.userManagementFactory.Create(client.grpcClient)
 }

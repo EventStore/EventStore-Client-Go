@@ -13,18 +13,15 @@ import (
 type ReadClientImpl struct {
 	protoClient         streams2.Streams_ReadClient
 	readResponseAdapter readResponseAdapter
-	streamId            string
 	cancelFunc          context.CancelFunc
 	once                sync.Once
 }
-
-const EndOfStreamErr errors.ErrorCode = "EndOfStreamErr"
 
 func (this *ReadClientImpl) Recv() (ReadResponse, errors.Error) {
 	protoResponse, protoErr := this.protoClient.Recv()
 	if protoErr != nil {
 		if protoErr == io.EOF {
-			return ReadResponse{}, errors.NewError(EndOfStreamErr, protoErr)
+			return ReadResponse{}, errors.NewError(errors.EndOfStream, protoErr)
 		}
 		trailer := this.protoClient.Trailer()
 		err := connection.GetErrorFromProtoException(trailer, protoErr)
@@ -45,12 +42,10 @@ func (this *ReadClientImpl) Close() {
 func newReadClientImpl(
 	protoClient streams2.Streams_ReadClient,
 	cancelFunc context.CancelFunc,
-	streamId string,
 	readResponseAdapter readResponseAdapter) *ReadClientImpl {
 	return &ReadClientImpl{
 		protoClient:         protoClient,
 		readResponseAdapter: readResponseAdapter,
-		streamId:            streamId,
 		cancelFunc:          cancelFunc,
 	}
 }
