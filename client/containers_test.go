@@ -13,6 +13,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ory/dockertest/v3"
+	"github.com/stretchr/testify/require"
 )
 
 type EventStoreEnvironmentVariable string
@@ -243,4 +244,17 @@ func CreateClient(connStr string, t *testing.T) *client.Client {
 	}
 
 	return client
+}
+
+type CloseClientInstance func()
+
+func initializeContainerAndClient(t *testing.T,
+	environmentVariables ...string) (*Container, *client.Client, CloseClientInstance) {
+	container := GetEmptyDatabase(environmentVariables...)
+	clientInstance := CreateTestClient(container, t)
+	closeClientInstance := func() {
+		err := clientInstance.Close()
+		require.NoError(t, err)
+	}
+	return container, clientInstance, closeClientInstance
 }

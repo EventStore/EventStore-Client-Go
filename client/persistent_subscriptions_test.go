@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	"github.com/stretchr/testify/require"
 )
@@ -237,19 +236,6 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 		})
 
 	require.Error(t, err)
-}
-
-type CloseClientInstance func()
-
-func initializeContainerAndClient(t *testing.T,
-	environmentVariables ...string) (*Container, *client.Client, CloseClientInstance) {
-	container := GetEmptyDatabase(environmentVariables...)
-	clientInstance := CreateTestClient(container, t)
-	closeClientInstance := func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
-	}
-	return container, clientInstance, closeClientInstance
 }
 
 func TestPersistentSubscriptionClosing(t *testing.T) {
