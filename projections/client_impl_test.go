@@ -2,9 +2,10 @@ package projections
 
 import (
 	"context"
-	"errors"
 	"io"
 	"testing"
+
+	"github.com/EventStore/EventStore-Client-Go/errors"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 
@@ -57,7 +58,7 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -85,7 +86,8 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToCreateProjectionErr).Return(errors.NewErrorCode(FailedToCreateProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -94,7 +96,7 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 		}
 
 		err := client.CreateProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToCreateProjectionErr)
+		require.Equal(t, FailedToCreateProjectionErr, err.Code())
 	})
 }
 
@@ -131,7 +133,7 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -159,7 +161,8 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToUpdateProjectionErr).Return(errors.NewErrorCode(FailedToUpdateProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -168,7 +171,7 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 		}
 
 		err := client.UpdateProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToUpdateProjectionErr)
+		require.Equal(t, FailedToUpdateProjectionErr, err.Code())
 	})
 }
 
@@ -201,7 +204,7 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -229,7 +232,8 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToDeleteProjectionErr).Return(errors.NewErrorCode(FailedToDeleteProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -238,7 +242,7 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 		}
 
 		err := client.DeleteProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToDeleteProjectionErr)
+		require.Equal(t, FailedToDeleteProjectionErr, err.Code())
 	})
 }
 
@@ -272,7 +276,7 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -300,7 +304,8 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToFetchProjectionStatisticsErr).Return(errors.NewErrorCode(FailedToFetchProjectionStatisticsErr)),
 		)
 
 		client := ClientImpl{
@@ -310,7 +315,7 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 
 		statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
 		require.Nil(t, statisticsClient)
-		require.EqualError(t, err, FailedToFetchProjectionStatisticsErr)
+		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 }
 
@@ -323,6 +328,7 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 	ctx := context.Background()
 
 	options := DisableOptionsRequest{}
+	options.SetName("some name")
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
@@ -341,7 +347,7 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -369,7 +375,8 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToDisableProjectionErr).Return(errors.NewErrorCode(FailedToDisableProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -378,7 +385,7 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 		}
 
 		err := client.DisableProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToDisableProjectionErr)
+		require.Equal(t, FailedToDisableProjectionErr, err.Code())
 	})
 }
 
@@ -391,6 +398,7 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 	ctx := context.Background()
 
 	options := AbortOptionsRequest{}
+	options.SetName("some name")
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
@@ -409,7 +417,7 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -437,7 +445,8 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToAbortProjectionErr).Return(errors.NewErrorCode(FailedToAbortProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -446,7 +455,7 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 		}
 
 		err := client.AbortProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToAbortProjectionErr)
+		require.Equal(t, FailedToAbortProjectionErr, err.Code())
 	})
 }
 
@@ -478,7 +487,7 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -506,7 +515,8 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToEnableProjectionErr).Return(errors.NewErrorCode(FailedToEnableProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -514,7 +524,7 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 			grpcClient:        grpcClient,
 		}
 		err := client.EnableProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToEnableProjectionErr)
+		require.Equal(t, FailedToEnableProjectionErr, err.Code())
 	})
 }
 
@@ -546,7 +556,7 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -574,7 +584,8 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToResetProjectionErr).Return(errors.NewErrorCode(FailedToResetProjectionErr)),
 		)
 
 		client := ClientImpl{
@@ -583,7 +594,7 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 		}
 
 		err := client.ResetProjection(ctx, handle, options)
-		require.EqualError(t, err, FailedToResetProjectionErr)
+		require.Equal(t, FailedToResetProjectionErr, err.Code())
 	})
 }
 
@@ -624,7 +635,7 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -652,7 +663,8 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToGetProjectionStateErr).Return(errors.NewErrorCode(FailedToGetProjectionStateErr)),
 		)
 
 		client := ClientImpl{
@@ -662,7 +674,7 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 
 		state, err := client.GetProjectionState(ctx, handle, options)
 		require.Nil(t, state)
-		require.EqualError(t, err, FailedToGetProjectionStateErr)
+		require.Equal(t, FailedToGetProjectionStateErr, err.Code())
 	})
 }
 
@@ -703,7 +715,7 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -731,7 +743,8 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToGetProjectionResultErr).Return(errors.NewErrorCode(FailedToGetProjectionResultErr)),
 		)
 
 		client := ClientImpl{
@@ -741,7 +754,7 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 
 		state, err := client.GetProjectionResult(ctx, handle, options)
 		require.Nil(t, state)
-		require.EqualError(t, err, FailedToGetProjectionResultErr)
+		require.Equal(t, FailedToGetProjectionResultErr, err.Code())
 	})
 }
 
@@ -782,7 +795,7 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -810,7 +823,9 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToRestartProjectionsSubsystemErr).Return(
+				errors.NewErrorCode(FailedToRestartProjectionsSubsystemErr)),
 		)
 
 		client := ClientImpl{
@@ -819,7 +834,7 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 		}
 
 		err := client.RestartProjectionsSubsystem(ctx, handle)
-		require.EqualError(t, err, FailedToRestartProjectionsSubsystemErr)
+		require.Equal(t, FailedToRestartProjectionsSubsystemErr, err.Code())
 	})
 }
 
@@ -875,7 +890,7 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 	t.Run("Error returned from Statistics", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -903,7 +918,9 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToFetchProjectionStatisticsErr).Return(
+				errors.NewErrorCode(FailedToFetchProjectionStatisticsErr)),
 		)
 
 		client := ClientImpl{
@@ -914,11 +931,11 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
 		require.Error(t, err)
 		require.Nil(t, allProjectionsResult)
-		require.EqualError(t, err, FailedToListAllProjectionsStatistics)
+		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 
 	t.Run("Error returned from statistics client read", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
 
 		var headers, trailers metadata.MD
@@ -931,7 +948,7 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 
 		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
 		require.Error(t, err)
-		require.EqualError(t, err, errorResult.Error())
+		require.Equal(t, FailedToReadStatistics, err.Code())
 		require.Nil(t, allProjectionsResult)
 	})
 }
@@ -988,7 +1005,7 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 	t.Run("Error returned from Statistics", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -1016,7 +1033,9 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToFetchProjectionStatisticsErr).Return(
+				errors.NewErrorCode(FailedToFetchProjectionStatisticsErr)),
 		)
 
 		client := ClientImpl{
@@ -1027,11 +1046,11 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 		allProjectionsResult, err := client.ListContinuousProjections(ctx, handle)
 		require.Error(t, err)
 		require.Nil(t, allProjectionsResult)
-		require.EqualError(t, err, FailedToListAllContinuousProjections)
+		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 
 	t.Run("Error returned from statistics client read", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
 
 		var headers, trailers metadata.MD
@@ -1044,7 +1063,7 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 
 		allProjectionsResult, err := client.ListContinuousProjections(ctx, handle)
 		require.Error(t, err)
-		require.EqualError(t, err, errorResult.Error())
+		require.Equal(t, FailedToReadStatistics, err.Code())
 		require.Nil(t, allProjectionsResult)
 	})
 }
@@ -1101,7 +1120,7 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 	t.Run("Error returned from Statistics", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
 			"header_key": []string{"header_value"},
 		}
@@ -1129,7 +1148,8 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 					}
 					return nil, errorResult
 				}),
-			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+			grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+				FailedToFetchProjectionStatisticsErr).Return(errors.NewErrorCode(FailedToFetchProjectionStatisticsErr)),
 		)
 
 		client := ClientImpl{
@@ -1140,11 +1160,11 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 		allProjectionsResult, err := client.ListOneTimeProjections(ctx, handle)
 		require.Error(t, err)
 		require.Nil(t, allProjectionsResult)
-		require.EqualError(t, err, FailedToListOneTimeProjections)
+		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 
 	t.Run("Error returned from statistics client read", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
 
 		var headers, trailers metadata.MD
@@ -1157,7 +1177,7 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 
 		allProjectionsResult, err := client.ListOneTimeProjections(ctx, handle)
 		require.Error(t, err)
-		require.EqualError(t, err, errorResult.Error())
+		require.Equal(t, FailedToReadStatistics, err.Code())
 		require.Nil(t, allProjectionsResult)
 	})
 }

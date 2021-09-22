@@ -26,47 +26,93 @@ type grpcClientImpl struct {
 	channel chan msg
 }
 
-func (client grpcClientImpl) HandleError(handle ConnectionHandle, headers metadata.MD, trailers metadata.MD, err error) error {
+const (
+	protoStreamDeleted             = "stream-deleted"
+	protoStreamNotFound            = "stream-not-found"
+	protoMaximumAppendSizeExceeded = "maximum-append-size-exceeded"
+	protoWrongExpectedVersion      = "wrong-expected-version"
+	protoNotLeader                 = "not-leader"
+)
+
+func isProtoException(trailers metadata.MD, protoException string) bool {
 	values := trailers.Get("exception")
+	return values != nil && values[0] == protoException
+}
 
-	if values != nil && values[0] == "not-leader" {
-		hostValues := trailers.Get("leader-endpoint-host")
-		portValues := trailers.Get("leader-endpoint-port")
+func ErrorFromStdErrorByStatus(err error) errors.Error {
+	protoStatus, _ := status.FromError(err)
+	if protoStatus.Code() == codes.PermissionDenied {
+		return errors.NewError(errors.PermissionDeniedErr, err)
+	} else if protoStatus.Code() == codes.Unauthenticated {
+		return errors.NewError(errors.UnauthenticatedErr, err)
+	} else if protoStatus.Code() == codes.DeadlineExceeded {
+		return errors.NewError(errors.DeadlineExceededErr, err)
+	} else if protoStatus.Code() == codes.Canceled {
+		return errors.NewError(errors.CanceledErr, err)
+	}
+	return nil
+}
 
-		if hostValues != nil && portValues != nil {
-			host := hostValues[0]
-			port, err := strconv.Atoi(portValues[0])
+func GetErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error {
+	if isProtoException(trailers, protoStreamDeleted) {
+		return errors.NewError(errors.StreamDeletedErr, stdErr)
+	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
+		return errors.NewError(errors.MaximumAppendSizeExceededErr, stdErr)
+	} else if isProtoException(trailers, protoStreamNotFound) {
+		return errors.NewError(errors.StreamNotFoundErr, stdErr)
+	} else if isProtoException(trailers, protoWrongExpectedVersion) {
+		return errors.NewError(errors.WrongExpectedStreamRevisionErr, stdErr)
+	} else if isProtoException(trailers, protoNotLeader) {
+		return errors.NewError(errors.NotLeaderErr, stdErr)
+	}
 
-			if err == nil {
-				endpoint := EndPoint{
-					Host: host,
-					Port: uint16(port),
+	err := ErrorFromStdErrorByStatus(stdErr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (client grpcClientImpl) HandleError(
+	handle ConnectionHandle,
+	_header metadata.MD,
+	trailers metadata.MD,
+	stdErr error,
+	mapUnknownErrorToOtherError ...errors.ErrorCode) errors.Error {
+
+	err := GetErrorFromProtoException(trailers, stdErr)
+	if err != nil {
+		if err.Code() == errors.NotLeaderErr {
+			hostValues := trailers.Get("leader-endpoint-host")
+			portValues := trailers.Get("leader-endpoint-port")
+
+			if hostValues != nil && portValues != nil {
+				host := hostValues[0]
+				port, aToIErr := strconv.Atoi(portValues[0])
+
+				if aToIErr == nil {
+					endpoint := EndPoint{
+						Host: host,
+						Port: uint16(port),
+					}
+
+					msg := reconnect{
+						correlation: handle.Id(),
+						endpoint:    &endpoint,
+					}
+
+					client.channel <- msg
+					log.Printf("[error] Not leader exception occurred")
+					return err
 				}
-
-				msg := reconnect{
-					correlation: handle.Id(),
-					endpoint:    &endpoint,
-				}
-
-				client.channel <- msg
-				log.Printf("[error] Not leader exception occurred")
-				return fmt.Errorf("not leader exception")
 			}
+		} else {
+			return err
 		}
 	}
 
-	log.Printf("[error] unexpected exception: %v", err)
-
-	status, _ := status.FromError(err)
-	if status.Code() == codes.FailedPrecondition { // Precondition -> ErrWrongExpectedStremRevision
-		return fmt.Errorf("%w, reason: %s", errors.ErrWrongExpectedStreamRevision, err.Error())
-	}
-	if status.Code() == codes.PermissionDenied { // PermissionDenied -> ErrPemissionDenied
-		return fmt.Errorf("%w", errors.ErrPermissionDenied)
-	}
-	if status.Code() == codes.Unauthenticated { // PermissionDenied -> ErrUnauthenticated
-		return fmt.Errorf("%w", errors.ErrUnauthenticated)
-	}
+	log.Printf("[error] unexpected exception: %v", stdErr)
 
 	msg := reconnect{
 		correlation: handle.Id(),
@@ -74,10 +120,14 @@ func (client grpcClientImpl) HandleError(handle ConnectionHandle, headers metada
 
 	client.channel <- msg
 
-	return err
+	if mapUnknownErrorToOtherError != nil && len(mapUnknownErrorToOtherError) == 1 {
+		return errors.NewError(mapUnknownErrorToOtherError[0], stdErr)
+	}
+
+	return errors.NewError(errors.UnknownErr, stdErr)
 }
 
-func (client grpcClientImpl) GetConnectionHandle() (ConnectionHandle, error) {
+func (client grpcClientImpl) GetConnectionHandle() (ConnectionHandle, errors.Error) {
 	msg := newGetConnectionMsg()
 	client.channel <- msg
 
@@ -102,11 +152,12 @@ func newGetConnectionMsg() getConnection {
 	}
 }
 
+const UUIDGeneratingError errors.ErrorCode = "UUIDGeneratingError"
+
 func (msg getConnection) handle(state *connectionState) {
 	// Means we need to create a grpc connection.
 	if state.correlation == uuid.Nil {
 		conn, err := discoverNode(state.config)
-
 		if err != nil {
 			state.lastError = err
 			resp := newErroredConnectionHandle(err)
@@ -114,10 +165,10 @@ func (msg getConnection) handle(state *connectionState) {
 			return
 		}
 
-		id, err := uuid.NewV4()
-
-		if err != nil {
-			state.lastError = fmt.Errorf("error when trying to generate a random UUID: %v", err)
+		id, stdErr := uuid.NewV4()
+		if stdErr != nil {
+			state.lastError = errors.NewErrorCodeMsg(UUIDGeneratingError,
+				fmt.Sprintf("error when trying to generate a random UUID: %v", err))
 			return
 		}
 
@@ -141,7 +192,7 @@ type connectionState struct {
 	correlation uuid.UUID
 	connection  *grpc.ClientConn
 	config      Configuration
-	lastError   error
+	lastError   errors.Error
 	closed      bool
 }
 
@@ -162,7 +213,7 @@ type msg interface {
 type connectionHandle struct {
 	id         uuid.UUID
 	connection *grpc.ClientConn
-	err        error
+	err        errors.Error
 }
 
 func (handle connectionHandle) Id() uuid.UUID {
@@ -173,7 +224,7 @@ func (handle connectionHandle) Connection() *grpc.ClientConn {
 	return handle.connection
 }
 
-func newErroredConnectionHandle(err error) connectionHandle {
+func newErroredConnectionHandle(err errors.Error) connectionHandle {
 	return connectionHandle{
 		id:         uuid.Nil,
 		connection: nil,
@@ -189,6 +240,8 @@ func newConnectionHandle(id uuid.UUID, connection *grpc.ClientConn) connectionHa
 	}
 }
 
+const EsdbConnectionIsClosed errors.ErrorCode = "EsdbConnectionIsClosed"
+
 func connectionStateMachine(config Configuration, channel chan msg) {
 	state := newConnectionState(config)
 
@@ -200,7 +253,7 @@ func connectionStateMachine(config Configuration, channel chan msg) {
 			case getConnection:
 				{
 					evt.channel <- connectionHandle{
-						err: fmt.Errorf("esdb connection is closed"),
+						err: errors.NewErrorCode(EsdbConnectionIsClosed),
 					}
 				}
 			case close:
@@ -233,7 +286,6 @@ func (msg reconnect) handle(state *connectionState) {
 
 		log.Printf("[info] Connecting to leader node %s ...", msg.endpoint.String())
 		conn, err := createGrpcConnection(&state.config, msg.endpoint.String())
-
 		if err != nil {
 			log.Printf("[error] exception when connecting to suggested node %s", msg.endpoint.String())
 			state.correlation = uuid.Nil
@@ -241,7 +293,6 @@ func (msg reconnect) handle(state *connectionState) {
 		}
 
 		id, err := uuid.NewV4()
-
 		if err != nil {
 			log.Printf("[error] exception when generating a correlation id after reconnected to %s : %v", msg.endpoint.String(), err)
 			state.correlation = uuid.Nil
@@ -322,6 +373,7 @@ func (b basicAuth) GetRequestMetadata(tx context.Context, in ...string) (map[str
 func (basicAuth) RequireTransportSecurity() bool {
 	return false
 }
+
 func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 	return []gossipApi.MemberInfo_VNodeState{
 		gossipApi.MemberInfo_Follower,
@@ -332,7 +384,12 @@ func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 	}
 }
 
-func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
+const (
+	MaximumDiscoveryAttemptCountReached errors.ErrorCode = "MaximumDiscoveryAttemptCountReached"
+	UnableToConnectToSingleNode         errors.ErrorCode = "UnableToConnectToSingleNode"
+)
+
+func discoverNode(conf Configuration) (*grpc.ClientConn, errors.Error) {
 	var connection *grpc.ClientConn = nil
 	attempt := 1
 
@@ -364,7 +421,6 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 				context, cancel := context.WithTimeout(context.Background(), time.Duration(conf.GossipTimeout)*time.Second)
 				defer cancel()
 				info, err := client.Read(context, &shared.Empty{})
-
 				if err != nil {
 					log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
 					continue
@@ -372,7 +428,6 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 
 				info.Members = shuffleMembers(info.Members)
 				selected, err := pickBestCandidate(info, conf.NodePreference)
-
 				if err != nil {
 					log.Printf("[warn] Eror when picking best candidate out of %s gossip response: %v", candidate, err)
 					continue
@@ -399,7 +454,7 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 			time.Sleep(time.Duration(conf.DiscoveryInterval))
 		}
 
-		return nil, fmt.Errorf("maximum discovery attempt count reached")
+		return nil, errors.NewErrorCode(MaximumDiscoveryAttemptCountReached)
 
 	} else {
 		for attempt <= conf.MaxDiscoverAttempts {
@@ -417,7 +472,8 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 		}
 
 		if connection == nil {
-			return nil, fmt.Errorf("unable to connect to single node %s", conf.Address)
+			return nil, errors.NewErrorCodeMsg(UnableToConnectToSingleNode,
+				fmt.Sprintf("unable to connect to single node %s", conf.Address))
 		}
 	}
 

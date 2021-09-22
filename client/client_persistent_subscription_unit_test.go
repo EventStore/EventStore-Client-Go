@@ -2,10 +2,10 @@ package client
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/client/filtering"
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/position"
 
 	persistent2 "github.com/EventStore/EventStore-Client-Go/protos/persistent"
@@ -36,7 +36,7 @@ func Test_Client_ConnectToPersistentSubscription(t *testing.T) {
 	streamName := []byte("some stream")
 
 	grpcClientConnection := &grpc.ClientConn{}
-	expectedErrorResult := errors.New("some error")
+	expectedErrorResult := errors.NewErrorCode("some error")
 	expectedPersistentSubscriptionsClient := persistent2.NewPersistentSubscriptionsClient(grpcClientConnection)
 
 	persistentSubscriptionClient.EXPECT().
@@ -98,7 +98,7 @@ func Test_Client_CreatePersistentSubscriptionToStream(t *testing.T) {
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
-		expectedErrorResult := errors.New("some error")
+		expectedErrorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 		clientInstance := Client{
 			grpcClient: grpcClient,
@@ -160,7 +160,7 @@ func Test_Client_CreatePersistentSubscriptionToAll(t *testing.T) {
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
-		expectedErrorResult := errors.New("some error")
+		expectedErrorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
 		clientInstance := Client{
@@ -214,7 +214,7 @@ func Test_Client_UpdatePersistentSubscriptionToStream(t *testing.T) {
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
-		expectedErrorResult := errors.New("some error")
+		expectedErrorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
 		clientInstance := Client{
@@ -268,7 +268,7 @@ func Test_Client_UpdatePersistentSubscriptionToAll(t *testing.T) {
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
-		expectedErrorResult := errors.New("some error")
+		expectedErrorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
 		clientInstance := Client{
@@ -318,7 +318,7 @@ func Test_Client_DeletePersistentSubscriptionToStream(t *testing.T) {
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
-		expectedErrorResult := errors.New("some error")
+		expectedErrorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
 		clientInstance := Client{
@@ -365,7 +365,7 @@ func Test_Client_DeletePersistentSubscriptionToAll(t *testing.T) {
 	})
 
 	t.Run("Grpc Connection Handle Error", func(t *testing.T) {
-		expectedErrorResult := errors.New("some error")
+		expectedErrorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedErrorResult)
 
 		clientInstance := Client{

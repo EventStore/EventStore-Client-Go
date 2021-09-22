@@ -15,11 +15,18 @@ import (
 	"github.com/ory/dockertest/v3"
 )
 
+type EventStoreEnvironmentVariable string
+
 const (
-	EVENTSTORE_DOCKER_REPOSITORY_ENV = "EVENTSTORE_DOCKER_REPOSITORY"
-	EVENTSTORE_DOCKER_TAG_ENV        = "EVENTSTORE_DOCKER_TAG"
-	EVENTSTORE_DOCKER_PORT_ENV       = "EVENTSTORE_DOCKER_PORT"
+	EVENTSTORE_DOCKER_REPOSITORY_ENV    EventStoreEnvironmentVariable = "EVENTSTORE_DOCKER_REPOSITORY"
+	EVENTSTORE_DOCKER_TAG_ENV           EventStoreEnvironmentVariable = "EVENTSTORE_DOCKER_TAG"
+	EVENTSTORE_DOCKER_PORT_ENV          EventStoreEnvironmentVariable = "EVENTSTORE_DOCKER_PORT"
+	EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES EventStoreEnvironmentVariable = "EVENTSTORE_MAX_APPEND_SIZE"
 )
+
+func CreateEventStoreEnvironmentVar(variableName EventStoreEnvironmentVariable, value string) string {
+	return fmt.Sprintf("%s=%s", variableName, value)
+}
 
 // Container ...
 type Container struct {
@@ -46,15 +53,15 @@ var defaultEventStoreDockerConfig = EventStoreDockerConfig{
 }
 
 func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_REPOSITORY_ENV); exists {
+	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_REPOSITORY_ENV)); exists {
 		config.Repository = value
 	}
 
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV); exists {
+	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_TAG_ENV)); exists {
 		config.Tag = value
 	}
 
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_PORT_ENV); exists {
+	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_PORT_ENV)); exists {
 		config.Port = value
 	}
 
@@ -104,7 +111,8 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Starting docker container...")
+	fmt.Println("Environment Variables:\n", strings.Join(options.Env, "\n"))
+	fmt.Println("\nStarting docker container...")
 
 	resource, err := pool.RunWithOptions(options)
 	if err != nil {

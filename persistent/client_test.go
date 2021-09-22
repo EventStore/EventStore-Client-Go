@@ -2,8 +2,9 @@ package persistent
 
 import (
 	"context"
-	"errors"
 	"testing"
+
+	"github.com/EventStore/EventStore-Client-Go/errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -84,7 +85,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
-	expectedError := errors.New("new error")
+	expectedError := errors.NewErrorCode("new error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -103,7 +104,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 		persistentSubscriptionClient.EXPECT().Read(canceContext, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
 				_ctx context.Context,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -114,7 +115,9 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 				}
 				return nil, expectedError
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, expectedError),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, expectedError,
+			SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr).Return(
+			errors.NewErrorCode(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr)),
 	)
 
 	client := clientImpl{
@@ -123,7 +126,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 	}
 
 	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr, err.(Error).Code())
+	require.Equal(t, SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr, err.Code())
 }
 
 func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitializationErr(t *testing.T) {
@@ -143,7 +146,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
-	expectedError := errors.New("new error")
+	expectedError := errors.NewErrorCode("new error")
 
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
@@ -159,7 +162,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	}
 
 	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_FailedToSendStreamInitializationErr, err.(Error).Code())
+	require.Equal(t, SubscribeToStreamSync_FailedToSendStreamInitializationErr, err.Code())
 }
 
 func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializationErr(t *testing.T) {
@@ -178,7 +181,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 
-	expectedError := errors.New("new error")
+	expectedError := errors.NewErrorCode("new error")
 
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
@@ -194,7 +197,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 	}
 
 	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_FailedToReceiveStreamInitializationErr, err.(Error).Code())
+	require.Equal(t, SubscribeToStreamSync_FailedToReceiveStreamInitializationErr, err.Code())
 }
 
 func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T) {
@@ -231,7 +234,7 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 	}
 
 	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_NoSubscriptionConfirmationErr, err.(Error).Code())
+	require.Equal(t, SubscribeToStreamSync_NoSubscriptionConfirmationErr, err.Code())
 }
 
 func Test_Client_CreateStreamSubscription_Success(t *testing.T) {
@@ -287,7 +290,7 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
-	clientError := errors.New("some error")
+	clientError := errors.NewErrorCode("some error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -304,7 +307,7 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 			DoAndReturn(func(
 				_ctx context.Context,
 				_protoRequest *persistent.CreateReq,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -315,7 +318,9 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 				}
 				return nil, clientError
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, clientError),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, clientError,
+			CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr).Return(
+			errors.NewErrorCode(CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr)),
 	)
 
 	client := clientImpl{
@@ -324,7 +329,7 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 	}
 
 	err := client.CreateStreamSubscription(ctx, handle, config)
-	require.Equal(t, CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr, err.(Error).Code())
+	require.Equal(t, CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr, err.Code())
 }
 
 func Test_Client_CreateAllSubscription_Success(t *testing.T) {
@@ -394,13 +399,13 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 		Settings:  DefaultSubscriptionSettings,
 	}
 
-	expectedProtoRequest, err := createRequestAllOptionsProto(config)
-	require.NoError(t, err)
+	expectedProtoRequest, stdErr := createRequestAllOptionsProto(config)
+	require.NoError(t, stdErr)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -416,7 +421,7 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 			DoAndReturn(func(
 				_ctx context.Context,
 				_protoRequest *persistent.CreateReq,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -427,7 +432,9 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 				}
 				return nil, errorResult
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+			CreateAllSubscription_FailedToCreatePermanentSubscriptionErr).Return(
+			errors.NewErrorCode(CreateAllSubscription_FailedToCreatePermanentSubscriptionErr)),
 	)
 
 	client := clientImpl{
@@ -435,8 +442,8 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 		grpcClient:                   grpcClient,
 	}
 
-	err = client.CreateAllSubscription(ctx, handle, config)
-	require.Equal(t, CreateAllSubscription_FailedToCreatePermanentSubscriptionErr, err.(Error).Code())
+	err := client.CreateAllSubscription(ctx, handle, config)
+	require.Equal(t, CreateAllSubscription_FailedToCreatePermanentSubscriptionErr, err.Code())
 }
 
 func Test_Client_CreateAllSubscription_MustProvideRegexOrPrefix(t *testing.T) {
@@ -472,7 +479,7 @@ func Test_Client_CreateAllSubscription_MustProvideRegexOrPrefix(t *testing.T) {
 	}
 
 	err := client.CreateAllSubscription(ctx, handle, config)
-	require.Equal(t, CreateAllSubscription_MustProvideRegexOrPrefixErr, err.(Error).Code())
+	require.Equal(t, CreateAllSubscription_MustProvideRegexOrPrefixErr, err.Code())
 }
 
 func Test_Client_CreateAllSubscription_CanSetOnlyRegexOrPrefix(t *testing.T) {
@@ -508,7 +515,7 @@ func Test_Client_CreateAllSubscription_CanSetOnlyRegexOrPrefix(t *testing.T) {
 	}
 
 	err := client.CreateAllSubscription(ctx, handle, config)
-	require.Equal(t, CreateAllSubscription_CanSetOnlyRegexOrPrefixErr, err.(Error).Code())
+	require.Equal(t, CreateAllSubscription_CanSetOnlyRegexOrPrefixErr, err.Code())
 }
 
 func Test_Client_UpdateStreamSubscription_Success(t *testing.T) {
@@ -564,7 +571,7 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -581,7 +588,7 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 			DoAndReturn(func(
 				_ctx context.Context,
 				_protoRequest *persistent.UpdateReq,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -592,7 +599,9 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 				}
 				return nil, errorResult
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+			UpdateStreamSubscription_FailedToUpdateErr).Return(
+			errors.NewErrorCode(UpdateStreamSubscription_FailedToUpdateErr)),
 	)
 
 	client := clientImpl{
@@ -601,7 +610,7 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 	}
 
 	err := client.UpdateStreamSubscription(ctx, handle, config)
-	require.Equal(t, UpdateStreamSubscription_FailedToUpdateErr, err.(Error).Code())
+	require.Equal(t, UpdateStreamSubscription_FailedToUpdateErr, err.Code())
 }
 
 func Test_Client_UpdateAllSubscription_Success(t *testing.T) {
@@ -667,14 +676,14 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 
 	var headers, trailers metadata.MD
 
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 	gomock.InOrder(
 		persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
 				_ctx context.Context,
 				_protoRequest *persistent.UpdateReq,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -685,7 +694,9 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 				}
 				return nil, errorResult
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+			UpdateAllSubscription_FailedToUpdateErr).Return(
+			errors.NewErrorCode(UpdateAllSubscription_FailedToUpdateErr)),
 	)
 
 	client := clientImpl{
@@ -694,7 +705,7 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 	}
 
 	err := client.UpdateAllSubscription(ctx, handle, config)
-	require.Equal(t, UpdateAllSubscription_FailedToUpdateErr, err.(Error).Code())
+	require.Equal(t, UpdateAllSubscription_FailedToUpdateErr, err.Code())
 }
 
 func Test_Client_DeleteStreamSubscription_Success(t *testing.T) {
@@ -751,7 +762,7 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 	}
 
 	var headers, trailers metadata.MD
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 
 	gomock.InOrder(
 		persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
@@ -759,7 +770,7 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 			DoAndReturn(func(
 				_ctx context.Context,
 				_protoRequest *persistent.DeleteReq,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -770,7 +781,9 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 				}
 				return nil, errorResult
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+			DeleteStreamSubscription_FailedToDeleteErr).Return(
+			errors.NewErrorCode(DeleteStreamSubscription_FailedToDeleteErr)),
 	)
 
 	client := clientImpl{
@@ -779,7 +792,7 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 	}
 
 	err := client.DeleteStreamSubscription(ctx, handle, config)
-	require.Equal(t, DeleteStreamSubscription_FailedToDeleteErr, err.(Error).Code())
+	require.Equal(t, DeleteStreamSubscription_FailedToDeleteErr, err.Code())
 }
 
 func Test_Client_DeleteAllSubscription_Success(t *testing.T) {
@@ -838,7 +851,7 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 
 	var headers, trailers metadata.MD
 
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 
 	gomock.InOrder(
 		persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
@@ -846,7 +859,7 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 			DoAndReturn(func(
 				_ctx context.Context,
 				_protoRequest *persistent.DeleteReq,
-				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, error) {
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
 
 				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
 					"header_key": []string{"header_value"},
@@ -857,7 +870,9 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 				}
 				return nil, errorResult
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, errorResult,
+			DeleteAllSubscription_FailedToDeleteErr).Return(
+			errors.NewErrorCode(DeleteAllSubscription_FailedToDeleteErr)),
 	)
 
 	client := clientImpl{
@@ -866,5 +881,5 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 	}
 
 	err := client.DeleteAllSubscription(ctx, handle, groupName)
-	require.Equal(t, DeleteAllSubscription_FailedToDeleteErr, err.(Error).Code())
+	require.Equal(t, DeleteAllSubscription_FailedToDeleteErr, err.Code())
 }

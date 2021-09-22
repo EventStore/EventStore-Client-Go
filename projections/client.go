@@ -6,30 +6,46 @@ import (
 	"context"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/EventStore/EventStore-Client-Go/errors"
 )
 
 type Client interface {
-	CreateProjection(ctx context.Context, handle connection.ConnectionHandle, options CreateOptionsRequest) error
-	UpdateProjection(ctx context.Context, handle connection.ConnectionHandle, options UpdateOptionsRequest) error
-	DeleteProjection(ctx context.Context, handle connection.ConnectionHandle, options DeleteOptionsRequest) error
+	CreateProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options CreateOptionsRequest) errors.Error
+	UpdateProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options UpdateOptionsRequest) errors.Error
+	DeleteProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options DeleteOptionsRequest) errors.Error
 	GetProjectionStatistics(ctx context.Context,
 		handle connection.ConnectionHandle,
-		options StatisticsOptionsRequest) (StatisticsClientSync, error)
-	AbortProjection(ctx context.Context, handle connection.ConnectionHandle, options AbortOptionsRequest) error
-	DisableProjection(ctx context.Context, handle connection.ConnectionHandle, options DisableOptionsRequest) error
-	EnableProjection(ctx context.Context, handle connection.ConnectionHandle, options EnableOptionsRequest) error
-	ResetProjection(ctx context.Context, handle connection.ConnectionHandle, options ResetOptionsRequest) error
+		options StatisticsOptionsRequest) (StatisticsClientSync, errors.Error)
+	AbortProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options AbortOptionsRequest) errors.Error
+	DisableProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options DisableOptionsRequest) errors.Error
+	EnableProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options EnableOptionsRequest) errors.Error
+	ResetProjection(ctx context.Context,
+		handle connection.ConnectionHandle,
+		options ResetOptionsRequest) errors.Error
 	GetProjectionState(ctx context.Context,
 		handle connection.ConnectionHandle,
-		options StateOptionsRequest) (StateResponse, error)
+		options StateOptionsRequest) (StateResponse, errors.Error)
 	GetProjectionResult(ctx context.Context,
 		handle connection.ConnectionHandle,
-		options ResultOptionsRequest) (ResultResponse, error)
-	RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) error
-	ListAllProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
+		options ResultOptionsRequest) (ResultResponse, errors.Error)
+	RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) errors.Error
+	ListAllProjections(ctx context.Context,
+		handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error)
 	ListContinuousProjections(ctx context.Context,
-		handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
+		handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error)
 	ListOneTimeProjections(
 		ctx context.Context,
-		handle connection.ConnectionHandle) ([]StatisticsClientResponse, error)
+		handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error)
 }

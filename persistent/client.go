@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/EventStore/EventStore-Client-Go/errors"
 )
 
 type Client interface {
@@ -14,11 +15,23 @@ type Client interface {
 		bufferSize int32,
 		groupName string,
 		streamName []byte,
-	) (SyncReadConnection, error)
-	CreateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) error
-	CreateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionAllOptionConfig) error
-	UpdateStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, streamConfig SubscriptionStreamConfig) error
-	UpdateAllSubscription(ctx context.Context, handle connection.ConnectionHandle, allOptions SubscriptionUpdateAllOptionConfig) error
-	DeleteStreamSubscription(ctx context.Context, handle connection.ConnectionHandle, deleteOptions DeleteOptions) error
-	DeleteAllSubscription(ctx context.Context, handle connection.ConnectionHandle, groupName string) error
+	) (SyncReadConnection, errors.Error)
+	CreateStreamSubscription(ctx context.Context,
+		handle connection.ConnectionHandle,
+		streamConfig SubscriptionStreamConfig) errors.Error
+	CreateAllSubscription(ctx context.Context,
+		handle connection.ConnectionHandle,
+		allOptions SubscriptionAllOptionConfig) errors.Error
+	UpdateStreamSubscription(ctx context.Context,
+		handle connection.ConnectionHandle,
+		streamConfig SubscriptionStreamConfig) errors.Error
+	UpdateAllSubscription(ctx context.Context,
+		handle connection.ConnectionHandle,
+		allOptions SubscriptionUpdateAllOptionConfig) errors.Error
+	DeleteStreamSubscription(ctx context.Context,
+		handle connection.ConnectionHandle,
+		deleteOptions DeleteOptions) errors.Error
+	DeleteAllSubscription(ctx context.Context,
+		handle connection.ConnectionHandle,
+		groupName string) errors.Error
 }

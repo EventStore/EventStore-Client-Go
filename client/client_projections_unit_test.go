@@ -2,9 +2,9 @@ package client
 
 import (
 	"context"
-	"errors"
 	"testing"
 
+	"github.com/EventStore/EventStore-Client-Go/errors"
 	projectionsProto "github.com/EventStore/EventStore-Client-Go/protos/projections"
 
 	"google.golang.org/grpc"
@@ -34,7 +34,7 @@ func TestClient_CreateProjection(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -54,7 +54,7 @@ func TestClient_CreateProjection(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().CreateProjection(ctx, connectionHandle, options).Return(errorResult)
 
@@ -106,7 +106,7 @@ func TestClient_UpdateProjection(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -126,7 +126,7 @@ func TestClient_UpdateProjection(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().UpdateProjection(ctx, connectionHandle, options).Return(errorResult)
 
@@ -176,7 +176,7 @@ func TestClient_DisableProjection(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -196,7 +196,7 @@ func TestClient_DisableProjection(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().DisableProjection(ctx, connectionHandle, options).Return(errorResult)
 
@@ -246,7 +246,7 @@ func TestClient_EnableProjection(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -266,7 +266,7 @@ func TestClient_EnableProjection(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().EnableProjection(ctx, connectionHandle, options).Return(errorResult)
 
@@ -316,7 +316,7 @@ func TestClient_AbortProjection(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -336,7 +336,7 @@ func TestClient_AbortProjection(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().AbortProjection(ctx, connectionHandle, options).Return(errorResult)
 
@@ -386,7 +386,7 @@ func TestClient_DeleteProjection(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -406,7 +406,7 @@ func TestClient_DeleteProjection(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().DeleteProjection(ctx, connectionHandle, options).Return(errorResult)
 
@@ -456,7 +456,7 @@ func TestClient_GetProjectionResult(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -477,7 +477,7 @@ func TestClient_GetProjectionResult(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().GetProjectionResult(ctx, connectionHandle, options).Return(nil, errorResult)
 
@@ -531,7 +531,7 @@ func TestClient_GetProjectionState(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -552,7 +552,7 @@ func TestClient_GetProjectionState(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().GetProjectionState(ctx, connectionHandle, options).Return(nil, errorResult)
 
@@ -606,7 +606,7 @@ func TestClient_GetProjectionStatistics(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -627,7 +627,7 @@ func TestClient_GetProjectionStatistics(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().GetProjectionStatistics(ctx, connectionHandle, options).Return(nil, errorResult)
 
@@ -679,7 +679,7 @@ func TestClient_RestartProjectionsSubsystem(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -699,7 +699,7 @@ func TestClient_RestartProjectionsSubsystem(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().RestartProjectionsSubsystem(ctx, connectionHandle).Return(errorResult)
 
@@ -746,7 +746,7 @@ func TestClient_ListAllProjections(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -767,7 +767,7 @@ func TestClient_ListAllProjections(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().ListAllProjections(ctx, connectionHandle).Return(nil, errorResult)
 
@@ -825,7 +825,7 @@ func TestClient_ListContinuousProjections(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -846,7 +846,7 @@ func TestClient_ListContinuousProjections(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().ListContinuousProjections(ctx, connectionHandle).Return(nil, errorResult)
 
@@ -904,7 +904,7 @@ func TestClient_ListOneTimeProjections(t *testing.T) {
 	grpcClientConnection := &grpc.ClientConn{}
 
 	t.Run("grpc client returned an error", func(t *testing.T) {
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
 
 		clientInstance := Client{
@@ -925,7 +925,7 @@ func TestClient_ListOneTimeProjections(t *testing.T) {
 		projectionFactory.EXPECT().
 			CreateClient(grpcClient, expectedProtoProjectionsClient).Return(projectionsClient)
 
-		errorResult := errors.New("some error")
+		errorResult := errors.NewErrorCode("some error")
 
 		projectionsClient.EXPECT().ListOneTimeProjections(ctx, connectionHandle).Return(nil, errorResult)
 
