@@ -9,11 +9,11 @@ import (
 )
 
 func Test_deleteRequestStreamProto(t *testing.T) {
-	request := DeleteOptions{
-		StreamName: []byte("stream name"),
+	request := DeleteRequest{
+		StreamName: "stream name",
 		GroupName:  "group name",
 	}
-	result := deleteRequestStreamProto(request)
+	result := request.Build()
 
 	expectedResult := &persistent.DeleteReq{
 		Options: &persistent.DeleteReq_Options{

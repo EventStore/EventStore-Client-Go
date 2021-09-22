@@ -70,7 +70,7 @@ func (client *Client) ConnectToPersistentSubscription(
 
 func (client *Client) CreatePersistentSubscription(
 	ctx context.Context,
-	streamConfig persistent.SubscriptionStreamConfig,
+	request persistent.CreateOrUpdateStreamRequest,
 ) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -79,12 +79,12 @@ func (client *Client) CreatePersistentSubscription(
 	persistentSubscriptionClient := client.persistentClientFactory.
 		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, streamConfig)
+	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, request)
 }
 
 func (client *Client) CreatePersistentSubscriptionAll(
 	ctx context.Context,
-	allOptions persistent.SubscriptionAllOptionConfig,
+	request persistent.CreateAllRequest,
 ) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -93,12 +93,12 @@ func (client *Client) CreatePersistentSubscriptionAll(
 	persistentSubscriptionClient := client.persistentClientFactory.
 		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.CreateAllSubscription(ctx, handle, allOptions)
+	return persistentSubscriptionClient.CreateAllSubscription(ctx, handle, request)
 }
 
 func (client *Client) UpdatePersistentStreamSubscription(
 	ctx context.Context,
-	streamConfig persistent.SubscriptionStreamConfig,
+	request persistent.CreateOrUpdateStreamRequest,
 ) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -107,12 +107,12 @@ func (client *Client) UpdatePersistentStreamSubscription(
 	persistentSubscriptionClient := client.persistentClientFactory.
 		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, streamConfig)
+	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, request)
 }
 
 func (client *Client) UpdatePersistentSubscriptionAll(
 	ctx context.Context,
-	allOptions persistent.SubscriptionUpdateAllOptionConfig,
+	request persistent.UpdateAllRequest,
 ) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -121,12 +121,12 @@ func (client *Client) UpdatePersistentSubscriptionAll(
 	persistentSubscriptionClient := client.persistentClientFactory.
 		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, allOptions)
+	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, request)
 }
 
 func (client *Client) DeletePersistentSubscription(
 	ctx context.Context,
-	deleteOptions persistent.DeleteOptions,
+	request persistent.DeleteRequest,
 ) errors.Error {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -135,7 +135,7 @@ func (client *Client) DeletePersistentSubscription(
 	persistentSubscriptionClient := client.persistentClientFactory.
 		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, handle, deleteOptions)
+	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, handle, request)
 }
 
 func (client *Client) DeletePersistentSubscriptionAll(

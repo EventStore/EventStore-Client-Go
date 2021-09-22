@@ -18,19 +18,19 @@ type Client interface {
 	) (SyncReadConnection, errors.Error)
 	CreateStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		request CreateStreamRequest) errors.Error
+		request CreateOrUpdateStreamRequest) errors.Error
 	CreateAllSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		request CreateRequestAll) errors.Error
+		request CreateAllRequest) errors.Error
 	UpdateStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		request UpdateStreamRequest) errors.Error
+		request CreateOrUpdateStreamRequest) errors.Error
 	UpdateAllSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
 		request UpdateAllRequest) errors.Error
 	DeleteStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		deleteOptions DeleteOptions) errors.Error
+		deleteOptions DeleteRequest) errors.Error
 	DeleteAllSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
 		groupName string) errors.Error

@@ -1,8 +1,12 @@
 package persistent
 
-import "github.com/EventStore/EventStore-Client-Go/protos/persistent"
+import (
+	"fmt"
 
-type CreateRequestSettings struct {
+	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
+)
+
+type CreateOrUpdateRequestSettings struct {
 	ResolveLinks          bool
 	ExtraStatistics       bool
 	MaxRetryCount         int32
@@ -13,20 +17,15 @@ type CreateRequestSettings struct {
 	ReadBatchSize         int32
 	HistoryBufferSize     int32
 	NamedConsumerStrategy ConsumerStrategy
-	MessageTimout         isCreateRequestMessageTimeout
-	// Types that are assignable to MessageTimeout:
-	//	*persistent.CreateReq_Settings_MessageTimeoutTicks
-	//	*CreateReq_Settings_MessageTimeoutMs
-	// MessageTimeout isCreateReq_Settings_MessageTimeout `protobuf_oneof:"message_timeout"`
-
+	// MessageTimeoutInMs
+	// MessageTimeoutInTicks
+	MessageTimeout isCreateRequestMessageTimeout
+	// CheckpointAfterMs
+	// CheckpointAfterTicks
 	CheckpointAfter isCreateRequestCheckpointAfter
-	// Types that are assignable to CheckpointAfter:
-	//	*CreateReq_Settings_CheckpointAfterTicks
-	//	*CreateReq_Settings_CheckpointAfterMs
-	// CheckpointAfter isCreateReq_Settings_CheckpointAfter `protobuf_oneof:"checkpoint_after"`
 }
 
-func (settings CreateRequestSettings) buildCreateRequestSettings() *persistent.CreateReq_Settings {
+func (settings CreateOrUpdateRequestSettings) buildCreateRequestSettings() *persistent.CreateReq_Settings {
 	result := &persistent.CreateReq_Settings{
 		ResolveLinks:          settings.ResolveLinks,
 		ExtraStatistics:       settings.ExtraStatistics,
@@ -40,13 +39,13 @@ func (settings CreateRequestSettings) buildCreateRequestSettings() *persistent.C
 		NamedConsumerStrategy: consumerStrategyProto(settings.NamedConsumerStrategy),
 	}
 
-	settings.MessageTimout.buildCreateRequestSettings(result)
+	settings.MessageTimeout.buildCreateRequestSettings(result)
 	settings.CheckpointAfter.buildCreateRequestSettings(result)
 
 	return result
 }
 
-func (settings CreateRequestSettings) buildUpdateRequestSettings() *persistent.UpdateReq_Settings {
+func (settings CreateOrUpdateRequestSettings) buildUpdateRequestSettings() *persistent.UpdateReq_Settings {
 	result := &persistent.UpdateReq_Settings{
 		ResolveLinks:          settings.ResolveLinks,
 		ExtraStatistics:       settings.ExtraStatistics,
@@ -60,13 +59,13 @@ func (settings CreateRequestSettings) buildUpdateRequestSettings() *persistent.U
 		NamedConsumerStrategy: updateRequestConsumerStrategyProto(settings.NamedConsumerStrategy),
 	}
 
-	settings.MessageTimout.buildUpdateRequestSettings(result)
+	settings.MessageTimeout.buildUpdateRequestSettings(result)
 	settings.CheckpointAfter.buildUpdateRequestSettings(result)
 
 	return result
 }
 
-var DefaultRequestSettings = CreateRequestSettings{
+var DefaultRequestSettings = CreateOrUpdateRequestSettings{
 	ResolveLinks:          false,
 	ExtraStatistics:       false,
 	MaxRetryCount:         10,
@@ -77,10 +76,10 @@ var DefaultRequestSettings = CreateRequestSettings{
 	ReadBatchSize:         20,
 	HistoryBufferSize:     500,
 	NamedConsumerStrategy: ConsumerStrategy_RoundRobin,
-	MessageTimout: CreateRequestMessageTimeoutInMs{
+	MessageTimeout: MessageTimeoutInMs{
 		MilliSeconds: 30_000,
 	},
-	CheckpointAfter: CreateRequestCheckpointAfterMs{
+	CheckpointAfter: CheckpointAfterMs{
 		MilliSeconds: 2_000,
 	},
 }
@@ -91,42 +90,42 @@ type isCreateRequestMessageTimeout interface {
 	buildUpdateRequestSettings(*persistent.UpdateReq_Settings)
 }
 
-type CreateRequestMessageTimeoutInMs struct {
+type MessageTimeoutInMs struct {
 	MilliSeconds int32
 }
 
-func (c CreateRequestMessageTimeoutInMs) isCreateRequestMessageTimeout() {
+func (c MessageTimeoutInMs) isCreateRequestMessageTimeout() {
 }
 
-func (c CreateRequestMessageTimeoutInMs) buildCreateRequestSettings(
+func (c MessageTimeoutInMs) buildCreateRequestSettings(
 	protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.MessageTimeout = &persistent.CreateReq_Settings_MessageTimeoutMs{
 		MessageTimeoutMs: c.MilliSeconds,
 	}
 }
 
-func (c CreateRequestMessageTimeoutInMs) buildUpdateRequestSettings(
+func (c MessageTimeoutInMs) buildUpdateRequestSettings(
 	protoSettings *persistent.UpdateReq_Settings) {
 	protoSettings.MessageTimeout = &persistent.UpdateReq_Settings_MessageTimeoutMs{
 		MessageTimeoutMs: c.MilliSeconds,
 	}
 }
 
-type CreateRequestMessageTimeoutInTicks struct {
+type MessageTimeoutInTicks struct {
 	Ticks int64
 }
 
-func (c CreateRequestMessageTimeoutInTicks) isCreateRequestMessageTimeout() {
+func (c MessageTimeoutInTicks) isCreateRequestMessageTimeout() {
 }
 
-func (c CreateRequestMessageTimeoutInTicks) buildCreateRequestSettings(
+func (c MessageTimeoutInTicks) buildCreateRequestSettings(
 	protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.MessageTimeout = &persistent.CreateReq_Settings_MessageTimeoutTicks{
 		MessageTimeoutTicks: c.Ticks,
 	}
 }
 
-func (c CreateRequestMessageTimeoutInTicks) buildUpdateRequestSettings(
+func (c MessageTimeoutInTicks) buildUpdateRequestSettings(
 	protoSettings *persistent.UpdateReq_Settings) {
 	protoSettings.MessageTimeout = &persistent.UpdateReq_Settings_MessageTimeoutTicks{
 		MessageTimeoutTicks: c.Ticks,
@@ -139,43 +138,71 @@ type isCreateRequestCheckpointAfter interface {
 	buildUpdateRequestSettings(*persistent.UpdateReq_Settings)
 }
 
-type CreateRequestCheckpointAfterTicks struct {
+type CheckpointAfterTicks struct {
 	Ticks int64
 }
 
-func (c CreateRequestCheckpointAfterTicks) isCreateRequestCheckpointAfter() {
+func (c CheckpointAfterTicks) isCreateRequestCheckpointAfter() {
 }
 
-func (c CreateRequestCheckpointAfterTicks) buildCreateRequestSettings(
+func (c CheckpointAfterTicks) buildCreateRequestSettings(
 	protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.CheckpointAfter = &persistent.CreateReq_Settings_CheckpointAfterTicks{
 		CheckpointAfterTicks: c.Ticks,
 	}
 }
 
-func (c CreateRequestCheckpointAfterTicks) buildUpdateRequestSettings(
+func (c CheckpointAfterTicks) buildUpdateRequestSettings(
 	protoSettings *persistent.UpdateReq_Settings) {
 	protoSettings.CheckpointAfter = &persistent.UpdateReq_Settings_CheckpointAfterTicks{
 		CheckpointAfterTicks: c.Ticks,
 	}
 }
 
-type CreateRequestCheckpointAfterMs struct {
+type CheckpointAfterMs struct {
 	MilliSeconds int32
 }
 
-func (c CreateRequestCheckpointAfterMs) isCreateRequestCheckpointAfter() {
+func (c CheckpointAfterMs) isCreateRequestCheckpointAfter() {
 }
 
-func (c CreateRequestCheckpointAfterMs) buildCreateRequestSettings(protoSettings *persistent.CreateReq_Settings) {
+func (c CheckpointAfterMs) buildCreateRequestSettings(protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.CheckpointAfter = &persistent.CreateReq_Settings_CheckpointAfterMs{
 		CheckpointAfterMs: c.MilliSeconds,
 	}
 }
 
-func (c CreateRequestCheckpointAfterMs) buildUpdateRequestSettings(
+func (c CheckpointAfterMs) buildUpdateRequestSettings(
 	protoSettings *persistent.UpdateReq_Settings) {
 	protoSettings.CheckpointAfter = &persistent.UpdateReq_Settings_CheckpointAfterMs{
 		CheckpointAfterMs: c.MilliSeconds,
+	}
+}
+
+func consumerStrategyProto(strategy ConsumerStrategy) persistent.CreateReq_ConsumerStrategy {
+	switch strategy {
+	case ConsumerStrategy_DispatchToSingle:
+		return persistent.CreateReq_DispatchToSingle
+	case ConsumerStrategy_Pinned:
+		return persistent.CreateReq_Pinned
+	case ConsumerStrategy_RoundRobin:
+		return persistent.CreateReq_RoundRobin
+	default:
+		panic(fmt.Sprintf("Could not map strategy %v to proto", strategy))
+	}
+}
+
+func updateRequestConsumerStrategyProto(
+	strategy ConsumerStrategy,
+) persistent.UpdateReq_ConsumerStrategy {
+	switch strategy {
+	case ConsumerStrategy_DispatchToSingle:
+		return persistent.UpdateReq_DispatchToSingle
+	case ConsumerStrategy_Pinned:
+		return persistent.UpdateReq_Pinned
+	case ConsumerStrategy_RoundRobin:
+		return persistent.UpdateReq_RoundRobin
+	default:
+		panic(fmt.Sprintf("Could not map strategy %v to proto", strategy))
 	}
 }

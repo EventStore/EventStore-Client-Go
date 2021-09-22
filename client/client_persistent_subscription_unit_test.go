@@ -4,10 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	"github.com/EventStore/EventStore-Client-Go/errors"
-	"github.com/EventStore/EventStore-Client-Go/position"
-
 	persistent2 "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 
 	"google.golang.org/grpc"
@@ -33,7 +30,7 @@ func Test_Client_ConnectToPersistentSubscription(t *testing.T) {
 	ctx := context.Background()
 	var bufferSize int32 = 10
 	groupName := "some group name"
-	streamName := []byte("some stream")
+	streamName := "some stream"
 
 	grpcClientConnection := &grpc.ClientConn{}
 	expectedErrorResult := errors.NewErrorCode("some error")
@@ -65,13 +62,12 @@ func Test_Client_CreatePersistentSubscriptionToStream(t *testing.T) {
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
 	ctx := context.Background()
-	streamConfig := persistent.SubscriptionStreamConfig{
-		StreamOption: persistent.StreamSettings{
-			StreamName: []byte("some stream name"),
-			Revision:   10,
-		},
-		GroupName: "some group name",
-		Settings:  persistent.DefaultSubscriptionSettings,
+
+	streamConfig := persistent.CreateOrUpdateStreamRequest{
+		StreamName: "some name",
+		GroupName:  "some group",
+		Revision:   persistent.StreamRevision{Revision: 10},
+		Settings:   persistent.DefaultRequestSettings,
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -117,22 +113,20 @@ func Test_Client_CreatePersistentSubscriptionToAll(t *testing.T) {
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
 	ctx := context.Background()
-	streamConfig := persistent.SubscriptionAllOptionConfig{
-		Position: position.Position{
+
+	streamConfig := persistent.CreateAllRequest{
+		GroupName: "some group",
+		Position: persistent.AllPosition{
 			Commit:  10,
 			Prepare: 20,
 		},
-		Filter: &filtering.SubscriptionFilterOptions{
-			MaxSearchWindow:    10,
-			CheckpointInterval: 20,
-			SubscriptionFilter: filtering.SubscriptionFilter{
-				FilterType: filtering.EventFilter,
-				Prefixes:   nil,
-				Regex:      "regex",
-			},
+		Filter: persistent.CreateRequestAllFilter{
+			FilterBy:                     persistent.CreateRequestAllFilterByEventType,
+			Matcher:                      persistent.CreateRequestAllFilterByRegex{Regex: "some regex"},
+			Window:                       persistent.CreateRequestAllFilterWindowMax{Max: 10},
+			CheckpointIntervalMultiplier: 20,
 		},
-		GroupName: "some group name",
-		Settings:  persistent.DefaultSubscriptionSettings,
+		Settings: persistent.DefaultRequestSettings,
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -180,13 +174,11 @@ func Test_Client_UpdatePersistentSubscriptionToStream(t *testing.T) {
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
 	ctx := context.Background()
-	streamConfig := persistent.SubscriptionStreamConfig{
-		StreamOption: persistent.StreamSettings{
-			StreamName: []byte("stream name"),
-			Revision:   10,
-		},
-		GroupName: "some group name",
-		Settings:  persistent.DefaultSubscriptionSettings,
+	streamConfig := persistent.CreateOrUpdateStreamRequest{
+		StreamName: "some name",
+		GroupName:  "some group",
+		Revision:   persistent.StreamRevision{Revision: 10},
+		Settings:   persistent.DefaultRequestSettings,
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -234,13 +226,10 @@ func Test_Client_UpdatePersistentSubscriptionToAll(t *testing.T) {
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
 	ctx := context.Background()
-	streamConfig := persistent.SubscriptionUpdateAllOptionConfig{
-		Position: position.Position{
-			Commit:  10,
-			Prepare: 20,
-		},
-		GroupName: "some group name",
-		Settings:  persistent.DefaultSubscriptionSettings,
+	streamConfig := persistent.UpdateAllRequest{
+		GroupName: "some group",
+		Position:  persistent.AllPosition{Commit: 10, Prepare: 20},
+		Settings:  persistent.DefaultRequestSettings,
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -288,9 +277,9 @@ func Test_Client_DeletePersistentSubscriptionToStream(t *testing.T) {
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
 	ctx := context.Background()
-	streamConfig := persistent.DeleteOptions{
+	streamConfig := persistent.DeleteRequest{
+		StreamName: "some stream name",
 		GroupName:  "some group name",
-		StreamName: []byte("some stream name"),
 	}
 
 	t.Run("Success", func(t *testing.T) {

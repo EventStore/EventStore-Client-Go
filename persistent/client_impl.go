@@ -74,9 +74,9 @@ const CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr errors.Err
 func (client clientImpl) CreateStreamSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	request CreateStreamRequest) errors.Error {
+	request CreateOrUpdateStreamRequest) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Create(ctx, request.Build(),
+	_, protoErr := client.persistentSubscriptionClient.Create(ctx, request.BuildCreateStreamRequest(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
@@ -94,7 +94,7 @@ const (
 func (client clientImpl) CreateAllSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	request CreateRequestAll) errors.Error {
+	request CreateAllRequest) errors.Error {
 	var headers, trailers metadata.MD
 	_, protoErr := client.persistentSubscriptionClient.Create(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
@@ -112,9 +112,9 @@ const UpdateStreamSubscription_FailedToUpdateErr errors.ErrorCode = "UpdateStrea
 func (client clientImpl) UpdateStreamSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	request UpdateStreamRequest) errors.Error {
+	request CreateOrUpdateStreamRequest) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Update(ctx, request.Build(),
+	_, protoErr := client.persistentSubscriptionClient.Update(ctx, request.BuildUpdateStreamRequest(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
@@ -148,10 +148,10 @@ const DeleteStreamSubscription_FailedToDeleteErr errors.ErrorCode = "DeleteStrea
 func (client clientImpl) DeleteStreamSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	deleteOptions DeleteOptions) errors.Error {
-	deleteSubscriptionOptions := deleteRequestStreamProto(deleteOptions)
+	request DeleteRequest) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := client.persistentSubscriptionClient.Delete(ctx, request.Build(),
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			DeleteStreamSubscription_FailedToDeleteErr)
@@ -167,9 +167,10 @@ func (client clientImpl) DeleteAllSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
 	groupName string) errors.Error {
-	deleteSubscriptionOptions := deleteRequestAllOptionsProto(groupName)
+	protoRequest := deleteRequestAllOptionsProto(groupName)
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := client.persistentSubscriptionClient.Delete(ctx, protoRequest,
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			DeleteAllSubscription_FailedToDeleteErr)

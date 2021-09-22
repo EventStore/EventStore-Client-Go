@@ -5,17 +5,17 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
 
-type CreateStreamRequest struct {
+type CreateOrUpdateStreamRequest struct {
 	StreamName string
 	GroupName  string
 	//	StreamRevision
 	//	StreamRevisionStart
 	//	StreamRevisionEnd
 	Revision isStreamRevision
-	Settings CreateRequestSettings
+	Settings CreateOrUpdateRequestSettings
 }
 
-func (request CreateStreamRequest) Build() *persistent.CreateReq {
+func (request CreateOrUpdateStreamRequest) BuildCreateStreamRequest() *persistent.CreateReq {
 	streamOption := &persistent.CreateReq_StreamOptions{
 		StreamIdentifier: &shared.StreamIdentifier{StreamName: []byte(request.StreamName)},
 		RevisionOption:   nil,
@@ -31,6 +31,28 @@ func (request CreateStreamRequest) Build() *persistent.CreateReq {
 			StreamIdentifier: &shared.StreamIdentifier{StreamName: []byte(request.StreamName)},
 			GroupName:        request.GroupName,
 			Settings:         request.Settings.buildCreateRequestSettings(),
+		},
+	}
+
+	return result
+}
+
+func (request CreateOrUpdateStreamRequest) BuildUpdateStreamRequest() *persistent.UpdateReq {
+	streamOption := &persistent.UpdateReq_StreamOptions{
+		StreamIdentifier: &shared.StreamIdentifier{StreamName: []byte(request.StreamName)},
+		RevisionOption:   nil,
+	}
+
+	request.Revision.buildUpdateRequestRevision(streamOption)
+
+	result := &persistent.UpdateReq{
+		Options: &persistent.UpdateReq_Options{
+			StreamOption: &persistent.UpdateReq_Options_Stream{
+				Stream: streamOption,
+			},
+			StreamIdentifier: &shared.StreamIdentifier{StreamName: []byte(request.StreamName)},
+			GroupName:        request.GroupName,
+			Settings:         request.Settings.buildUpdateRequestSettings(),
 		},
 	}
 

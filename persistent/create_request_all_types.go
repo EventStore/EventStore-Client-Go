@@ -5,7 +5,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 )
 
-type CreateRequestAll struct {
+type CreateAllRequest struct {
 	GroupName string
 	// AllPosition
 	// AllPositionStart
@@ -14,10 +14,10 @@ type CreateRequestAll struct {
 	// CreateRequestAllNoFilter
 	// CreateRequestAllFilter
 	Filter   IsCreateRequestAllFilter
-	Settings CreateRequestSettings
+	Settings CreateOrUpdateRequestSettings
 }
 
-func (request CreateRequestAll) Build() *persistent.CreateReq {
+func (request CreateAllRequest) Build() *persistent.CreateReq {
 	streamOption := &persistent.CreateReq_Options_All{
 		All: &persistent.CreateReq_AllOptions{},
 	}

@@ -8,7 +8,7 @@ type UpdateAllRequest struct {
 	// AllPositionStart
 	// AllPositionEnd
 	Position isAllPosition
-	Settings CreateRequestSettings
+	Settings CreateOrUpdateRequestSettings
 }
 
 func (request UpdateAllRequest) Build() *persistent.UpdateReq {
