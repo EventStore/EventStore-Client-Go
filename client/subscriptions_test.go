@@ -26,7 +26,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		}
 	}()
 
-	t.Run("Subscribe To Non-Existing Stream", func(t *testing.T) {
+	t.Run("Subscribe, With Timeout, From Start To Non-Existing Stream", func(t *testing.T) {
 		streamId := "subscribe_to_non_existing_stream"
 		wg := sync.WaitGroup{}
 		wg.Add(1)
@@ -53,8 +53,8 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("Receive Canceled Error When Canceled ", func(t *testing.T) {
-		streamId := "calls_subscription_dropped_when_disposed"
+	t.Run("Subscription To Start Receives Canceled When Context Is Canceled", func(t *testing.T) {
+		streamId := "Subscription_To_Start_Receives_Canceled_When_Context_Is_Canceled"
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
@@ -81,8 +81,8 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("Subscribe To Non-Existing Stream Then Get Event", func(t *testing.T) {
-		streamId := "subscribe_to_non_existing_stream_then_get_event"
+	t.Run("Subscribe From Start To Non-Existing Stream Then Get Event", func(t *testing.T) {
+		streamId := "subscribe__from_start_to_non_existing_stream_then_get_event"
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
@@ -114,8 +114,8 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("Allow Multiple Subscriptions To Same Stream", func(t *testing.T) {
-		streamId := "allow_multiple_subscriptions_to_same_stream"
+	t.Run("Allow Multiple Subscriptions To Same Stream From Start", func(t *testing.T) {
+		streamId := "allow_multiple_subscriptions_to_same_stream_from_start"
 		wg := sync.WaitGroup{}
 		wg.Add(2)
 
@@ -229,8 +229,8 @@ func Test_SubscribeToStream(t *testing.T) {
 		readerWait.Wait()
 	})
 
-	t.Run("Catches Deletions", func(t *testing.T) {
-		streamId := "catches_deletions"
+	t.Run("Subscription to Start Catches Deletions", func(t *testing.T) {
+		streamId := "subscription_to_start_catches_deletions"
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)
@@ -258,6 +258,373 @@ func Test_SubscribeToStream(t *testing.T) {
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
+		// wait for reader to receive timeout
+		wg.Wait()
+	})
+
+	t.Run("Does Not Read Existing Events But Keep Listening To New Ones", func(t *testing.T) {
+		streamId := "does_not_read_existing_events_but_keep_listening_to_new_ones"
+		readerWait := sync.WaitGroup{}
+		readerWait.Add(1)
+
+		cancelWait := sync.WaitGroup{}
+		cancelWait.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 20*time.Second)
+
+		beforeEvents := testCreateEvents(3)
+		afterEvents := testCreateEvents(2)
+
+		_, err := client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			beforeEvents)
+		require.NoError(t, err)
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer readerWait.Done()
+
+			var result []event_streams.ProposedEvent
+
+			for {
+				response, err := streamReader.Recv()
+				if err != nil {
+					if err.Code() == errors.CanceledErr {
+						break
+					}
+					cancelWait.Done()
+					t.Fail()
+				}
+
+				require.NoError(t, err)
+
+				event, isEvent := response.GetEvent()
+				require.True(t, isEvent)
+				result = append(result, event.ToProposedEvent())
+				if len(result) == len(afterEvents) {
+					cancelWait.Done()
+				}
+			}
+
+			require.Equal(t, afterEvents, result)
+		}()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			afterEvents)
+
+		cancelWait.Wait()
+		cancelFunc()
+
+		readerWait.Wait()
+	})
+
+	t.Run("Subscribe To Non Existing Stream And Then Catch New Event", func(t *testing.T) {
+		streamId := "subscribe_to_non_existing_stream_and_then_catch_new_event"
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		defer cancelFunc()
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+
+			response, err := streamReader.Recv()
+			require.NoError(t, err)
+
+			_, isEvent := response.GetEvent()
+			require.True(t, isEvent)
+		}()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(1))
+
+		wg.Wait()
+	})
+
+	t.Run("Allow Multiple Subscriptions To Same Stream From End", func(t *testing.T) {
+		streamId := "allow_multiple_subscriptions_to_same_stream_from_end"
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		defer cancelFunc()
+
+		streamReader1, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
+			false)
+		require.NoError(t, err)
+
+		streamReader2, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+
+			response, err := streamReader1.Recv()
+			require.NoError(t, err)
+
+			_, isEvent := response.GetEvent()
+			require.True(t, isEvent)
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			response, err := streamReader2.Recv()
+			require.NoError(t, err)
+
+			_, isEvent := response.GetEvent()
+			require.True(t, isEvent)
+		}()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(1))
+
+		wg.Wait()
+	})
+
+	t.Run("Subscription To End Receives Canceled When Context Is Canceled", func(t *testing.T) {
+		streamId := "Subscription_To_End_Receives_Canceled_When_Context_Is_Canceled"
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+			_, err := streamReader.Recv()
+			fmt.Println(err)
+			require.Equal(t, errors.CanceledErr, err.Code())
+			// release lock when timeout expires
+		}()
+
+		time.Sleep(2 * time.Second)
+		cancelFunc()
+		// wait for reader to receive timeout
+		wg.Wait()
+	})
+
+	t.Run("Subscription to End Catches Deletions", func(t *testing.T) {
+		streamId := "subscription_to_end_catches_deletions"
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		defer cancelFunc()
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+			fmt.Println("Reading a stream")
+			_, err := streamReader.Recv()
+			require.Equal(t, errors.StreamDeletedErr, err.Code())
+			// release lock when timeout expires
+		}()
+
+		time.Sleep(2 * time.Second)
+		_, err = client.TombstoneStream(context.Background(),
+			streamId,
+			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
+		require.NoError(t, err)
+		// wait for reader to receive timeout
+		wg.Wait()
+	})
+
+	t.Run("Subscribe, With Timeout, From Specific Revision To Non-Existing Stream", func(t *testing.T) {
+		streamId := "subscribe_from_specific_revision_to_non_existing_stream"
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelFunc()
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 2},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+			_, err := streamReader.Recv()
+			fmt.Println(err)
+			require.Equal(t, errors.DeadlineExceededErr, err.Code())
+			// release lock when timeout expires
+		}()
+
+		// wait for reader to receive timeout
+		wg.Wait()
+	})
+
+	t.Run("Subscribe From Specific Revision To Non-Existing Stream Then Get Event", func(t *testing.T) {
+		streamId := "subscribe__from_start_to_non_existing_stream_then_get_event"
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelFunc()
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 0},
+			false)
+		require.NoError(t, err)
+
+		firstEvent := createTestEvent()
+		secondEvent := createTestEvent()
+
+		go func() {
+			defer wg.Done()
+
+			response, err := streamReader.Recv()
+			require.NoError(t, err)
+
+			event, isEvent := response.GetEvent()
+			require.True(t, isEvent)
+			require.Equal(t, secondEvent, event.ToProposedEvent())
+		}()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			[]event_streams.ProposedEvent{firstEvent})
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{secondEvent})
+		require.NoError(t, err)
+
+		wg.Wait()
+	})
+
+	t.Run("Allow Multiple Subscriptions To Same Stream From Specific Revision", func(t *testing.T) {
+		streamId := "allow_multiple_subscriptions_to_same_stream_from_specific_revision"
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		defer cancelFunc()
+
+		streamReader1, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 0},
+			false)
+		require.NoError(t, err)
+
+		streamReader2, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 0},
+			false)
+		require.NoError(t, err)
+
+		expectedEvent := createTestEvent()
+
+		go func() {
+			defer wg.Done()
+
+			response, err := streamReader1.Recv()
+			require.NoError(t, err)
+
+			event, isEvent := response.GetEvent()
+			require.True(t, isEvent)
+			require.Equal(t, expectedEvent, event.ToProposedEvent())
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			response, err := streamReader2.Recv()
+			require.NoError(t, err)
+
+			event, isEvent := response.GetEvent()
+			require.True(t, isEvent)
+			require.Equal(t, expectedEvent, event.ToProposedEvent())
+		}()
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			testCreateEvents(1))
+		require.NoError(t, err)
+
+		_, err = client.AppendToStream(context.Background(),
+			streamId,
+			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			[]event_streams.ProposedEvent{expectedEvent})
+		require.NoError(t, err)
+
+		wg.Wait()
+	})
+
+	t.Run("Subscription To Specific Revision Receives Canceled When Context Is Canceled", func(t *testing.T) {
+		streamId := "Subscription_To_Specific_Revision_Receives_Canceled_When_Context_Is_Canceled"
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 1},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+			_, err := streamReader.Recv()
+			fmt.Println(err)
+			require.Equal(t, errors.CanceledErr, err.Code())
+			// release lock when timeout expires
+		}()
+
+		time.Sleep(1 * time.Second)
+		cancelFunc()
 		// wait for reader to receive timeout
 		wg.Wait()
 	})
