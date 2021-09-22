@@ -57,8 +57,6 @@ func ErrorFromStdErrorByStatus(err error) errors.Error {
 func getErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error {
 	if isProtoException(trailers, protoStreamDeleted) {
 		return errors.NewError(errors.StreamDeletedErr, stdErr)
-	} else if isProtoException(trailers, protoStreamNotFound) {
-		return errors.NewError(errors.StreamNotFoundErr, stdErr)
 	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
 		return errors.NewError(errors.MaximumAppendSizeExceededErr, stdErr)
 	} else if isProtoException(trailers, protoStreamNotFound) {
