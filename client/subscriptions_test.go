@@ -16,9 +16,9 @@ import (
 )
 
 func Test_SubscribeToStream(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := getPrePopulatedDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -631,9 +631,9 @@ func Test_SubscribeToStream(t *testing.T) {
 }
 
 func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := getPrePopulatedDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -724,9 +724,9 @@ func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
 	err = json.Unmarshal(versionsContent, &versions)
 	require.NoError(t, err)
 
-	container := GetPrePopulatedDatabase()
+	container := getPrePopulatedDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 
 	defer func() {
 		err := client.Close()

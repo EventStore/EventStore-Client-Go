@@ -38,9 +38,9 @@ type Event struct {
 }
 
 func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -106,9 +106,9 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 }
 
 func Test_Read_Forwards_Linked_Stream(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -167,9 +167,9 @@ func Test_Read_Forwards_Linked_Stream(t *testing.T) {
 }
 
 func Test_Read_Backwards_Linked_Stream(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -228,9 +228,9 @@ func Test_Read_Backwards_Linked_Stream(t *testing.T) {
 }
 
 func Test_Read_Backwards(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -435,9 +435,9 @@ func Test_Read_Backwards(t *testing.T) {
 }
 
 func Test_Read_Forwards(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {

@@ -14,7 +14,7 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/projections"
 )
 
-func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*Container, *client.Client, CloseClientInstance) {
+func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*Container, *client.Client, closeClientInstanceFunc) {
 	return initializeContainerAndClient(t,
 		"EVENTSTORE_RUN_PROJECTIONS=All",
 		"EVENTSTORE_START_STANDARD_PROJECTIONS=true")

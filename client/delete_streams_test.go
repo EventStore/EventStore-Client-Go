@@ -12,9 +12,9 @@ import (
 )
 
 func Test_DeleteStream_WithTimeout(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -52,9 +52,9 @@ func Test_DeleteStream_WithTimeout(t *testing.T) {
 }
 
 func Test_DeleteStream(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {

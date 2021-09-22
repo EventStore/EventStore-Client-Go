@@ -239,9 +239,9 @@ func Test_DeletePersistentSubscription_ErrIfSubscriptionDoesNotExist(t *testing.
 }
 
 func TestPersistentSubscriptionClosing(t *testing.T) {
-	container := GetPrePopulatedDatabase()
+	container := getPrePopulatedDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer client.Close()
 
 	streamID := "dataset20M-0"

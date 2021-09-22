@@ -12,7 +12,7 @@ func Test_NotLeaderExceptionButWorkAfterRetry(t *testing.T) {
 	ctx := context.Background()
 
 	// We purposely connect to a follower node so we can trigger on not leader exception.
-	client := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=follower&tlsverifycert=false", t)
+	client := createClientConnectedToURI("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=follower&tlsverifycert=false", t)
 
 	config := persistent.CreateOrUpdateStreamRequest{
 		StreamName: "myfoobar_123456",

@@ -13,9 +13,9 @@ import (
 )
 
 func Test_ReadAll_Backwards(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -119,9 +119,9 @@ func Test_ReadAll_Backwards(t *testing.T) {
 }
 
 func Test_ReadAll_Forwards(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {

@@ -13,10 +13,10 @@ import (
 )
 
 func Test_CloseConnection(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
 
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 
 	testEvent := event_streams.ProposedEvent{
 		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),

@@ -23,9 +23,9 @@ func createTestEventWithMetadataSize(metadataSize int) event_streams.ProposedEve
 }
 
 func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -83,9 +83,9 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 }
 
 func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -156,9 +156,9 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 }
 
 func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -188,9 +188,9 @@ func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -213,9 +213,9 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *tes
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -246,9 +246,9 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVe
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -279,9 +279,9 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpec
 }
 
 func Test_ReturnsPositionWhenWriting(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -304,9 +304,9 @@ func Test_ReturnsPositionWhenWriting(t *testing.T) {
 }
 
 func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -397,9 +397,9 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 }
 
 func Test_AppendToExistingStream(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -608,9 +608,9 @@ func Test_AppendToExistingStream(t *testing.T) {
 }
 
 func Test_AppendToExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -620,9 +620,9 @@ func Test_AppendToExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedV
 }
 
 func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -649,9 +649,9 @@ func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpect
 }
 
 func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -688,9 +688,9 @@ func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
 }
 
 func Test_AppendToStream_WithAppendLimit(t *testing.T) {
-	container := GetEmptyDatabase(CreateEventStoreEnvironmentVar(EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES, "1024"))
+	container := getEmptyDatabase(createEventStoreEnvironmentVar(EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES, "1024"))
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -720,9 +720,9 @@ func Test_AppendToStream_WithAppendLimit(t *testing.T) {
 }
 
 func Test_AppendMultipleEvents(t *testing.T) {
-	container := GetEmptyDatabase()
+	container := getEmptyDatabase()
 	defer container.Close()
-	client := CreateTestClient(container, t)
+	client := createClientConnectedToContainer(container, t)
 	defer func() {
 		err := client.Close()
 		if err != nil {

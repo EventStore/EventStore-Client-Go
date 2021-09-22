@@ -25,7 +25,7 @@ const (
 	EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES EventStoreEnvironmentVariable = "EVENTSTORE_MAX_APPEND_SIZE"
 )
 
-func CreateEventStoreEnvironmentVar(variableName EventStoreEnvironmentVariable, value string) string {
+func createEventStoreEnvironmentVar(variableName EventStoreEnvironmentVariable, value string) string {
 	return fmt.Sprintf("%s=%s", variableName, value)
 }
 
@@ -86,13 +86,13 @@ func (container *Container) Close() {
 	}
 }
 
-func GetEmptyDatabase(environmentVariables ...string) *Container {
+func getEmptyDatabase(environmentVariables ...string) *Container {
 	options := getDockerOptions()
 	options.Env = append(options.Env, environmentVariables...)
 	return getDatabase(options)
 }
 
-func GetPrePopulatedDatabase() *Container {
+func getPrePopulatedDatabase() *Container {
 	options := getDockerOptions()
 	options.Env = []string{
 		"EVENTSTORE_DB=/data/integration-tests",
@@ -218,40 +218,32 @@ func getRootDir() (string, error) {
 	return path.Clean(path.Join(currentDir, "../")), nil
 }
 
-func CreateTestClient(container *Container, t *testing.T) *client.Client {
-	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint))
-	if err != nil {
-		t.Fatalf("Unexpected configuration error: %s", err.Error())
-	}
-
-	client, err := client.NewClient(config)
-	if err != nil {
-		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
-	}
-
-	return client
+func createClientConnectedToContainer(container *Container, t *testing.T) *client.Client {
+	clientInstance := createClientConnectedToURI(
+		fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint), t)
+	return clientInstance
 }
 
-func CreateClient(connStr string, t *testing.T) *client.Client {
+func createClientConnectedToURI(connStr string, t *testing.T) *client.Client {
 	config, err := client.ParseConnectionString(connStr)
 	if err != nil {
 		t.Fatalf("Error when parsin connection string: %v", err)
 	}
 
-	client, err := client.NewClient(config)
+	clientInstance, err := client.NewClient(config)
 	if err != nil {
 		t.Fatalf("Error when creating an ESDB client: %v", err)
 	}
 
-	return client
+	return clientInstance
 }
 
-type CloseClientInstance func()
+type closeClientInstanceFunc func()
 
 func initializeContainerAndClient(t *testing.T,
-	environmentVariables ...string) (*Container, *client.Client, CloseClientInstance) {
-	container := GetEmptyDatabase(environmentVariables...)
-	clientInstance := CreateTestClient(container, t)
+	environmentVariables ...string) (*Container, *client.Client, closeClientInstanceFunc) {
+	container := getEmptyDatabase(environmentVariables...)
+	clientInstance := createClientConnectedToContainer(container, t)
 	closeClientInstance := func() {
 		err := clientInstance.Close()
 		require.NoError(t, err)
