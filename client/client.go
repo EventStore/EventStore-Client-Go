@@ -342,33 +342,3 @@ func (client *Client) ListOneTimeProjections(
 
 	return projectionsClient.ListOneTimeProjections(ctx, handle)
 }
-
-//func readInternal(
-//	ctx context.Context,
-//	client connection.GrpcClient,
-//	handle connection.ConnectionHandle,
-//	streamsClient api.StreamsClient,
-//	readRequest *api.ReadReq,
-//) (*ReadStream, error) {
-//	var headers, trailers metadata.MD
-//	ctx, cancel := context.WithCancel(ctx)
-//	result, err := streamsClient.Read(ctx, readRequest, grpc.Header(&headers), grpc.Trailer(&trailers))
-//	if err != nil {
-//		defer cancel()
-//		err = client.HandleError(handle, headers, trailers, err)
-//		return nil, fmt.Errorf("failed to construct read stream. Reason: %v", err)
-//	}
-//
-//	params := ReadStreamParams{
-//		client:   client,
-//		handle:   handle,
-//		cancel:   cancel,
-//		inner:    result,
-//		headers:  headers,
-//		trailers: trailers,
-//	}
-//
-//	stream := NewReadStream(params)
-//
-//	return stream, nil
-//}
