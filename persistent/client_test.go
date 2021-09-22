@@ -11,7 +11,6 @@ import (
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
 
-	"github.com/EventStore/EventStore-Client-Go/client/filtering"
 	"github.com/EventStore/EventStore-Client-Go/position"
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	"github.com/golang/mock/gomock"
@@ -26,7 +25,7 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 	ctx := context.Background()
 	var bufferSize int32 = 2
 	groupName := "group 1"
-	streamName := []byte("stream name")
+	streamName := "stream name"
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
@@ -81,7 +80,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 	ctx := context.Background()
 	var bufferSize int32 = 2
 	groupName := "group 1"
-	streamName := []byte("stream name")
+	streamName := "stream name"
 
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
@@ -137,7 +136,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	ctx := context.Background()
 	var bufferSize int32 = 2
 	groupName := "group 1"
-	streamName := []byte("stream name")
+	streamName := "stream name"
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
@@ -173,7 +172,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 	ctx := context.Background()
 	var bufferSize int32 = 2
 	groupName := "group 1"
-	streamName := []byte("stream name")
+	streamName := "stream name"
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
@@ -208,7 +207,7 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 	ctx := context.Background()
 	var bufferSize int32 = 2
 	groupName := "group 1"
-	streamName := []byte("stream name")
+	streamName := "stream name"
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
@@ -339,26 +338,22 @@ func Test_Client_CreateAllSubscription_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionAllOptionConfig{
-		Position: position.Position{
+	config := CreateRequestAll{
+		GroupName: "some group",
+		Position: CreateRequestAllPosition{
 			Commit:  10,
 			Prepare: 20,
 		},
-		Filter: &filtering.SubscriptionFilterOptions{
-			MaxSearchWindow:    10,
-			CheckpointInterval: 20,
-			SubscriptionFilter: filtering.SubscriptionFilter{
-				FilterType: filtering.EventFilter,
-				Prefixes:   nil,
-				Regex:      "some regex",
-			},
+		Filter: CreateRequestAllFilter{
+			FilterBy:                     CreateRequestAllFilterByEventType,
+			Matcher:                      CreateRequestAllFilterByRegex{Regex: "some regex"},
+			Window:                       CreateRequestAllFilterWindowMax{Max: 10},
+			CheckpointIntervalMultiplier: 20,
 		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+		Settings: DefaultRequestSettings,
 	}
 
-	expectedProtoRequest, err := createRequestAllOptionsProto(config)
-	require.NoError(t, err)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 
@@ -370,7 +365,7 @@ func Test_Client_CreateAllSubscription_Success(t *testing.T) {
 		persistentSubscriptionClient: persistentSubscriptionClient,
 	}
 
-	err = client.CreateAllSubscription(ctx, handle, config)
+	err := client.CreateAllSubscription(ctx, handle, config)
 	require.NoError(t, err)
 }
 
@@ -381,26 +376,22 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionAllOptionConfig{
-		Position: position.Position{
+	config := CreateRequestAll{
+		GroupName: "some group",
+		Position: CreateRequestAllPosition{
 			Commit:  10,
 			Prepare: 20,
 		},
-		Filter: &filtering.SubscriptionFilterOptions{
-			MaxSearchWindow:    10,
-			CheckpointInterval: 20,
-			SubscriptionFilter: filtering.SubscriptionFilter{
-				FilterType: filtering.EventFilter,
-				Prefixes:   nil,
-				Regex:      "some regex",
-			},
+		Filter: CreateRequestAllFilter{
+			FilterBy:                     CreateRequestAllFilterByEventType,
+			Matcher:                      CreateRequestAllFilterByRegex{Regex: "some regex"},
+			Window:                       CreateRequestAllFilterWindowMax{Max: 10},
+			CheckpointIntervalMultiplier: 20,
 		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+		Settings: DefaultRequestSettings,
 	}
 
-	expectedProtoRequest, stdErr := createRequestAllOptionsProto(config)
-	require.NoError(t, stdErr)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
@@ -444,78 +435,6 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 
 	err := client.CreateAllSubscription(ctx, handle, config)
 	require.Equal(t, CreateAllSubscription_FailedToCreatePermanentSubscriptionErr, err.Code())
-}
-
-func Test_Client_CreateAllSubscription_MustProvideRegexOrPrefix(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	config := SubscriptionAllOptionConfig{
-		Position: position.Position{
-			Commit:  10,
-			Prepare: 20,
-		},
-		Filter: &filtering.SubscriptionFilterOptions{
-			MaxSearchWindow:    10,
-			CheckpointInterval: 20,
-			SubscriptionFilter: filtering.SubscriptionFilter{
-				FilterType: filtering.EventFilter,
-				Prefixes:   nil,
-				Regex:      "",
-			},
-		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
-	}
-
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-
-	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-	}
-
-	err := client.CreateAllSubscription(ctx, handle, config)
-	require.Equal(t, CreateAllSubscription_MustProvideRegexOrPrefixErr, err.Code())
-}
-
-func Test_Client_CreateAllSubscription_CanSetOnlyRegexOrPrefix(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	defer ctrl.Finish()
-
-	ctx := context.Background()
-
-	config := SubscriptionAllOptionConfig{
-		Position: position.Position{
-			Commit:  10,
-			Prepare: 20,
-		},
-		Filter: &filtering.SubscriptionFilterOptions{
-			MaxSearchWindow:    10,
-			CheckpointInterval: 20,
-			SubscriptionFilter: filtering.SubscriptionFilter{
-				FilterType: filtering.EventFilter,
-				Prefixes:   []string{"aaaa"},
-				Regex:      "a",
-			},
-		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
-	}
-
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-
-	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-	}
-
-	err := client.CreateAllSubscription(ctx, handle, config)
-	require.Equal(t, CreateAllSubscription_CanSetOnlyRegexOrPrefixErr, err.Code())
 }
 
 func Test_Client_UpdateStreamSubscription_Success(t *testing.T) {

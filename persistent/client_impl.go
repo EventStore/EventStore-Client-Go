@@ -96,23 +96,10 @@ const (
 func (client clientImpl) CreateAllSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	allOptions SubscriptionAllOptionConfig) errors.Error {
-	protoConfig, stdErr := createRequestAllOptionsProto(allOptions)
-	if stdErr != nil {
-		errorCode, ok := stdErr.(Error)
-
-		if ok {
-			if errorCode.Code() == createRequestFilterOptionsProto_MustProvideRegexOrPrefixErr {
-				return errors.NewErrorCode(CreateAllSubscription_MustProvideRegexOrPrefixErr)
-			} else if errorCode.Code() == createRequestFilterOptionsProto_CanSetOnlyRegexOrPrefixErr {
-				return errors.NewErrorCode(CreateAllSubscription_CanSetOnlyRegexOrPrefixErr)
-			}
-		}
-		return errors.NewError(errors.UnknownErr, stdErr)
-	}
-
+	request CreateRequestAll) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Create(ctx, protoConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := client.persistentSubscriptionClient.Create(ctx, request.Build(),
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			CreateAllSubscription_FailedToCreatePermanentSubscriptionErr)

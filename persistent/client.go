@@ -21,7 +21,7 @@ type Client interface {
 		streamConfig SubscriptionStreamConfig) errors.Error
 	CreateAllSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		allOptions SubscriptionAllOptionConfig) errors.Error
+		request CreateRequestAll) errors.Error
 	UpdateStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
 		streamConfig SubscriptionStreamConfig) errors.Error

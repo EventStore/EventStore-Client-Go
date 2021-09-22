@@ -27,6 +27,6 @@ func Test_toPersistentReadRequest(t *testing.T) {
 			},
 		},
 	}
-	result := toPersistentReadRequest(10, "some group", []byte("stream name"))
+	result := toPersistentReadRequest(10, "some group", "stream name")
 	require.Equal(t, expectedResult, result)
 }
