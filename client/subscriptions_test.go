@@ -163,7 +163,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("reads_all_existing_events_and_keep_listening_to_new_ones", func(t *testing.T) {
+	t.Run("Reads All Existing Events And Keeps Listening To New Ones", func(t *testing.T) {
 		streamId := "reads_all_existing_events_and_keep_listening_to_new_ones"
 		readerWait := sync.WaitGroup{}
 		readerWait.Add(1)
@@ -228,6 +228,39 @@ func Test_SubscribeToStream(t *testing.T) {
 		cancelFunc()
 
 		readerWait.Wait()
+	})
+
+	t.Run("catches_deletions", func(t *testing.T) {
+		streamId := "catches_deletions"
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		ctx := context.Background()
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		defer cancelFunc()
+
+		streamReader, err := client.SubscribeToStream(ctx,
+			streamId,
+			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
+			false)
+		require.NoError(t, err)
+
+		go func() {
+			defer wg.Done()
+			_, err := streamReader.Recv()
+			fmt.Println(err)
+			require.Equal(t, errors.StreamDeletedErr, err.Code())
+			// release lock when timeout expires
+		}()
+
+		time.Sleep(2 * time.Second)
+		_, err = client.TombstoneStream(context.Background(),
+			streamId,
+			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
+		require.NoError(t, err)
+		// wait for reader to receive timeout
+		wg.Wait()
 	})
 }
 
