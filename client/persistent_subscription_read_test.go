@@ -16,9 +16,9 @@ func Test_PersistentSubscription_ReadExistingStream_AckToReceiveNewEvents(t *tes
 	defer containerInstance.Close()
 
 	streamID := "someStream"
-	firstEvent := createTestEvent()
-	secondEvent := createTestEvent()
-	thirdEvent := createTestEvent()
+	firstEvent := testCreateEvent()
+	secondEvent := testCreateEvent()
+	thirdEvent := testCreateEvent()
 	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
 	groupName := "Group 1"
@@ -460,9 +460,9 @@ func Test_PersistentSubscription_ReadExistingStream_NackToReceiveNewEvents(t *te
 	defer containerInstance.Close()
 
 	streamID := "someStream"
-	firstEvent := createTestEvent()
-	secondEvent := createTestEvent()
-	thirdEvent := createTestEvent()
+	firstEvent := testCreateEvent()
+	secondEvent := testCreateEvent()
+	thirdEvent := testCreateEvent()
 	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
 	groupName := "Group 1"
@@ -505,7 +505,7 @@ func Test_PersistentSubscription_ReadExistingStream_Cancelled(t *testing.T) {
 	defer containerInstance.Close()
 
 	streamID := "someStream"
-	firstEvent := createTestEvent()
+	firstEvent := testCreateEvent()
 	pushEventsToStream(t, clientInstance, streamID, firstEvent)
 
 	groupName := "Group 1"
@@ -536,39 +536,4 @@ func Test_PersistentSubscription_ReadExistingStream_Cancelled(t *testing.T) {
 	droppedConnectionEvent := readConnectionClient.Recv().Dropped
 	require.NotNil(t, droppedConnectionEvent)
 	require.Error(t, droppedConnectionEvent.Error)
-}
-
-func testCreateEvents(count uint32) []event_streams.ProposedEvent {
-	result := make([]event_streams.ProposedEvent, count)
-	var i uint32 = 0
-	for ; i < count; i++ {
-		result[i] = createTestEvent()
-	}
-	return result
-}
-
-func testCreateEventsWithMetadata(count uint32, metadataSize int) []event_streams.ProposedEvent {
-	result := make([]event_streams.ProposedEvent, count)
-	var i uint32 = 0
-	for ; i < count; i++ {
-		result[i] = createTestEventWithMetadataSize(metadataSize)
-	}
-	return result
-}
-
-func testCreateEventsWithBytesCap(bytesCap uint) []event_streams.ProposedEvent {
-	byteCount := uint(0)
-	result := make([]event_streams.ProposedEvent, 0)
-
-	for {
-		newEvent := createTestEvent()
-		byteCount += uint(len(newEvent.Data))
-
-		if byteCount > bytesCap {
-			break
-		}
-		result = append(result, newEvent)
-	}
-
-	return result
 }

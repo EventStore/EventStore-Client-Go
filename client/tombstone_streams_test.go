@@ -104,7 +104,7 @@ func Test_TombstoneStream(t *testing.T) {
 	t.Run("Stream with events returns position", func(t *testing.T) {
 		streamName := "stream_with_events"
 
-		event := createTestEvent()
+		event := testCreateEvent()
 
 		writeResult, err := client.AppendToStream(context.Background(),
 			streamName,

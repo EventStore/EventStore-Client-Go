@@ -331,7 +331,7 @@ func Test_GetResultOfProjection(t *testing.T) {
 	err := clientInstance.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
-	testEvent := createTestEvent()
+	testEvent := testCreateEvent()
 	testEvent.EventType = "count_this"
 	testEvent.Data = []byte(fmt.Sprintf(eventData, 0))
 
@@ -395,7 +395,7 @@ func Test_GetStateOfProjection(t *testing.T) {
 	err := clientInstance.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
-	testEvent := createTestEvent()
+	testEvent := testCreateEvent()
 	testEvent.EventType = "count_this"
 	testEvent.Data = []byte(fmt.Sprintf(eventData, 0))
 

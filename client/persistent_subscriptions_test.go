@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/client"
-	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	"github.com/stretchr/testify/require"
 )
@@ -251,24 +250,6 @@ func initializeContainerAndClient(t *testing.T,
 		require.NoError(t, err)
 	}
 	return container, clientInstance, closeClientInstance
-}
-
-func pushEventToStream(t *testing.T, clientInstance *client.Client, streamID string) {
-	testEvent := createTestEvent()
-	pushEventsToStream(t, clientInstance, streamID, testEvent)
-}
-
-func pushEventsToStream(t *testing.T,
-	clientInstance *client.Client,
-	streamID string,
-	events ...event_streams.ProposedEvent) {
-	_, err := clientInstance.AppendToStream(
-		context.Background(),
-		streamID,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
-		events)
-
-	require.NoError(t, err)
 }
 
 func TestPersistentSubscriptionClosing(t *testing.T) {

@@ -512,8 +512,8 @@ func Test_SubscribeToStream(t *testing.T) {
 			false)
 		require.NoError(t, err)
 
-		firstEvent := createTestEvent()
-		secondEvent := createTestEvent()
+		firstEvent := testCreateEvent()
+		secondEvent := testCreateEvent()
 
 		go func() {
 			defer wg.Done()
@@ -562,7 +562,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			false)
 		require.NoError(t, err)
 
-		expectedEvent := createTestEvent()
+		expectedEvent := testCreateEvent()
 
 		go func() {
 			defer wg.Done()
