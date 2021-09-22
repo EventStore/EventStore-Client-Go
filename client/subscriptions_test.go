@@ -248,8 +248,8 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
+			fmt.Println("Reading a stream")
 			_, err := streamReader.Recv()
-			fmt.Println(err)
 			require.Equal(t, errors.StreamDeletedErr, err.Code())
 			// release lock when timeout expires
 		}()
