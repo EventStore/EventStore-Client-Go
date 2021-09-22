@@ -50,7 +50,7 @@ func (client *Client) ConnectToPersistentSubscription(
 	ctx context.Context,
 	bufferSize int32,
 	groupName string,
-	streamName []byte,
+	streamName string,
 ) (persistent.SyncReadConnection, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {

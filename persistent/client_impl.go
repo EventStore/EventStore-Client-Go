@@ -29,7 +29,7 @@ func (client clientImpl) SubscribeToStreamSync(
 	handle connection.ConnectionHandle,
 	bufferSize int32,
 	groupName string,
-	streamName []byte,
+	streamName string,
 ) (SyncReadConnection, errors.Error) {
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)

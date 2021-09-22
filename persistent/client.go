@@ -14,7 +14,7 @@ type Client interface {
 		handle connection.ConnectionHandle,
 		bufferSize int32,
 		groupName string,
-		streamName []byte,
+		streamName string,
 	) (SyncReadConnection, errors.Error)
 	CreateStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,

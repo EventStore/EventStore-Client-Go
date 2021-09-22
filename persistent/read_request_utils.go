@@ -8,7 +8,7 @@ import (
 func toPersistentReadRequest(
 	bufferSize int32,
 	groupName string,
-	streamName []byte,
+	streamName string,
 ) *persistent.ReadReq {
 	return &persistent.ReadReq{
 		Content: &persistent.ReadReq_Options_{
@@ -17,7 +17,7 @@ func toPersistentReadRequest(
 				GroupName:  groupName,
 				StreamOption: &persistent.ReadReq_Options_StreamIdentifier{
 					StreamIdentifier: &shared.StreamIdentifier{
-						StreamName: streamName,
+						StreamName: []byte(streamName),
 					},
 				},
 				UuidOption: &persistent.ReadReq_Options_UUIDOption{
