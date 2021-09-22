@@ -26,7 +26,7 @@ type CreateRequestSettings struct {
 	// CheckpointAfter isCreateReq_Settings_CheckpointAfter `protobuf_oneof:"checkpoint_after"`
 }
 
-func (settings CreateRequestSettings) build() *persistent.CreateReq_Settings {
+func (settings CreateRequestSettings) buildCreateRequestSettings() *persistent.CreateReq_Settings {
 	result := &persistent.CreateReq_Settings{
 		ResolveLinks:          settings.ResolveLinks,
 		ExtraStatistics:       settings.ExtraStatistics,
@@ -40,8 +40,28 @@ func (settings CreateRequestSettings) build() *persistent.CreateReq_Settings {
 		NamedConsumerStrategy: consumerStrategyProto(settings.NamedConsumerStrategy),
 	}
 
-	settings.MessageTimout.build(result)
-	settings.CheckpointAfter.build(result)
+	settings.MessageTimout.buildCreateRequestSettings(result)
+	settings.CheckpointAfter.buildCreateRequestSettings(result)
+
+	return result
+}
+
+func (settings CreateRequestSettings) buildUpdateRequestSettings() *persistent.UpdateReq_Settings {
+	result := &persistent.UpdateReq_Settings{
+		ResolveLinks:          settings.ResolveLinks,
+		ExtraStatistics:       settings.ExtraStatistics,
+		MaxRetryCount:         settings.MaxRetryCount,
+		MinCheckpointCount:    settings.MinCheckpointCount,
+		MaxCheckpointCount:    settings.MaxCheckpointCount,
+		MaxSubscriberCount:    settings.MaxSubscriberCount,
+		LiveBufferSize:        settings.LiveBufferSize,
+		ReadBatchSize:         settings.ReadBatchSize,
+		HistoryBufferSize:     settings.HistoryBufferSize,
+		NamedConsumerStrategy: updateRequestConsumerStrategyProto(settings.NamedConsumerStrategy),
+	}
+
+	settings.MessageTimout.buildUpdateRequestSettings(result)
+	settings.CheckpointAfter.buildUpdateRequestSettings(result)
 
 	return result
 }
@@ -67,7 +87,8 @@ var DefaultRequestSettings = CreateRequestSettings{
 
 type isCreateRequestMessageTimeout interface {
 	isCreateRequestMessageTimeout()
-	build(*persistent.CreateReq_Settings)
+	buildCreateRequestSettings(*persistent.CreateReq_Settings)
+	buildUpdateRequestSettings(*persistent.UpdateReq_Settings)
 }
 
 type CreateRequestMessageTimeoutInMs struct {
@@ -77,8 +98,16 @@ type CreateRequestMessageTimeoutInMs struct {
 func (c CreateRequestMessageTimeoutInMs) isCreateRequestMessageTimeout() {
 }
 
-func (c CreateRequestMessageTimeoutInMs) build(protoSettings *persistent.CreateReq_Settings) {
+func (c CreateRequestMessageTimeoutInMs) buildCreateRequestSettings(
+	protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.MessageTimeout = &persistent.CreateReq_Settings_MessageTimeoutMs{
+		MessageTimeoutMs: c.MilliSeconds,
+	}
+}
+
+func (c CreateRequestMessageTimeoutInMs) buildUpdateRequestSettings(
+	protoSettings *persistent.UpdateReq_Settings) {
+	protoSettings.MessageTimeout = &persistent.UpdateReq_Settings_MessageTimeoutMs{
 		MessageTimeoutMs: c.MilliSeconds,
 	}
 }
@@ -90,15 +119,24 @@ type CreateRequestMessageTimeoutInTicks struct {
 func (c CreateRequestMessageTimeoutInTicks) isCreateRequestMessageTimeout() {
 }
 
-func (c CreateRequestMessageTimeoutInTicks) build(protoSettings *persistent.CreateReq_Settings) {
+func (c CreateRequestMessageTimeoutInTicks) buildCreateRequestSettings(
+	protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.MessageTimeout = &persistent.CreateReq_Settings_MessageTimeoutTicks{
+		MessageTimeoutTicks: c.Ticks,
+	}
+}
+
+func (c CreateRequestMessageTimeoutInTicks) buildUpdateRequestSettings(
+	protoSettings *persistent.UpdateReq_Settings) {
+	protoSettings.MessageTimeout = &persistent.UpdateReq_Settings_MessageTimeoutTicks{
 		MessageTimeoutTicks: c.Ticks,
 	}
 }
 
 type isCreateRequestCheckpointAfter interface {
 	isCreateRequestCheckpointAfter()
-	build(*persistent.CreateReq_Settings)
+	buildCreateRequestSettings(*persistent.CreateReq_Settings)
+	buildUpdateRequestSettings(*persistent.UpdateReq_Settings)
 }
 
 type CreateRequestCheckpointAfterTicks struct {
@@ -108,8 +146,16 @@ type CreateRequestCheckpointAfterTicks struct {
 func (c CreateRequestCheckpointAfterTicks) isCreateRequestCheckpointAfter() {
 }
 
-func (c CreateRequestCheckpointAfterTicks) build(protoSettings *persistent.CreateReq_Settings) {
+func (c CreateRequestCheckpointAfterTicks) buildCreateRequestSettings(
+	protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.CheckpointAfter = &persistent.CreateReq_Settings_CheckpointAfterTicks{
+		CheckpointAfterTicks: c.Ticks,
+	}
+}
+
+func (c CreateRequestCheckpointAfterTicks) buildUpdateRequestSettings(
+	protoSettings *persistent.UpdateReq_Settings) {
+	protoSettings.CheckpointAfter = &persistent.UpdateReq_Settings_CheckpointAfterTicks{
 		CheckpointAfterTicks: c.Ticks,
 	}
 }
@@ -121,8 +167,15 @@ type CreateRequestCheckpointAfterMs struct {
 func (c CreateRequestCheckpointAfterMs) isCreateRequestCheckpointAfter() {
 }
 
-func (c CreateRequestCheckpointAfterMs) build(protoSettings *persistent.CreateReq_Settings) {
+func (c CreateRequestCheckpointAfterMs) buildCreateRequestSettings(protoSettings *persistent.CreateReq_Settings) {
 	protoSettings.CheckpointAfter = &persistent.CreateReq_Settings_CheckpointAfterMs{
+		CheckpointAfterMs: c.MilliSeconds,
+	}
+}
+
+func (c CreateRequestCheckpointAfterMs) buildUpdateRequestSettings(
+	protoSettings *persistent.UpdateReq_Settings) {
+	protoSettings.CheckpointAfter = &persistent.UpdateReq_Settings_CheckpointAfterMs{
 		CheckpointAfterMs: c.MilliSeconds,
 	}
 }

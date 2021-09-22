@@ -112,10 +112,10 @@ const UpdateStreamSubscription_FailedToUpdateErr errors.ErrorCode = "UpdateStrea
 func (client clientImpl) UpdateStreamSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	streamConfig SubscriptionStreamConfig) errors.Error {
-	updateSubscriptionConfig := updateRequestStreamProto(streamConfig)
+	request UpdateStreamRequest) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := client.persistentSubscriptionClient.Update(ctx, request.Build(),
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			UpdateStreamSubscription_FailedToUpdateErr)
@@ -130,11 +130,10 @@ const UpdateAllSubscription_FailedToUpdateErr errors.ErrorCode = "UpdateAllSubsc
 func (client clientImpl) UpdateAllSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	allOptions SubscriptionUpdateAllOptionConfig) errors.Error {
-	updateSubscriptionConfig := UpdateRequestAllOptionsProto(allOptions)
-
+	request UpdateAllRequest) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := client.persistentSubscriptionClient.Update(ctx, request.Build(),
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			UpdateAllSubscription_FailedToUpdateErr)

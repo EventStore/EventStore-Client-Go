@@ -11,7 +11,6 @@ import (
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
 
-	"github.com/EventStore/EventStore-Client-Go/position"
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -246,7 +245,7 @@ func Test_Client_CreateStreamSubscription_Success(t *testing.T) {
 	config := CreateStreamRequest{
 		StreamName: "some name",
 		GroupName:  "some group",
-		Revision:   CreateStreamRevision{Revision: 10},
+		Revision:   StreamRevision{Revision: 10},
 		Settings:   DefaultRequestSettings,
 	}
 
@@ -276,7 +275,7 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 	config := CreateStreamRequest{
 		StreamName: "some name",
 		GroupName:  "some group",
-		Revision:   CreateStreamRevision{Revision: 10},
+		Revision:   StreamRevision{Revision: 10},
 		Settings:   DefaultRequestSettings,
 	}
 
@@ -336,7 +335,7 @@ func Test_Client_CreateAllSubscription_Success(t *testing.T) {
 
 	config := CreateRequestAll{
 		GroupName: "some group",
-		Position: CreateRequestAllPosition{
+		Position: AllPosition{
 			Commit:  10,
 			Prepare: 20,
 		},
@@ -374,7 +373,7 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 
 	config := CreateRequestAll{
 		GroupName: "some group",
-		Position: CreateRequestAllPosition{
+		Position: AllPosition{
 			Commit:  10,
 			Prepare: 20,
 		},
@@ -440,16 +439,14 @@ func Test_Client_UpdateStreamSubscription_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionStreamConfig{
-		StreamOption: StreamSettings{
-			StreamName: []byte("some name"),
-			Revision:   10,
-		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+	config := UpdateStreamRequest{
+		StreamName: "some name",
+		GroupName:  "some group",
+		Revision:   StreamRevision{Revision: 10},
+		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := updateRequestStreamProto(config)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 
@@ -472,16 +469,14 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionStreamConfig{
-		StreamOption: StreamSettings{
-			StreamName: []byte("some name"),
-			Revision:   10,
-		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+	config := UpdateStreamRequest{
+		StreamName: "some name",
+		GroupName:  "some group",
+		Revision:   StreamRevision{Revision: 10},
+		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := updateRequestStreamProto(config)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
@@ -535,16 +530,13 @@ func Test_Client_UpdateAllSubscription_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionStreamConfig{
-		StreamOption: StreamSettings{
-			StreamName: []byte("some name"),
-			Revision:   10,
-		},
+	config := UpdateAllRequest{
 		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+		Position:  AllPosition{Commit: 10, Prepare: 20},
+		Settings:  DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := updateRequestStreamProto(config)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 
@@ -556,7 +548,7 @@ func Test_Client_UpdateAllSubscription_Success(t *testing.T) {
 		persistentSubscriptionClient: persistentSubscriptionClient,
 	}
 
-	err := client.UpdateStreamSubscription(ctx, handle, config)
+	err := client.UpdateAllSubscription(ctx, handle, config)
 	require.NoError(t, err)
 }
 
@@ -567,16 +559,13 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionUpdateAllOptionConfig{
-		Position: position.Position{
-			Commit:  10,
-			Prepare: 20,
-		},
+	config := UpdateAllRequest{
 		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+		Position:  AllPosition{Commit: 10, Prepare: 20},
+		Settings:  DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := UpdateRequestAllOptionsProto(config)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
@@ -738,7 +727,7 @@ func Test_Client_DeleteAllSubscription_Success(t *testing.T) {
 		persistentSubscriptionClient: persistentSubscriptionClient,
 	}
 
-	err := client.UpdateStreamSubscription(ctx, handle, config)
+	err := client.DeleteAllSubscription(ctx, handle, config)
 	require.NoError(t, err)
 }
 

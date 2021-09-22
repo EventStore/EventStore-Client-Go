@@ -7,10 +7,10 @@ import (
 
 type CreateRequestAll struct {
 	GroupName string
-	// CreateRequestAllPosition
-	// CreateRequestAllPositionStart
-	// CreateRequestAllPositionEnd
-	Position IsCreateRequestAllPosition
+	// AllPosition
+	// AllPositionStart
+	// AllPositionEnd
+	Position isAllPosition
 	// CreateRequestAllNoFilter
 	// CreateRequestAllFilter
 	Filter   IsCreateRequestAllFilter
@@ -22,9 +22,9 @@ func (request CreateRequestAll) Build() *persistent.CreateReq {
 		All: &persistent.CreateReq_AllOptions{},
 	}
 
-	request.Position.build(streamOption.All)
+	request.Position.buildCreateRequestPosition(streamOption.All)
 	request.Filter.build(streamOption.All)
-	protoSettings := request.Settings.build()
+	protoSettings := request.Settings.buildCreateRequestSettings()
 
 	result := &persistent.CreateReq{
 		Options: &persistent.CreateReq_Options{
@@ -35,49 +35,6 @@ func (request CreateRequestAll) Build() *persistent.CreateReq {
 	}
 
 	return result
-}
-
-type IsCreateRequestAllPosition interface {
-	isCreateRequestAllPosition()
-	build(*persistent.CreateReq_AllOptions)
-}
-
-type CreateRequestAllPosition struct {
-	Commit  uint64
-	Prepare uint64
-}
-
-func (c CreateRequestAllPosition) isCreateRequestAllPosition() {}
-
-func (c CreateRequestAllPosition) build(protoOptions *persistent.CreateReq_AllOptions) {
-	protoOptions.AllOption = &persistent.CreateReq_AllOptions_Position{
-		Position: &persistent.CreateReq_Position{
-			CommitPosition:  c.Commit,
-			PreparePosition: c.Prepare,
-		},
-	}
-}
-
-type CreateRequestAllPositionStart struct{}
-
-func (c CreateRequestAllPositionStart) isCreateRequestAllPosition() {
-}
-
-func (c CreateRequestAllPositionStart) build(protoOptions *persistent.CreateReq_AllOptions) {
-	protoOptions.AllOption = &persistent.CreateReq_AllOptions_Start{
-		Start: &shared.Empty{},
-	}
-}
-
-type CreateRequestAllPositionEnd struct{}
-
-func (c CreateRequestAllPositionEnd) isCreateRequestAllPosition() {
-}
-
-func (c CreateRequestAllPositionEnd) build(protoOptions *persistent.CreateReq_AllOptions) {
-	protoOptions.AllOption = &persistent.CreateReq_AllOptions_End{
-		End: &shared.Empty{},
-	}
 }
 
 type IsCreateRequestAllFilter interface {

@@ -24,10 +24,10 @@ type Client interface {
 		request CreateRequestAll) errors.Error
 	UpdateStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		streamConfig SubscriptionStreamConfig) errors.Error
+		request UpdateStreamRequest) errors.Error
 	UpdateAllSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		allOptions SubscriptionUpdateAllOptionConfig) errors.Error
+		request UpdateAllRequest) errors.Error
 	DeleteStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
 		deleteOptions DeleteOptions) errors.Error
