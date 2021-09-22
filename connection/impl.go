@@ -13,7 +13,6 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/errors"
 	gossipApi "github.com/EventStore/EventStore-Client-Go/protos/gossip"
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -42,11 +41,11 @@ func isProtoException(trailers metadata.MD, protoException string) bool {
 
 func ErrorFromStdErrorByStatus(err error) errors.Error {
 	protoStatus, _ := status.FromError(err)
-	if protoStatus.Code() == codes.PermissionDenied { // PermissionDenied -> ErrPemissionDenied
+	if protoStatus.Code() == codes.PermissionDenied {
 		return errors.NewError(errors.PermissionDeniedErr, err)
-	} else if protoStatus.Code() == codes.Unauthenticated { // PermissionDenied -> ErrUnauthenticated
+	} else if protoStatus.Code() == codes.Unauthenticated {
 		return errors.NewError(errors.UnauthenticatedErr, err)
-	} else if protoStatus.Code() == codes.DeadlineExceeded { // PermissionDenied -> ErrPemissionDenied
+	} else if protoStatus.Code() == codes.DeadlineExceeded {
 		return errors.NewError(errors.DeadlineExceededErr, err)
 	} else if protoStatus.Code() == codes.Canceled {
 		return errors.NewError(errors.CanceledErr, err)
@@ -54,7 +53,7 @@ func ErrorFromStdErrorByStatus(err error) errors.Error {
 	return nil
 }
 
-func getErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error {
+func GetErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error {
 	if isProtoException(trailers, protoStreamDeleted) {
 		return errors.NewError(errors.StreamDeletedErr, stdErr)
 	} else if isProtoException(trailers, protoMaximumAppendSizeExceeded) {
@@ -77,7 +76,7 @@ func (client grpcClientImpl) HandleError(
 	stdErr error,
 	mapUnknownErrorToOtherError ...errors.ErrorCode) errors.Error {
 
-	err := getErrorFromProtoException(trailers, stdErr)
+	err := GetErrorFromProtoException(trailers, stdErr)
 	if err != nil {
 		if err.Code() == errors.NotLeaderErr {
 			hostValues := trailers.Get("leader-endpoint-host")
@@ -321,34 +320,6 @@ func (msg close) handle(state *connectionState) {
 	}
 
 	msg.channel <- true
-}
-
-func clientInterceptor(
-	ctx context.Context,
-	method string,
-	req interface{},
-	reply interface{},
-	cc *grpc.ClientConn,
-	invoker grpc.UnaryInvoker,
-	opts ...grpc.CallOption,
-) error {
-	err := invoker(ctx, method, req, reply, cc, opts...)
-	fmt.Println("interceptor:", method)
-	fmt.Println(spew.Sdump(req))
-	fmt.Println(spew.Sdump(reply), "; ", err)
-	return err
-}
-
-func streamInterceptor(ctx context.Context,
-	desc *grpc.StreamDesc,
-	cc *grpc.ClientConn,
-	method string,
-	streamer grpc.Streamer,
-	opts ...grpc.CallOption) (grpc.ClientStream, error) {
-	clientStream, err := streamer(ctx, desc, cc, method, opts...)
-
-	fmt.Println("Stream interceptor: ", method, err)
-	return clientStream, err
 }
 
 func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
