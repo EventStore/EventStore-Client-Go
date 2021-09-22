@@ -18,7 +18,7 @@ type Client interface {
 	) (SyncReadConnection, errors.Error)
 	CreateStreamSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
-		streamConfig SubscriptionStreamConfig) errors.Error
+		request CreateStreamRequest) errors.Error
 	CreateAllSubscription(ctx context.Context,
 		handle connection.ConnectionHandle,
 		request CreateRequestAll) errors.Error

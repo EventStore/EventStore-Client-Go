@@ -243,16 +243,14 @@ func Test_Client_CreateStreamSubscription_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	config := SubscriptionStreamConfig{
-		StreamOption: StreamSettings{
-			StreamName: []byte("some name"),
-			Revision:   10,
-		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+	config := CreateStreamRequest{
+		StreamName: "some name",
+		GroupName:  "some group",
+		Revision:   CreateStreamRevision{Revision: 10},
+		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := createRequestProto(config)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 
@@ -275,16 +273,14 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 
 	ctx := context.Background()
 
-	config := SubscriptionStreamConfig{
-		StreamOption: StreamSettings{
-			StreamName: []byte("some name"),
-			Revision:   10,
-		},
-		GroupName: "some group",
-		Settings:  DefaultSubscriptionSettings,
+	config := CreateStreamRequest{
+		StreamName: "some name",
+		GroupName:  "some group",
+		Revision:   CreateStreamRevision{Revision: 10},
+		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := createRequestProto(config)
+	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)

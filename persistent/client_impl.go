@@ -74,10 +74,10 @@ const CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr errors.Err
 func (client clientImpl) CreateStreamSubscription(
 	ctx context.Context,
 	handle connection.ConnectionHandle,
-	streamConfig SubscriptionStreamConfig) errors.Error {
-	createSubscriptionConfig := createRequestProto(streamConfig)
+	request CreateStreamRequest) errors.Error {
 	var headers, trailers metadata.MD
-	_, protoErr := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig, grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := client.persistentSubscriptionClient.Create(ctx, request.Build(),
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr)
@@ -89,8 +89,6 @@ func (client clientImpl) CreateStreamSubscription(
 
 const (
 	CreateAllSubscription_FailedToCreatePermanentSubscriptionErr errors.ErrorCode = "CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr"
-	CreateAllSubscription_MustProvideRegexOrPrefixErr            errors.ErrorCode = "CreateAllSubscription_MustProvideRegexOrPrefixErr"
-	CreateAllSubscription_CanSetOnlyRegexOrPrefixErr             errors.ErrorCode = "CreateAllSubscription_CanSetOnlyRegexOrPrefixErr"
 )
 
 func (client clientImpl) CreateAllSubscription(
