@@ -66,6 +66,11 @@ func GetErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error
 		return errors.NewError(errors.NotLeaderErr, stdErr)
 	}
 
+	err := ErrorFromStdErrorByStatus(stdErr)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -108,11 +113,6 @@ func (client grpcClientImpl) HandleError(
 	}
 
 	log.Printf("[error] unexpected exception: %v", stdErr)
-
-	err = ErrorFromStdErrorByStatus(stdErr)
-	if err != nil {
-		return err
-	}
 
 	msg := reconnect{
 		correlation: handle.Id(),

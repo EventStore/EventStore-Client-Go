@@ -198,8 +198,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			for {
 				response, err := streamReader.Recv()
 				if err != nil {
-					if err.Code() == event_streams.EndOfStreamErr ||
-						err.Code() == errors.CanceledErr {
+					if err.Code() == errors.CanceledErr {
 						break
 					}
 					cancelWait.Done()
@@ -230,7 +229,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		readerWait.Wait()
 	})
 
-	t.Run("catches_deletions", func(t *testing.T) {
+	t.Run("Catches Deletions", func(t *testing.T) {
 		streamId := "catches_deletions"
 
 		wg := sync.WaitGroup{}
