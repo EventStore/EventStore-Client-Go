@@ -6,6 +6,16 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 )
 
+const SUBSCRIBER_COUNT_UNLIMITED = 0
+
+type ConsumerStrategy int32
+
+const (
+	ConsumerStrategy_RoundRobin       ConsumerStrategy = 0
+	ConsumerStrategy_DispatchToSingle ConsumerStrategy = 1
+	ConsumerStrategy_Pinned           ConsumerStrategy = 2
+)
+
 type CreateOrUpdateRequestSettings struct {
 	ResolveLinks          bool
 	ExtraStatistics       bool
