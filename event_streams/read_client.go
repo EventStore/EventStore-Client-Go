@@ -8,7 +8,7 @@ import (
 )
 
 type ReadClient interface {
-	Recv() (ReadResponse, errors.Error)
+	ReadOne() (ReadResponse, errors.Error)
 	Close()
 }
 

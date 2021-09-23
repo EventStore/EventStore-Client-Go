@@ -17,7 +17,7 @@ type ReadClientImpl struct {
 	once                sync.Once
 }
 
-func (this *ReadClientImpl) Recv() (ReadResponse, errors.Error) {
+func (this *ReadClientImpl) ReadOne() (ReadResponse, errors.Error) {
 	protoResponse, protoErr := this.protoClient.Recv()
 	if protoErr != nil {
 		if protoErr == io.EOF {

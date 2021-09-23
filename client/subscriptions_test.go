@@ -41,7 +41,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			fmt.Println(err)
 			require.Equal(t, errors.DeadlineExceededErr, err.Code())
 			// release lock when timeout expires
@@ -67,7 +67,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			fmt.Println(err)
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
@@ -97,7 +97,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader.Recv()
+			response, err := streamReader.ReadOne()
 			require.NoError(t, err)
 
 			_, isEvent := response.GetEvent()
@@ -136,7 +136,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader1.Recv()
+			response, err := streamReader1.ReadOne()
 			require.NoError(t, err)
 
 			_, isEvent := response.GetEvent()
@@ -146,7 +146,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader2.Recv()
+			response, err := streamReader2.ReadOne()
 			require.NoError(t, err)
 
 			_, isEvent := response.GetEvent()
@@ -194,7 +194,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			var result []event_streams.ProposedEvent
 
 			for {
-				response, err := streamReader.Recv()
+				response, err := streamReader.ReadOne()
 				if err != nil {
 					if err.Code() == errors.CanceledErr {
 						break
@@ -246,7 +246,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			fmt.Println("Reading a stream")
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			require.Equal(t, errors.StreamDeletedErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -292,7 +292,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			var result []event_streams.ProposedEvent
 
 			for {
-				response, err := streamReader.Recv()
+				response, err := streamReader.ReadOne()
 				if err != nil {
 					if err.Code() == errors.CanceledErr {
 						break
@@ -343,7 +343,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader.Recv()
+			response, err := streamReader.ReadOne()
 			require.NoError(t, err)
 
 			_, isEvent := response.GetEvent()
@@ -382,7 +382,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader1.Recv()
+			response, err := streamReader1.ReadOne()
 			require.NoError(t, err)
 
 			_, isEvent := response.GetEvent()
@@ -392,7 +392,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader2.Recv()
+			response, err := streamReader2.ReadOne()
 			require.NoError(t, err)
 
 			_, isEvent := response.GetEvent()
@@ -423,7 +423,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			fmt.Println(err)
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
@@ -454,7 +454,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			fmt.Println("Reading a stream")
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			require.Equal(t, errors.StreamDeletedErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -485,7 +485,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			fmt.Println(err)
 			require.Equal(t, errors.DeadlineExceededErr, err.Code())
 			// release lock when timeout expires
@@ -516,7 +516,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader.Recv()
+			response, err := streamReader.ReadOne()
 			require.NoError(t, err)
 
 			event, isEvent := response.GetEvent()
@@ -565,7 +565,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader1.Recv()
+			response, err := streamReader1.ReadOne()
 			require.NoError(t, err)
 
 			event, isEvent := response.GetEvent()
@@ -576,7 +576,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			response, err := streamReader2.Recv()
+			response, err := streamReader2.ReadOne()
 			require.NoError(t, err)
 
 			event, isEvent := response.GetEvent()
@@ -615,7 +615,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, err := streamReader.Recv()
+			_, err := streamReader.ReadOne()
 			fmt.Println(err)
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
@@ -662,7 +662,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	go func() {
 		current := 0
 		for {
-			subEvent, err := subscription.Recv()
+			subEvent, err := subscription.ReadOne()
 			require.NoError(t, err)
 
 			if event, isEvent := subEvent.GetEvent(); isEvent {
