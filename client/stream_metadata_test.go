@@ -24,27 +24,27 @@ func Test_StreamMetaData(t *testing.T) {
 	t.Run("getting_for_an_existing_stream_and_no_metadata_exists", func(t *testing.T) {
 		streamId := "getting_for_an_existing_stream_and_no_metadata_exists"
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
 
-		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		metaData, err := client.EventStreams().GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
 		require.True(t, metaData.IsNone())
 	})
 
 	t.Run("empty_metadata", func(t *testing.T) {
 		streamId := "empty_metadata"
-		_, err := client.SetStreamMetadata(context.Background(),
+		_, err := client.EventStreams().SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			event_streams.StreamMetadata{},
 		)
 		require.NoError(t, err)
 
-		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		metaData, err := client.EventStreams().GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
 		require.False(t, metaData.IsNone())
 		require.Equal(t, streamId, metaData.GetStreamId())
@@ -62,13 +62,13 @@ func Test_StreamMetaData(t *testing.T) {
 			MaxAgeInSeconds:       ptr.UInt64(15),
 		}
 
-		_, err := client.SetStreamMetadata(context.Background(),
+		_, err := client.EventStreams().SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
-		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		metaData, err := client.EventStreams().GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
 		require.False(t, metaData.IsNone())
 		require.EqualValues(t, 0, metaData.GetMetaStreamRevision())
@@ -81,13 +81,13 @@ func Test_StreamMetaData(t *testing.T) {
 			MaxAgeInSeconds:       ptr.UInt64(11),
 		}
 
-		_, err = client.SetStreamMetadata(context.Background(),
+		_, err = client.EventStreams().SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
-		metaData, err = client.GetStreamMetadata(context.Background(), streamId)
+		metaData, err = client.EventStreams().GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
 		require.False(t, metaData.IsNone())
 		require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
@@ -97,7 +97,7 @@ func Test_StreamMetaData(t *testing.T) {
 	t.Run("setting_with_wrong_expected_version_throws", func(t *testing.T) {
 		streamId := "setting_with_wrong_expected_version_throws"
 
-		writeResult, err := client.SetStreamMetadata(context.Background(),
+		writeResult, err := client.EventStreams().SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevision{Revision: 2},
 			event_streams.StreamMetadata{},
@@ -117,13 +117,13 @@ func Test_StreamMetaData(t *testing.T) {
 			MaxAgeInSeconds:       ptr.UInt64(15),
 		}
 
-		_, err := client.SetStreamMetadata(context.Background(),
+		_, err := client.EventStreams().SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
-		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
+		metaData, err := client.EventStreams().GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
 		require.False(t, metaData.IsNone())
 		require.EqualValues(t, 0, metaData.GetMetaStreamRevision())
@@ -136,13 +136,13 @@ func Test_StreamMetaData(t *testing.T) {
 			MaxAgeInSeconds:       ptr.UInt64(11),
 		}
 
-		_, err = client.SetStreamMetadata(context.Background(),
+		_, err = client.EventStreams().SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
-		metaData, err = client.GetStreamMetadata(context.Background(), streamId)
+		metaData, err = client.EventStreams().GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
 		require.False(t, metaData.IsNone())
 		require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
@@ -155,7 +155,7 @@ func Test_StreamMetaData(t *testing.T) {
 		timeoutCtx, cancelFunc := context.WithTimeout(ctx, 0)
 		defer cancelFunc()
 
-		_, err := client.SetStreamMetadata(timeoutCtx,
+		_, err := client.EventStreams().SetStreamMetadata(timeoutCtx,
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			event_streams.StreamMetadata{},
@@ -169,7 +169,7 @@ func Test_StreamMetaData(t *testing.T) {
 		timeoutCtx, cancelFunc := context.WithTimeout(ctx, 0)
 		defer cancelFunc()
 
-		_, err := client.SetStreamMetadata(timeoutCtx,
+		_, err := client.EventStreams().SetStreamMetadata(timeoutCtx,
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
 			event_streams.StreamMetadata{},
@@ -183,7 +183,7 @@ func Test_StreamMetaData(t *testing.T) {
 		timeoutCtx, cancelFunc := context.WithTimeout(ctx, 0)
 		defer cancelFunc()
 
-		_, err := client.GetStreamMetadata(timeoutCtx, streamId)
+		_, err := client.EventStreams().GetStreamMetadata(timeoutCtx, streamId)
 		require.Equal(t, errors.DeadlineExceededErr, err.Code())
 	})
 }

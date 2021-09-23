@@ -2,9 +2,7 @@ package client_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"sync"
 	"testing"
 	"time"
@@ -35,7 +33,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
@@ -61,7 +59,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx := context.Background()
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
@@ -90,7 +88,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
@@ -106,7 +104,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.True(t, isEvent)
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(1))
@@ -123,13 +121,13 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader1, err := client.SubscribeToStream(ctx,
+		streamReader1, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
 		require.NoError(t, err)
 
-		streamReader2, err := client.SubscribeToStream(ctx,
+		streamReader2, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
@@ -155,7 +153,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.True(t, isEvent)
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(1))
@@ -178,13 +176,13 @@ func Test_SubscribeToStream(t *testing.T) {
 		afterEvents := testCreateEvents(2)
 		totalEvents := append(beforeEvents, afterEvents...)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			beforeEvents)
 		require.NoError(t, err)
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
@@ -218,7 +216,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.Equal(t, append(beforeEvents, afterEvents...), result)
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			afterEvents)
@@ -239,7 +237,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionStart{},
 			false)
@@ -254,7 +252,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		}()
 
 		time.Sleep(2 * time.Second)
-		_, err = client.TombstoneStream(context.Background(),
+		_, err = client.EventStreams().TombstoneStream(context.Background(),
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
@@ -276,13 +274,13 @@ func Test_SubscribeToStream(t *testing.T) {
 		beforeEvents := testCreateEvents(3)
 		afterEvents := testCreateEvents(2)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			beforeEvents)
 		require.NoError(t, err)
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
 			false)
@@ -316,7 +314,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.Equal(t, afterEvents, result)
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			afterEvents)
@@ -336,7 +334,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
 			false)
@@ -352,7 +350,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.True(t, isEvent)
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(1))
@@ -369,13 +367,13 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader1, err := client.SubscribeToStream(ctx,
+		streamReader1, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
 			false)
 		require.NoError(t, err)
 
-		streamReader2, err := client.SubscribeToStream(ctx,
+		streamReader2, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
 			false)
@@ -401,7 +399,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.True(t, isEvent)
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(1))
@@ -417,7 +415,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx := context.Background()
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
 			false)
@@ -447,7 +445,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevisionEnd{},
 			false)
@@ -462,7 +460,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		}()
 
 		time.Sleep(2 * time.Second)
-		_, err = client.TombstoneStream(context.Background(),
+		_, err = client.EventStreams().TombstoneStream(context.Background(),
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
@@ -479,7 +477,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 2},
 			false)
@@ -506,7 +504,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
 		defer cancelFunc()
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 0},
 			false)
@@ -526,13 +524,13 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.Equal(t, secondEvent, event.ToProposedEvent())
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			[]event_streams.ProposedEvent{firstEvent})
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{secondEvent})
@@ -550,13 +548,13 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
-		streamReader1, err := client.SubscribeToStream(ctx,
+		streamReader1, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 0},
 			false)
 		require.NoError(t, err)
 
-		streamReader2, err := client.SubscribeToStream(ctx,
+		streamReader2, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 0},
 			false)
@@ -586,13 +584,13 @@ func Test_SubscribeToStream(t *testing.T) {
 			require.Equal(t, expectedEvent, event.ToProposedEvent())
 		}()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(1))
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{expectedEvent})
@@ -609,7 +607,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		ctx := context.Background()
 		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 
-		streamReader, err := client.SubscribeToStream(ctx,
+		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
 			streamId,
 			event_streams.SubscribeRequestOptionsStreamRevision{Revision: 1},
 			false)
@@ -653,7 +651,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	var receivedEvents sync.WaitGroup
 	var appendedEvents sync.WaitGroup
 	fmt.Println("Subscribing...")
-	subscription, err := client.SubscribeToStream(
+	subscription, err := client.EventStreams().SubscribeToStream(
 		context.Background(),
 		"dataset20M-0",
 		event_streams.SubscribeRequestOptionsStreamRevisionStart{},
@@ -692,7 +690,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 
 	// Write a new event
-	writeResult, err := client.AppendToStream(context.Background(),
+	writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 		streamID,
 		event_streams.AppendRequestExpectedStreamRevision{Revision: 5999},
 		[]event_streams.ProposedEvent{testEvent})
@@ -710,72 +708,6 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 type Position struct {
 	Prepare uint64 `json:"prepare"`
 	Commit  uint64 `json:"commit"`
-}
-
-func TestAllSubscriptionWithFilterDeliversCorrectEvents(t *testing.T) {
-	positionsContent, err := ioutil.ReadFile("../resources/test/all-positions-filtered-stream-194-e0-e30.json")
-	require.NoError(t, err)
-	versionsContent, err := ioutil.ReadFile("../resources/test/all-versions-filtered-stream-194-e0-e30.json")
-	require.NoError(t, err)
-	var positions []Position
-	var versions []uint64
-	err = json.Unmarshal(positionsContent, &positions)
-	require.NoError(t, err)
-	err = json.Unmarshal(versionsContent, &versions)
-	require.NoError(t, err)
-
-	container := getPrePopulatedDatabase()
-	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	var receivedEvents sync.WaitGroup
-	receivedEvents.Add(len(positions))
-
-	filter := event_streams.SubscribeRequestFilter{
-		FilterBy: event_streams.SubscribeRequestFilterByEventType{
-			Regex:  "",
-			Prefix: []string{"eventType-194"},
-		},
-		Window:                       event_streams.SubscribeRequestFilterWindowMax{Max: 32},
-		CheckpointIntervalMultiplier: 1,
-	}
-
-	subscription, err := client.SubscribeToAllFiltered(
-		context.Background(),
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
-		false,
-		filter)
-	require.NoError(t, err)
-
-	go func() {
-		current := 0
-		for {
-			subEvent, err := subscription.Recv()
-			require.NoError(t, err)
-
-			//if subEvent.Dropped != nil {
-			//	break
-			//}
-
-			if event, isEvent := subEvent.GetEvent(); isEvent {
-				require.Equal(t, versions[current], event.Event.StreamRevision)
-				require.Equal(t, positions[current].Commit, event.Event.CommitPosition)
-				require.Equal(t, positions[current].Prepare, event.Event.PreparePosition)
-				current++
-				receivedEvents.Done()
-			}
-		}
-	}()
-
-	timedOut := waitWithTimeout(&receivedEvents, time.Duration(20)*time.Second)
-	require.False(t, timedOut, "Timed out while waiting for events via the subscription")
 }
 
 //func TestConnectionClosing(t *testing.T) {

@@ -28,7 +28,7 @@ const (
 	AppendToStream_FailedToCloseStreamErr    errors.ErrorCode = "AppendToStream_FailedToCloseStreamErr"
 )
 
-func (client *ClientImpl) AppendToStream(
+func (client *ClientImpl) appendToStream(
 	ctx context.Context,
 	options AppendRequestContentOptions,
 	events []ProposedEvent,
@@ -79,9 +79,34 @@ func (client *ClientImpl) AppendToStream(
 	return client.appendResponseAdapter.CreateResponse(response), nil
 }
 
+func (client *ClientImpl) AppendToStream(
+	ctx context.Context,
+	streamID string,
+	expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+	events []ProposedEvent,
+) (AppendResponse, errors.Error) {
+	return client.appendToStream(ctx, AppendRequestContentOptions{
+		StreamIdentifier:       streamID,
+		ExpectedStreamRevision: expectedStreamRevision,
+	}, events)
+}
+
+func (client *ClientImpl) SetStreamMetadata(
+	ctx context.Context,
+	streamID string,
+	expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+	metadata StreamMetadata) (AppendResponse, errors.Error) {
+	streamMetadataEvent := NewMetadataEvent(metadata)
+
+	return client.appendToStream(ctx, AppendRequestContentOptions{
+		StreamIdentifier:       GetMetaStreamOf(streamID),
+		ExpectedStreamRevision: expectedStreamRevision,
+	}, []ProposedEvent{streamMetadataEvent})
+}
+
 const FailedToDeleteStreamErr errors.ErrorCode = "FailedToDeleteStreamErr"
 
-func (client *ClientImpl) DeleteStream(
+func (client *ClientImpl) deleteStream(
 	context context.Context,
 	deleteRequest DeleteRequest,
 ) (DeleteResponse, errors.Error) {
@@ -103,9 +128,29 @@ func (client *ClientImpl) DeleteStream(
 	return client.deleteResponseAdapter.Create(deleteResponse), nil
 }
 
-const FailedToTombstoneStreamErr errors.ErrorCode = "FailedToTombstoneStreamErr"
+func (client *ClientImpl) DeleteStream(
+	ctx context.Context,
+	streamID string,
+	revision IsDeleteRequestExpectedStreamRevision) (DeleteResponse, errors.Error) {
+	return client.deleteStream(ctx, DeleteRequest{
+		StreamIdentifier:       streamID,
+		ExpectedStreamRevision: revision,
+	})
+}
 
 func (client *ClientImpl) TombstoneStream(
+	ctx context.Context,
+	streamID string,
+	revision IsTombstoneRequestExpectedStreamRevision) (TombstoneResponse, errors.Error) {
+	return client.tombstoneStream(ctx, TombstoneRequest{
+		StreamIdentifier:       streamID,
+		ExpectedStreamRevision: revision,
+	})
+}
+
+const FailedToTombstoneStreamErr errors.ErrorCode = "FailedToTombstoneStreamErr"
+
+func (client *ClientImpl) tombstoneStream(
 	context context.Context,
 	tombstoneRequest TombstoneRequest,
 ) (TombstoneResponse, errors.Error) {
@@ -131,7 +176,7 @@ const (
 	FailedToConstructReadStreamErr errors.ErrorCode = "FailedToConstructReadStreamErr"
 )
 
-func (client *ClientImpl) ReadStreamEvents(
+func (client *ClientImpl) readStreamEvents(
 	ctx context.Context,
 	readRequest ReadRequest) ([]ReadResponseEvent, errors.Error) {
 
@@ -190,7 +235,44 @@ func (client *ClientImpl) ReadStreamEvents(
 	return nil, readError
 }
 
-func (client *ClientImpl) ReadStreamEventsReader(
+func (client *ClientImpl) GetStreamReader(
+	ctx context.Context,
+	streamID string,
+	direction ReadRequestDirection,
+	revision IsReadRequestStreamOptionsStreamRevision,
+	count uint64,
+	resolveLinks bool) (ReadClient, errors.Error) {
+	return client.getStreamEventsReader(ctx, ReadRequest{
+		StreamOption: ReadRequestStreamOptions{
+			StreamIdentifier: streamID,
+			Revision:         revision,
+		},
+		Direction:    direction,
+		ResolveLinks: resolveLinks,
+		Count:        count,
+		Filter:       ReadRequestNoFilter{},
+	})
+}
+
+func (client *ClientImpl) GetAllEventsReader(
+	ctx context.Context,
+	direction ReadRequestDirection,
+	position IsReadRequestOptionsAllPosition,
+	count uint64,
+	resolveLinks bool,
+) (ReadClient, errors.Error) {
+	return client.getStreamEventsReader(ctx, ReadRequest{
+		StreamOption: ReadRequestStreamOptionsAll{
+			Position: position,
+		},
+		Direction:    direction,
+		ResolveLinks: resolveLinks,
+		Count:        count,
+		Filter:       ReadRequestNoFilter{},
+	})
+}
+
+func (client *ClientImpl) getStreamEventsReader(
 	ctx context.Context,
 	readRequest ReadRequest) (ReadClient, errors.Error) {
 
@@ -216,13 +298,61 @@ func (client *ClientImpl) ReadStreamEventsReader(
 	return readClient, nil
 }
 
+func (client *ClientImpl) SubscribeToStream(
+	ctx context.Context,
+	streamID string,
+	revision IsSubscribeRequestStreamOptionsStreamRevision,
+	resolveLinks bool,
+) (ReadClient, errors.Error) {
+	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
+		StreamOption: SubscribeRequestStreamOptions{
+			StreamIdentifier: streamID,
+			Revision:         revision,
+		},
+		Direction:    SubscribeRequestDirectionForward,
+		ResolveLinks: resolveLinks,
+		Filter:       SubscribeRequestNoFilter{},
+	})
+}
+
+func (client *ClientImpl) SubscribeToAllFiltered(
+	ctx context.Context,
+	position IsSubscribeRequestOptionsAllPosition,
+	resolveLinks bool,
+	filter SubscribeRequestFilter,
+) (ReadClient, errors.Error) {
+	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
+		StreamOption: SubscribeRequestStreamOptionsAll{
+			Position: position,
+		},
+		Direction:    SubscribeRequestDirectionForward,
+		ResolveLinks: resolveLinks,
+		Filter:       filter,
+	})
+}
+
+func (client *ClientImpl) SubscribeToAll(
+	ctx context.Context,
+	position IsSubscribeRequestOptionsAllPosition,
+	resolveLinks bool,
+) (ReadClient, errors.Error) {
+	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
+		StreamOption: SubscribeRequestStreamOptionsAll{
+			Position: position,
+		},
+		Direction:    SubscribeRequestDirectionForward,
+		ResolveLinks: resolveLinks,
+		Filter:       SubscribeRequestNoFilter{},
+	})
+}
+
 const (
 	FailedToCreateReaderErr                errors.ErrorCode = "FailedToCreateReaderErr"
 	FailedToReceiveSubscriptionResponseErr errors.ErrorCode = "FailedToReceiveSubscriptionResponseErr"
 	FailedToSubscribe_StreamNotFoundErr    errors.ErrorCode = "FailedToSubscribe_StreamNotFoundErr"
 )
 
-func (client *ClientImpl) SubscribeToStream(
+func (client *ClientImpl) subscribeToStream(
 	ctx context.Context,
 	request SubscribeToStreamRequest,
 ) (ReadClient, errors.Error) {
@@ -272,4 +402,70 @@ func (client *ClientImpl) SubscribeToStream(
 	}
 	defer cancel()
 	return nil, errors.NewErrorCode(errors.FatalError)
+}
+
+func (client *ClientImpl) GetStreamMetadata(
+	ctx context.Context,
+	streamID string) (StreamMetadataResult, errors.Error) {
+
+	events, err := client.readStreamEvents(ctx, ReadRequest{
+		StreamOption: ReadRequestStreamOptions{
+			StreamIdentifier: GetMetaStreamOf(streamID),
+			Revision:         ReadRequestOptionsStreamRevisionEnd{},
+		},
+		Direction:    ReadRequestDirectionBackward,
+		ResolveLinks: false,
+		Count:        1,
+		Filter:       ReadRequestNoFilter{},
+	})
+	if err != nil {
+		if err.Code() == errors.StreamNotFoundErr {
+			return StreamMetadataNone{}, nil
+		}
+		return StreamMetadataNone{}, err
+	}
+
+	if len(events) == 0 {
+		return StreamMetadataNone{}, nil
+	}
+
+	return NewStreamMetadataResultImpl(streamID, events[0]), nil
+}
+
+func (client *ClientImpl) ReadStreamEvents(
+	ctx context.Context,
+	streamID string,
+	direction ReadRequestDirection,
+	revision IsReadRequestStreamOptionsStreamRevision,
+	count uint64,
+	resolveLinks bool) (ReadResponseEventList, errors.Error) {
+	return client.readStreamEvents(ctx, ReadRequest{
+		StreamOption: ReadRequestStreamOptions{
+			StreamIdentifier: streamID,
+			Revision:         revision,
+		},
+		Direction:    direction,
+		ResolveLinks: resolveLinks,
+		Count:        count,
+		Filter:       ReadRequestNoFilter{},
+	})
+}
+
+func (client *ClientImpl) ReadAllEvents(
+	ctx context.Context,
+	direction ReadRequestDirection,
+	position IsReadRequestOptionsAllPosition,
+	count uint64,
+	resolveLinks bool,
+) (ReadResponseEventList, errors.Error) {
+
+	return client.readStreamEvents(ctx, ReadRequest{
+		StreamOption: ReadRequestStreamOptionsAll{
+			Position: position,
+		},
+		Direction:    direction,
+		ResolveLinks: resolveLinks,
+		Count:        count,
+		Filter:       ReadRequestNoFilter{},
+	})
 }
