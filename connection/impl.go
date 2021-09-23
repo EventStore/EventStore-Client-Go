@@ -32,6 +32,7 @@ const (
 	protoMaximumAppendSizeExceeded = "maximum-append-size-exceeded"
 	protoWrongExpectedVersion      = "wrong-expected-version"
 	protoNotLeader                 = "not-leader"
+	protoUserNotFound              = "user-not-found"
 )
 
 func isProtoException(trailers metadata.MD, protoException string) bool {
@@ -64,6 +65,8 @@ func GetErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error
 		return errors.NewError(errors.WrongExpectedStreamRevisionErr, stdErr)
 	} else if isProtoException(trailers, protoNotLeader) {
 		return errors.NewError(errors.NotLeaderErr, stdErr)
+	} else if isProtoException(trailers, protoUserNotFound) {
+		return errors.NewError(errors.UserNotFoundErr, stdErr)
 	}
 
 	err := ErrorFromStdErrorByStatus(stdErr)

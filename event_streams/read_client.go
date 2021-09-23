@@ -15,19 +15,16 @@ type ReadClient interface {
 type ReadClientFactory interface {
 	Create(
 		protoClient streams2.Streams_ReadClient,
-		cancelFunc context.CancelFunc,
-		streamId string) ReadClient
+		cancelFunc context.CancelFunc) ReadClient
 }
 
 type ReadClientFactoryImpl struct{}
 
 func (this ReadClientFactoryImpl) Create(
 	protoClient streams2.Streams_ReadClient,
-	cancelFunc context.CancelFunc,
-	streamId string) ReadClient {
+	cancelFunc context.CancelFunc) ReadClient {
 	return newReadClientImpl(
 		protoClient,
 		cancelFunc,
-		streamId,
 		readResponseAdapterImpl{})
 }
