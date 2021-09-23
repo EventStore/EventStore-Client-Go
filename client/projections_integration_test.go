@@ -32,7 +32,7 @@ func Test_CreateContinuousProjection_TrackEmittedStreamsFalse(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
@@ -48,7 +48,7 @@ func Test_CreateContinuousProjection_TrackEmittedStreamsTrue(t *testing.T) {
 		TrackEmittedStreams: true,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
@@ -63,7 +63,7 @@ func Test_CreateTransientProjection(t *testing.T) {
 		Name: "Transient",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
@@ -77,7 +77,7 @@ func Test_CreateOneTimeProjection(t *testing.T) {
 	createOptions.SetMode(projections.CreateConfigModeOneTimeOption{}).
 		SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
@@ -93,7 +93,7 @@ func Test_UpdateContinuousProjection_NoEmit(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -101,7 +101,7 @@ func Test_UpdateContinuousProjection_NoEmit(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
 
-	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
@@ -117,7 +117,7 @@ func Test_UpdateContinuousProjection_EmitFalse(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -125,7 +125,7 @@ func Test_UpdateContinuousProjection_EmitFalse(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
 
-	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
@@ -141,7 +141,7 @@ func Test_UpdateContinuousProjection_EmitTrue(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -149,7 +149,7 @@ func Test_UpdateContinuousProjection_EmitTrue(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
 
-	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
@@ -164,7 +164,7 @@ func Test_UpdateTransientProjection_NoEmit(t *testing.T) {
 		Name: "MyTransient_no_emit",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -172,7 +172,7 @@ func Test_UpdateTransientProjection_NoEmit(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
 
-	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
@@ -187,7 +187,7 @@ func Test_UpdateTransientProjection_EmitFalse(t *testing.T) {
 		Name: "MyTransient_emit_false",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -195,7 +195,7 @@ func Test_UpdateTransientProjection_EmitFalse(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
 
-	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
@@ -210,7 +210,7 @@ func Test_UpdateTransientProjection_EmitTrue(t *testing.T) {
 		Name: "MyTransient_emit_true",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -218,7 +218,7 @@ func Test_UpdateTransientProjection_EmitTrue(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
 
-	err = clientInstance.UpdateProjection(context.Background(), updateOptions)
+	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
@@ -230,14 +230,14 @@ func Test_AbortProjection(t *testing.T) {
 
 	abortOptions := projections.AbortOptionsRequest{}
 	abortOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.AbortProjection(context.Background(), abortOptions)
+	err := clientInstance.Projections().AbortProjection(context.Background(), abortOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -254,14 +254,14 @@ func Test_DisableProjection(t *testing.T) {
 
 	disableOptions := projections.DisableOptionsRequest{}
 	disableOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.DisableProjection(context.Background(), disableOptions)
+	err := clientInstance.Projections().DisableProjection(context.Background(), disableOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -278,14 +278,14 @@ func Test_EnableProjection(t *testing.T) {
 
 	enableOptions := projections.EnableOptionsRequest{}
 	enableOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.EnableProjection(context.Background(), enableOptions)
+	err := clientInstance.Projections().EnableProjection(context.Background(), enableOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -328,7 +328,7 @@ func Test_GetResultOfProjection(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery(fmt.Sprintf(resultProjectionQuery, streamName))
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	testEvent := testCreateEvent()
@@ -341,7 +341,8 @@ func Test_GetResultOfProjection(t *testing.T) {
 
 	resultOptions := projections.ResultOptionsRequest{}
 	resultOptions.SetName("MyContinuousProjection")
-	projectionResult, err := clientInstance.GetProjectionResult(context.Background(), resultOptions)
+	projectionResult, err := clientInstance.Projections().
+		GetProjectionResult(context.Background(), resultOptions)
 	require.NoError(t, err)
 	require.Equal(t, projections.ResultResponseStructType, projectionResult.GetType())
 
@@ -392,7 +393,7 @@ func Test_GetStateOfProjection(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery(fmt.Sprintf(resultProjectionQuery, streamName))
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	testEvent := testCreateEvent()
@@ -405,7 +406,8 @@ func Test_GetStateOfProjection(t *testing.T) {
 
 	resultOptions := projections.StateOptionsRequest{}
 	resultOptions.SetName("MyContinuousProjection")
-	projectionResult, err := clientInstance.GetProjectionState(context.Background(), resultOptions)
+	projectionResult, err := clientInstance.Projections().
+		GetProjectionState(context.Background(), resultOptions)
 	require.NoError(t, err)
 	require.Equal(t, projections.StateResponseStructType, projectionResult.GetType())
 
@@ -432,7 +434,7 @@ func Test_GetStatusOfProjection(t *testing.T) {
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -449,14 +451,15 @@ func Test_ResetProjection(t *testing.T) {
 
 	resetOptions := projections.ResetOptionsRequest{}
 	resetOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.ResetProjection(context.Background(), resetOptions)
+	err := clientInstance.Projections().ResetProjection(context.Background(), resetOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := clientInstance.Projections().
+		GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -471,7 +474,7 @@ func Test_RestartProjectionSubsystem(t *testing.T) {
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
-	err := clientInstance.RestartProjectionsSubsystem(context.Background())
+	err := clientInstance.Projections().RestartProjectionsSubsystem(context.Background())
 	require.NoError(t, err)
 }
 
@@ -489,7 +492,7 @@ func Test_ListAllProjections(t *testing.T) {
 		StandardProjectionByCorrelationId,
 	}
 
-	result, err := clientInstance.ListAllProjections(context.Background())
+	result, err := clientInstance.Projections().ListAllProjections(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, len(expectedStreamNames))
@@ -514,7 +517,7 @@ func Test_ListContinuousProjections(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	expectedStreamNames := []string{
@@ -526,7 +529,7 @@ func Test_ListContinuousProjections(t *testing.T) {
 		"MyContinuous_false",
 	}
 
-	result, err := clientInstance.ListContinuousProjections(context.Background())
+	result, err := clientInstance.Projections().ListContinuousProjections(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, len(expectedStreamNames))
@@ -549,10 +552,10 @@ func Test_ListOneTimeProjections(t *testing.T) {
 	createOptions.SetMode(projections.CreateConfigModeOneTimeOption{}).
 		SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.CreateProjection(context.Background(), createOptions)
+	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
-	result, err := clientInstance.ListOneTimeProjections(context.Background())
+	result, err := clientInstance.Projections().ListOneTimeProjections(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)
