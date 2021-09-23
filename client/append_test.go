@@ -38,7 +38,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 
 		iterations := 2
 		for ; iterations > 0; iterations-- {
-			writeResult, err := client.AppendToStream(context.Background(),
+			writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 				streamName,
 				event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 				[]event_streams.ProposedEvent{})
@@ -48,7 +48,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 			require.True(t, success.GetCurrentRevisionNoStream())
 		}
 
-		_, err := client.ReadStreamEvents(context.Background(),
+		_, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -62,7 +62,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 
 		iterations := 2
 		for ; iterations > 0; iterations-- {
-			writeResult, err := client.AppendToStream(context.Background(),
+			writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 				streamName,
 				event_streams.AppendRequestExpectedStreamRevisionAny{},
 				[]event_streams.ProposedEvent{})
@@ -72,13 +72,13 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 			require.True(t, success.GetCurrentRevisionNoStream())
 		}
 
-		_, err := client.ReadStreamEvents(context.Background(),
+		_, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
 			2,
 			false)
-		require.Equal(t, err.Code(), event_streams.StreamNotFoundErr)
+		require.Equal(t, err.Code(), errors.StreamNotFoundErr)
 	})
 }
 
@@ -98,7 +98,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{testEvent})
@@ -106,7 +106,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		success, _ := writeResult.GetSuccess()
 		require.EqualValues(t, 0, success.GetCurrentRevision())
 
-		events, err := client.ReadStreamEvents(context.Background(),
+		events, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -121,7 +121,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			[]event_streams.ProposedEvent{testEvent})
@@ -129,7 +129,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		success, _ := writeResult.GetSuccess()
 		require.EqualValues(t, 0, success.GetCurrentRevision())
 
-		events, err := client.ReadStreamEvents(context.Background(),
+		events, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -144,7 +144,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 
 		testEvents := testCreateEvents(100)
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testEvents)
@@ -170,7 +170,7 @@ func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 	streamName := "stream_any"
 	events := testCreateEvents(4)
 
-	writeResult, err := client.AppendToStream(context.Background(),
+	writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -178,7 +178,7 @@ func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 	success, _ := writeResult.GetSuccess()
 	require.EqualValues(t, 3, success.GetCurrentRevision())
 
-	writeResult, err = client.AppendToStream(context.Background(),
+	writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -203,7 +203,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *tes
 	event := testCreateEvent()
 	events := []event_streams.ProposedEvent{event, event, event, event, event, event}
 
-	writeResult, err := client.AppendToStream(context.Background(),
+	writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -228,7 +228,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVe
 	event := testCreateEvent()
 	events := []event_streams.ProposedEvent{event, event, event, event, event, event}
 
-	writeResult, err := client.AppendToStream(context.Background(),
+	writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -236,7 +236,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVe
 	success, _ := writeResult.GetSuccess()
 	require.EqualValues(t, 5, success.GetCurrentRevision())
 
-	writeResult, err = client.AppendToStream(context.Background(),
+	writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -261,7 +261,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpec
 	event := testCreateEvent()
 	events := []event_streams.ProposedEvent{event, event, event, event, event, event}
 
-	writeResult, err := client.AppendToStream(context.Background(),
+	writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -269,7 +269,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpec
 	success, _ := writeResult.GetSuccess()
 	require.EqualValues(t, 5, success.GetCurrentRevision())
 
-	writeResult, err = client.AppendToStream(context.Background(),
+	writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
@@ -292,7 +292,7 @@ func Test_ReturnsPositionWhenWriting(t *testing.T) {
 	streamName := "stream_no_stream"
 	event := testCreateEvent()
 	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
-	writeResult, _ := client.AppendToStream(context.Background(),
+	writeResult, _ := client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		[]event_streams.ProposedEvent{event})
@@ -317,7 +317,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 	t.Run("Stream Does Not Exist, Revision Any", func(t *testing.T) {
 		streamName := "stream_does_not_exist_any"
 
-		_, err := client.TombstoneStream(context.Background(),
+		_, err := client.EventStreams().TombstoneStream(context.Background(),
 			streamName,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
@@ -325,7 +325,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 		event := testCreateEvent()
 		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{event})
@@ -335,7 +335,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 	t.Run("Stream Does Not Exist, Revision NoStream", func(t *testing.T) {
 		streamName := "stream_does_not_exist_no_stream"
 
-		_, err := client.TombstoneStream(context.Background(),
+		_, err := client.EventStreams().TombstoneStream(context.Background(),
 			streamName,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
@@ -343,7 +343,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 		event := testCreateEvent()
 		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{event})
@@ -353,7 +353,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 	t.Run("Stream Does Not Exist, Invalid Finite Revision", func(t *testing.T) {
 		streamName := "stream_does_not_exist_invalid_finite"
 
-		_, err := client.TombstoneStream(context.Background(),
+		_, err := client.EventStreams().TombstoneStream(context.Background(),
 			streamName,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
@@ -363,7 +363,7 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 			Revision: 5,
 		}
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{event})
@@ -376,19 +376,19 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
 
-		_, err = client.TombstoneStream(context.Background(),
+		_, err = client.EventStreams().TombstoneStream(context.Background(),
 			streamName,
 			event_streams.TombstoneRequestExpectedStreamRevisionAny{})
 		require.NoError(t, err)
 
 		testEvent2 := testCreateEvent()
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent2})
@@ -413,7 +413,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
@@ -421,7 +421,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 		success, _ := writeResult.GetSuccess()
 
 		testEvent2 := testCreateEvent()
-		writeResult, err = client.AppendToStream(context.Background(),
+		writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: success.GetCurrentRevision(),
@@ -439,7 +439,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
@@ -448,7 +448,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 		require.EqualValues(t, 0, success.GetCurrentRevision())
 
 		testEvent2 := testCreateEvent()
-		writeResult, err = client.AppendToStream(context.Background(),
+		writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{testEvent2})
@@ -464,7 +464,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
@@ -473,7 +473,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 		require.EqualValues(t, 0, success.GetCurrentRevision())
 
 		testEvent2 := testCreateEvent()
-		writeResult, err = client.AppendToStream(context.Background(),
+		writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 			[]event_streams.ProposedEvent{testEvent2})
@@ -489,7 +489,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
@@ -498,7 +498,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 		require.EqualValues(t, 0, success.GetCurrentRevision())
 
 		testEvent2 := testCreateEvent()
-		writeResult, err = client.AppendToStream(context.Background(),
+		writeResult, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 			[]event_streams.ProposedEvent{testEvent2})
@@ -513,7 +513,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 			[]event_streams.ProposedEvent{testEvent})
@@ -525,14 +525,14 @@ func Test_AppendToExistingStream(t *testing.T) {
 	t.Run("Tombstone Stream And Append With Expected Revision StreamExists", func(t *testing.T) {
 		streamName := "stream_hard_deleted"
 
-		_, err := client.TombstoneStream(context.Background(),
+		_, err := client.EventStreams().TombstoneStream(context.Background(),
 			streamName,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := testCreateEvent()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 			[]event_streams.ProposedEvent{event})
@@ -542,14 +542,14 @@ func Test_AppendToExistingStream(t *testing.T) {
 	t.Run("Stream Deleted (soft delete) Before Append With Expected Revision StreamExists", func(t *testing.T) {
 		streamName := "stream_soft_deleted"
 
-		_, err := client.DeleteStream(context.Background(),
+		_, err := client.EventStreams().DeleteStream(context.Background(),
 			streamName,
 			event_streams.DeleteRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
 		event := testCreateEvent()
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 			[]event_streams.ProposedEvent{event})
@@ -562,14 +562,14 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
 
 		testEvent2 := testCreateEvent()
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 999,
@@ -591,7 +591,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 
 		testEvent := testCreateEvent()
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 5,
@@ -634,7 +634,7 @@ func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpect
 
 	testEvent := testCreateEvent()
 
-	writeResult, err := client.AppendToStream(context.Background(),
+	writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		event_streams.AppendRequestExpectedStreamRevision{
 			Revision: 1,
@@ -663,7 +663,7 @@ func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
 	maxCount := 10
 	streamMetadata := event_streams.StreamMetadata{MaxCount: &maxCount}
 
-	_, err := client.SetStreamMetadata(context.Background(),
+	_, err := client.EventStreams().SetStreamMetadata(context.Background(),
 		streamName,
 		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		streamMetadata)
@@ -671,7 +671,7 @@ func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
 
 	testEvent := testCreateEvent()
 
-	_, err = client.AppendToStream(context.Background(),
+	_, err = client.EventStreams().AppendToStream(context.Background(),
 		streamName,
 		event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 		[]event_streams.ProposedEvent{testEvent})
@@ -701,7 +701,7 @@ func Test_AppendToStream_WithAppendLimit(t *testing.T) {
 	t.Run("Less than limit", func(t *testing.T) {
 		streamName := "stream_less_than_limit"
 		events := testCreateEventsWithBytesCap(1024)
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
@@ -711,7 +711,7 @@ func Test_AppendToStream_WithAppendLimit(t *testing.T) {
 	t.Run("More than limit", func(t *testing.T) {
 		streamName := "stream_more_than_limit"
 		events := testCreateEventsWithBytesCap(2056)
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
@@ -735,19 +735,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(6)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -762,19 +762,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(6)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -789,13 +789,13 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(6)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 5,
@@ -803,7 +803,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -818,13 +818,13 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(6)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 6,
@@ -841,13 +841,13 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(6)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 4,
@@ -864,13 +864,13 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(1)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 0,
@@ -878,7 +878,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -893,19 +893,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(1)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -920,19 +920,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(1)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -947,25 +947,25 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(3)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{events[1]})
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{events[1]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -980,19 +980,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(2)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -1007,19 +1007,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(2)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{events[0]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -1034,13 +1034,13 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(2)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
 				Revision: 0,
@@ -1048,7 +1048,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 			[]event_streams.ProposedEvent{events[1]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -1063,19 +1063,19 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(2)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		_, err = client.AppendToStream(context.Background(),
+		_, err = client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{events[1]})
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -1090,13 +1090,13 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		events := testCreateEvents(3)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events[:2])
 		require.NoError(t, err)
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)

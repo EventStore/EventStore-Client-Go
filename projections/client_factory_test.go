@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -15,12 +14,11 @@ func TestClientFactoryImpl_CreateClient(t *testing.T) {
 	defer ctrl.Finish()
 
 	grpcClient := connection.NewMockGrpcClient(ctrl)
-	projectionsProtoClient := projections.NewMockProjectionsClient(ctrl)
 
 	factory := ClientFactoryImpl{}
-	result := factory.CreateClient(grpcClient, projectionsProtoClient)
+	result := factory.CreateClient(grpcClient)
 
-	expectedResult := newClientImpl(grpcClient, projectionsProtoClient)
+	expectedResult := newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{})
 
 	require.Equal(t, expectedResult, result)
 }

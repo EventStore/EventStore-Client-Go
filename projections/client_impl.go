@@ -10,23 +10,27 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 )
 
 type ClientImpl struct {
-	grpcClient        connection.GrpcClient
-	projectionsClient projections.ProjectionsClient
+	grpcClient                   connection.GrpcClient
+	grpcProjectionsClientFactory grpcProjectionsClientFactory
 }
 
 const FailedToCreateProjectionErr errors.ErrorCode = "FailedToCreateProjectionErr"
 
 func (client *ClientImpl) CreateProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options CreateOptionsRequest) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.Create(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Create(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToCreateProjectionErr)
 		return err
@@ -39,11 +43,16 @@ const FailedToUpdateProjectionErr errors.ErrorCode = "FailedToUpdateProjectionEr
 
 func (client *ClientImpl) UpdateProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options UpdateOptionsRequest) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.Update(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Update(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToUpdateProjectionErr)
 		return err
@@ -56,11 +65,16 @@ const FailedToDeleteProjectionErr errors.ErrorCode = "FailedToDeleteProjectionEr
 
 func (client *ClientImpl) DeleteProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options DeleteOptionsRequest) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.Delete(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Delete(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToDeleteProjectionErr)
 		return err
@@ -73,12 +87,17 @@ const FailedToFetchProjectionStatisticsErr errors.ErrorCode = "FailedToFetchProj
 
 func (client *ClientImpl) GetProjectionStatistics(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options StatisticsOptionsRequest) (StatisticsClientSync, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
 
-	statisticsClient, protoErr := client.projectionsClient.Statistics(ctx, options.Build(),
+	statisticsClient, protoErr := projectionsClient.Statistics(ctx, options.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToFetchProjectionStatisticsErr)
@@ -92,11 +111,17 @@ const FailedToDisableProjectionErr errors.ErrorCode = "FailedToDisableProjection
 
 func (client *ClientImpl) DisableProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options DisableOptionsRequest) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
+
 	var headers, trailers metadata.MD
 
-	_, protoErr := client.projectionsClient.Disable(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Disable(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToDisableProjectionErr)
 		return err
@@ -109,11 +134,16 @@ const FailedToAbortProjectionErr errors.ErrorCode = "FailedToAbortProjectionErr"
 
 func (client *ClientImpl) AbortProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options AbortOptionsRequest) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.Disable(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Disable(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToAbortProjectionErr)
 		return err
@@ -126,11 +156,17 @@ const FailedToEnableProjectionErr errors.ErrorCode = "FailedToEnableProjectionEr
 
 func (client *ClientImpl) EnableProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options EnableOptionsRequest) errors.Error {
 
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
+
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.Enable(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Enable(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToEnableProjectionErr)
 		return err
@@ -143,11 +179,16 @@ const FailedToResetProjectionErr errors.ErrorCode = "FailedToResetProjectionErr"
 
 func (client *ClientImpl) ResetProjection(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options ResetOptionsRequest) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.Reset(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	_, protoErr := projectionsClient.Reset(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToResetProjectionErr)
 		return err
@@ -160,11 +201,16 @@ const FailedToGetProjectionStateErr errors.ErrorCode = "FailedToGetProjectionSta
 
 func (client *ClientImpl) GetProjectionState(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options StateOptionsRequest) (StateResponse, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	result, protoErr := client.projectionsClient.State(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	result, protoErr := projectionsClient.State(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToGetProjectionStateErr)
 		return nil, err
@@ -177,11 +223,16 @@ const FailedToGetProjectionResultErr errors.ErrorCode = "FailedToGetProjectionRe
 
 func (client *ClientImpl) GetProjectionResult(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	options ResultOptionsRequest) (ResultResponse, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return nil, err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
 
 	var headers, trailers metadata.MD
-	result, protoErr := client.projectionsClient.Result(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
+	result, protoErr := projectionsClient.Result(ctx, options.Build(), grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToGetProjectionResultErr)
 		return nil, err
@@ -192,11 +243,16 @@ func (client *ClientImpl) GetProjectionResult(
 
 const FailedToRestartProjectionsSubsystemErr errors.ErrorCode = "FailedToRestartProjectionsSubsystemErr"
 
-func (client *ClientImpl) RestartProjectionsSubsystem(
-	ctx context.Context,
-	handle connection.ConnectionHandle) errors.Error {
+func (client *ClientImpl) RestartProjectionsSubsystem(ctx context.Context) errors.Error {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return err
+	}
+
+	projectionsClient := client.grpcProjectionsClientFactory.Create(handle.Connection())
+
 	var headers, trailers metadata.MD
-	_, protoErr := client.projectionsClient.RestartSubsystem(ctx, &shared.Empty{},
+	_, protoErr := projectionsClient.RestartSubsystem(ctx, &shared.Empty{},
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
@@ -212,12 +268,12 @@ const (
 )
 
 func (client *ClientImpl) ListAllProjections(
-	ctx context.Context,
-	handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
+	ctx context.Context) ([]StatisticsClientResponse, errors.Error) {
+
 	options := StatisticsOptionsRequest{}
 	options.SetMode(StatisticsOptionsRequestModeAll{})
 
-	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+	statisticsClient, err := client.GetProjectionStatistics(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -240,12 +296,11 @@ func (client *ClientImpl) ListAllProjections(
 }
 
 func (client *ClientImpl) ListContinuousProjections(
-	ctx context.Context,
-	handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
+	ctx context.Context) ([]StatisticsClientResponse, errors.Error) {
 	options := StatisticsOptionsRequest{}
 	options.SetMode(StatisticsOptionsRequestModeContinuous{})
 
-	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+	statisticsClient, err := client.GetProjectionStatistics(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -268,12 +323,11 @@ func (client *ClientImpl) ListContinuousProjections(
 }
 
 func (client *ClientImpl) ListOneTimeProjections(
-	ctx context.Context,
-	handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
+	ctx context.Context) ([]StatisticsClientResponse, errors.Error) {
 	options := StatisticsOptionsRequest{}
 	options.SetMode(StatisticsOptionsRequestModeOneTime{})
 
-	statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+	statisticsClient, err := client.GetProjectionStatistics(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -297,9 +351,9 @@ func (client *ClientImpl) ListOneTimeProjections(
 
 func newClientImpl(
 	grpcClient connection.GrpcClient,
-	projectionsClient projections.ProjectionsClient) *ClientImpl {
+	grpcProjectionsClientFactory grpcProjectionsClientFactory) *ClientImpl {
 	return &ClientImpl{
-		projectionsClient: projectionsClient,
-		grpcClient:        grpcClient,
+		grpcProjectionsClientFactory: grpcProjectionsClientFactory,
+		grpcClient:                   grpcClient,
 	}
 }

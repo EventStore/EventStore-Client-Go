@@ -4,17 +4,15 @@ package projections
 
 import (
 	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 )
 
 type ClientFactory interface {
-	CreateClient(grpcClient connection.GrpcClient, projectionsClient projections.ProjectionsClient) Client
+	CreateClient(grpcClient connection.GrpcClient) Client
 }
 
 type ClientFactoryImpl struct{}
 
 func (clientFactory ClientFactoryImpl) CreateClient(
-	grpcClient connection.GrpcClient,
-	projectionsClient projections.ProjectionsClient) Client {
-	return newClientImpl(grpcClient, projectionsClient)
+	grpcClient connection.GrpcClient) Client {
+	return newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{})
 }

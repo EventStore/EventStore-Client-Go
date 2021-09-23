@@ -3,38 +3,80 @@ package event_streams
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/errors"
 )
 
 type Client interface {
 	AppendToStream(
 		ctx context.Context,
-		options AppendRequestContentOptions,
+		streamID string,
+		expectedStreamRevision IsAppendRequestExpectedStreamRevision,
 		events []ProposedEvent,
 	) (AppendResponse, errors.Error)
 
+	SetStreamMetadata(
+		ctx context.Context,
+		streamID string,
+		expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+		metadata StreamMetadata) (AppendResponse, errors.Error)
+
 	DeleteStream(
-		context context.Context,
-		deleteRequest DeleteRequest,
-	) (DeleteResponse, errors.Error)
+		ctx context.Context,
+		streamID string,
+		revision IsDeleteRequestExpectedStreamRevision) (DeleteResponse, errors.Error)
 
 	TombstoneStream(
-		context context.Context,
-		tombstoneRequest TombstoneRequest,
-	) (TombstoneResponse, errors.Error)
+		ctx context.Context,
+		streamID string,
+		revision IsTombstoneRequestExpectedStreamRevision) (TombstoneResponse, errors.Error)
+
+	GetStreamMetadata(
+		ctx context.Context,
+		streamID string) (StreamMetadataResult, errors.Error)
 
 	ReadStreamEvents(
 		ctx context.Context,
-		readRequest ReadRequest) ([]ReadResponseEvent, errors.Error)
+		streamID string,
+		direction ReadRequestDirection,
+		revision IsReadRequestStreamOptionsStreamRevision,
+		count uint64,
+		resolveLinks bool) (ReadResponseEventList, errors.Error)
 
-	ReadStreamEventsReader(
+	ReadAllEvents(
 		ctx context.Context,
-		readRequest ReadRequest) (ReadClient, errors.Error)
+		direction ReadRequestDirection,
+		position IsReadRequestOptionsAllPosition,
+		count uint64,
+		resolveLinks bool,
+	) (ReadResponseEventList, errors.Error)
+
+	GetStreamReader(
+		ctx context.Context,
+		streamID string,
+		direction ReadRequestDirection,
+		revision IsReadRequestStreamOptionsStreamRevision,
+		count uint64,
+		resolveLinks bool) (ReadClient, errors.Error)
+
+	GetAllEventsReader(
+		ctx context.Context,
+		direction ReadRequestDirection,
+		position IsReadRequestOptionsAllPosition,
+		count uint64,
+		resolveLinks bool,
+	) (ReadClient, errors.Error)
 
 	SubscribeToStream(
 		ctx context.Context,
-		handle connection.ConnectionHandle,
-		request SubscribeToStreamRequest,
+		streamID string,
+		revision IsSubscribeRequestStreamOptionsStreamRevision,
+		resolveLinks bool,
+	) (ReadClient, errors.Error)
+
+	SubscribeToAllFiltered(
+		ctx context.Context,
+		position IsSubscribeRequestOptionsAllPosition,
+		resolveLinks bool,
+		filter SubscribeRequestFilter,
 	) (ReadClient, errors.Error)
 }

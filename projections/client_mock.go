@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	connection "github.com/EventStore/EventStore-Client-Go/connection"
 	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -37,203 +36,203 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // AbortProjection mocks base method.
-func (m *MockClient) AbortProjection(ctx context.Context, handle connection.ConnectionHandle, options AbortOptionsRequest) errors.Error {
+func (m *MockClient) AbortProjection(ctx context.Context, options AbortOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AbortProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "AbortProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // AbortProjection indicates an expected call of AbortProjection.
-func (mr *MockClientMockRecorder) AbortProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) AbortProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortProjection", reflect.TypeOf((*MockClient)(nil).AbortProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortProjection", reflect.TypeOf((*MockClient)(nil).AbortProjection), ctx, options)
 }
 
 // CreateProjection mocks base method.
-func (m *MockClient) CreateProjection(ctx context.Context, handle connection.ConnectionHandle, options CreateOptionsRequest) errors.Error {
+func (m *MockClient) CreateProjection(ctx context.Context, options CreateOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "CreateProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // CreateProjection indicates an expected call of CreateProjection.
-func (mr *MockClientMockRecorder) CreateProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) CreateProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProjection", reflect.TypeOf((*MockClient)(nil).CreateProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateProjection", reflect.TypeOf((*MockClient)(nil).CreateProjection), ctx, options)
 }
 
 // DeleteProjection mocks base method.
-func (m *MockClient) DeleteProjection(ctx context.Context, handle connection.ConnectionHandle, options DeleteOptionsRequest) errors.Error {
+func (m *MockClient) DeleteProjection(ctx context.Context, options DeleteOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "DeleteProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // DeleteProjection indicates an expected call of DeleteProjection.
-func (mr *MockClientMockRecorder) DeleteProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) DeleteProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteProjection", reflect.TypeOf((*MockClient)(nil).DeleteProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteProjection", reflect.TypeOf((*MockClient)(nil).DeleteProjection), ctx, options)
 }
 
 // DisableProjection mocks base method.
-func (m *MockClient) DisableProjection(ctx context.Context, handle connection.ConnectionHandle, options DisableOptionsRequest) errors.Error {
+func (m *MockClient) DisableProjection(ctx context.Context, options DisableOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisableProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "DisableProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // DisableProjection indicates an expected call of DisableProjection.
-func (mr *MockClientMockRecorder) DisableProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) DisableProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableProjection", reflect.TypeOf((*MockClient)(nil).DisableProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisableProjection", reflect.TypeOf((*MockClient)(nil).DisableProjection), ctx, options)
 }
 
 // EnableProjection mocks base method.
-func (m *MockClient) EnableProjection(ctx context.Context, handle connection.ConnectionHandle, options EnableOptionsRequest) errors.Error {
+func (m *MockClient) EnableProjection(ctx context.Context, options EnableOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnableProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "EnableProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // EnableProjection indicates an expected call of EnableProjection.
-func (mr *MockClientMockRecorder) EnableProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) EnableProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableProjection", reflect.TypeOf((*MockClient)(nil).EnableProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableProjection", reflect.TypeOf((*MockClient)(nil).EnableProjection), ctx, options)
 }
 
 // GetProjectionResult mocks base method.
-func (m *MockClient) GetProjectionResult(ctx context.Context, handle connection.ConnectionHandle, options ResultOptionsRequest) (ResultResponse, errors.Error) {
+func (m *MockClient) GetProjectionResult(ctx context.Context, options ResultOptionsRequest) (ResultResponse, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProjectionResult", ctx, handle, options)
+	ret := m.ctrl.Call(m, "GetProjectionResult", ctx, options)
 	ret0, _ := ret[0].(ResultResponse)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
 // GetProjectionResult indicates an expected call of GetProjectionResult.
-func (mr *MockClientMockRecorder) GetProjectionResult(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetProjectionResult(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectionResult", reflect.TypeOf((*MockClient)(nil).GetProjectionResult), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectionResult", reflect.TypeOf((*MockClient)(nil).GetProjectionResult), ctx, options)
 }
 
 // GetProjectionState mocks base method.
-func (m *MockClient) GetProjectionState(ctx context.Context, handle connection.ConnectionHandle, options StateOptionsRequest) (StateResponse, errors.Error) {
+func (m *MockClient) GetProjectionState(ctx context.Context, options StateOptionsRequest) (StateResponse, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProjectionState", ctx, handle, options)
+	ret := m.ctrl.Call(m, "GetProjectionState", ctx, options)
 	ret0, _ := ret[0].(StateResponse)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
 // GetProjectionState indicates an expected call of GetProjectionState.
-func (mr *MockClientMockRecorder) GetProjectionState(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetProjectionState(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectionState", reflect.TypeOf((*MockClient)(nil).GetProjectionState), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectionState", reflect.TypeOf((*MockClient)(nil).GetProjectionState), ctx, options)
 }
 
 // GetProjectionStatistics mocks base method.
-func (m *MockClient) GetProjectionStatistics(ctx context.Context, handle connection.ConnectionHandle, options StatisticsOptionsRequest) (StatisticsClientSync, errors.Error) {
+func (m *MockClient) GetProjectionStatistics(ctx context.Context, options StatisticsOptionsRequest) (StatisticsClientSync, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProjectionStatistics", ctx, handle, options)
+	ret := m.ctrl.Call(m, "GetProjectionStatistics", ctx, options)
 	ret0, _ := ret[0].(StatisticsClientSync)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
 // GetProjectionStatistics indicates an expected call of GetProjectionStatistics.
-func (mr *MockClientMockRecorder) GetProjectionStatistics(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetProjectionStatistics(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectionStatistics", reflect.TypeOf((*MockClient)(nil).GetProjectionStatistics), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectionStatistics", reflect.TypeOf((*MockClient)(nil).GetProjectionStatistics), ctx, options)
 }
 
 // ListAllProjections mocks base method.
-func (m *MockClient) ListAllProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
+func (m *MockClient) ListAllProjections(ctx context.Context) ([]StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAllProjections", ctx, handle)
+	ret := m.ctrl.Call(m, "ListAllProjections", ctx)
 	ret0, _ := ret[0].([]StatisticsClientResponse)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
 // ListAllProjections indicates an expected call of ListAllProjections.
-func (mr *MockClientMockRecorder) ListAllProjections(ctx, handle interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) ListAllProjections(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllProjections", reflect.TypeOf((*MockClient)(nil).ListAllProjections), ctx, handle)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllProjections", reflect.TypeOf((*MockClient)(nil).ListAllProjections), ctx)
 }
 
 // ListContinuousProjections mocks base method.
-func (m *MockClient) ListContinuousProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
+func (m *MockClient) ListContinuousProjections(ctx context.Context) ([]StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListContinuousProjections", ctx, handle)
+	ret := m.ctrl.Call(m, "ListContinuousProjections", ctx)
 	ret0, _ := ret[0].([]StatisticsClientResponse)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
 // ListContinuousProjections indicates an expected call of ListContinuousProjections.
-func (mr *MockClientMockRecorder) ListContinuousProjections(ctx, handle interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) ListContinuousProjections(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListContinuousProjections", reflect.TypeOf((*MockClient)(nil).ListContinuousProjections), ctx, handle)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListContinuousProjections", reflect.TypeOf((*MockClient)(nil).ListContinuousProjections), ctx)
 }
 
 // ListOneTimeProjections mocks base method.
-func (m *MockClient) ListOneTimeProjections(ctx context.Context, handle connection.ConnectionHandle) ([]StatisticsClientResponse, errors.Error) {
+func (m *MockClient) ListOneTimeProjections(ctx context.Context) ([]StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListOneTimeProjections", ctx, handle)
+	ret := m.ctrl.Call(m, "ListOneTimeProjections", ctx)
 	ret0, _ := ret[0].([]StatisticsClientResponse)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
 // ListOneTimeProjections indicates an expected call of ListOneTimeProjections.
-func (mr *MockClientMockRecorder) ListOneTimeProjections(ctx, handle interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) ListOneTimeProjections(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOneTimeProjections", reflect.TypeOf((*MockClient)(nil).ListOneTimeProjections), ctx, handle)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOneTimeProjections", reflect.TypeOf((*MockClient)(nil).ListOneTimeProjections), ctx)
 }
 
 // ResetProjection mocks base method.
-func (m *MockClient) ResetProjection(ctx context.Context, handle connection.ConnectionHandle, options ResetOptionsRequest) errors.Error {
+func (m *MockClient) ResetProjection(ctx context.Context, options ResetOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResetProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "ResetProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // ResetProjection indicates an expected call of ResetProjection.
-func (mr *MockClientMockRecorder) ResetProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) ResetProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetProjection", reflect.TypeOf((*MockClient)(nil).ResetProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetProjection", reflect.TypeOf((*MockClient)(nil).ResetProjection), ctx, options)
 }
 
 // RestartProjectionsSubsystem mocks base method.
-func (m *MockClient) RestartProjectionsSubsystem(ctx context.Context, handle connection.ConnectionHandle) errors.Error {
+func (m *MockClient) RestartProjectionsSubsystem(ctx context.Context) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RestartProjectionsSubsystem", ctx, handle)
+	ret := m.ctrl.Call(m, "RestartProjectionsSubsystem", ctx)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // RestartProjectionsSubsystem indicates an expected call of RestartProjectionsSubsystem.
-func (mr *MockClientMockRecorder) RestartProjectionsSubsystem(ctx, handle interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) RestartProjectionsSubsystem(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestartProjectionsSubsystem", reflect.TypeOf((*MockClient)(nil).RestartProjectionsSubsystem), ctx, handle)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestartProjectionsSubsystem", reflect.TypeOf((*MockClient)(nil).RestartProjectionsSubsystem), ctx)
 }
 
 // UpdateProjection mocks base method.
-func (m *MockClient) UpdateProjection(ctx context.Context, handle connection.ConnectionHandle, options UpdateOptionsRequest) errors.Error {
+func (m *MockClient) UpdateProjection(ctx context.Context, options UpdateOptionsRequest) errors.Error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateProjection", ctx, handle, options)
+	ret := m.ctrl.Call(m, "UpdateProjection", ctx, options)
 	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
 // UpdateProjection indicates an expected call of UpdateProjection.
-func (mr *MockClientMockRecorder) UpdateProjection(ctx, handle, options interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) UpdateProjection(ctx, options interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProjection", reflect.TypeOf((*MockClient)(nil).UpdateProjection), ctx, handle, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProjection", reflect.TypeOf((*MockClient)(nil).UpdateProjection), ctx, options)
 }

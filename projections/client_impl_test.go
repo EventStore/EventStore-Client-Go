@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 
@@ -13,10 +15,6 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
-
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
-
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/stretchr/testify/require"
 
@@ -28,11 +26,9 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := CreateOptionsRequest{}
 	options.SetQuery("some query")
 	options.SetMode(CreateConfigModeContinuousOption{
@@ -43,20 +39,47 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Create(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
+		var headers, trailers metadata.MD
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Create(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.CreateProjection(ctx, handle, options)
+		err := client.CreateProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.CreateProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -70,6 +93,10 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Create(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -91,11 +118,11 @@ func TestClientImpl_CreateProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			grpcClient:                   grpcClient,
 		}
 
-		err := client.CreateProjection(ctx, handle, options)
+		err := client.CreateProjection(ctx, options)
 		require.Equal(t, FailedToCreateProjectionErr, err.Code())
 	})
 }
@@ -104,10 +131,9 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := UpdateOptionsRequest{}
 	options.SetName("some name").
 		SetQuery("some query").
@@ -118,20 +144,49 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Update(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Update(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.UpdateProjection(ctx, handle, options)
+		err := client.UpdateProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.UpdateProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -145,6 +200,10 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Update(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -166,11 +225,11 @@ func TestClientImpl_UpdateProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.UpdateProjection(ctx, handle, options)
+		err := client.UpdateProjection(ctx, options)
 		require.Equal(t, FailedToUpdateProjectionErr, err.Code())
 	})
 }
@@ -179,30 +238,57 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := DeleteOptionsRequest{}
 	options.SetName("some name")
 
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Delete(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Delete(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.DeleteProjection(ctx, handle, options)
+		err := client.DeleteProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.DeleteProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -216,6 +302,10 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Delete(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -237,11 +327,11 @@ func TestClientImpl_DeleteProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.DeleteProjection(ctx, handle, options)
+		err := client.DeleteProjection(ctx, options)
 		require.Equal(t, FailedToDeleteProjectionErr, err.Code())
 	})
 }
@@ -250,31 +340,58 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := StatisticsOptionsRequest{}
 	options.SetMode(StatisticsOptionsRequestModeAll{})
 
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+		statisticsClient, err := client.GetProjectionStatistics(ctx, options)
 		require.NotNil(t, statisticsClient)
 		require.NoError(t, err)
 	})
 
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		_, err := client.GetProjectionStatistics(ctx, options)
+		require.Equal(t, errorResult, err)
+	})
+
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -288,6 +405,10 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -309,11 +430,11 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			grpcClient:                   grpcClient,
 		}
 
-		statisticsClient, err := client.GetProjectionStatistics(ctx, handle, options)
+		statisticsClient, err := client.GetProjectionStatistics(ctx, options)
 		require.Nil(t, statisticsClient)
 		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
@@ -323,29 +444,56 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := DisableOptionsRequest{}
 	options.SetName("some name")
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.DisableProjection(ctx, handle, options)
+		err := client.DisableProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.DisableProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -359,6 +507,10 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -380,11 +532,11 @@ func TestClientImpl_DisableProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			grpcClient:                   grpcClient,
 		}
 
-		err := client.DisableProjection(ctx, handle, options)
+		err := client.DisableProjection(ctx, options)
 		require.Equal(t, FailedToDisableProjectionErr, err.Code())
 	})
 }
@@ -393,29 +545,56 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := AbortOptionsRequest{}
 	options.SetName("some name")
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.AbortProjection(ctx, handle, options)
+		err := client.AbortProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.AbortProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -429,6 +608,10 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Disable(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -450,11 +633,11 @@ func TestClientImpl_AbortProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.AbortProjection(ctx, handle, options)
+		err := client.AbortProjection(ctx, options)
 		require.Equal(t, FailedToAbortProjectionErr, err.Code())
 	})
 }
@@ -463,29 +646,56 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := EnableOptionsRequest{}
 	options.SetName("some name")
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
-		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Enable(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
+		var headers, trailers metadata.MD
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Enable(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.EnableProjection(ctx, handle, options)
+		err := client.EnableProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.EnableProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -499,6 +709,10 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Enable(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -520,10 +734,10 @@ func TestClientImpl_EnableProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
-		err := client.EnableProjection(ctx, handle, options)
+		err := client.EnableProjection(ctx, options)
 		require.Equal(t, FailedToEnableProjectionErr, err.Code())
 	})
 }
@@ -532,29 +746,57 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := ResetOptionsRequest{}
 	options.SetName("some name").SetWriteCheckpoint(true)
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Reset(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Reset(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.ResetProjection(ctx, handle, options)
+		err := client.ResetProjection(ctx, options)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.ResetProjection(ctx, options)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -568,6 +810,10 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Reset(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -589,11 +835,11 @@ func TestClientImpl_ResetProjection(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.ResetProjection(ctx, handle, options)
+		err := client.ResetProjection(ctx, options)
 		require.Equal(t, FailedToResetProjectionErr, err.Code())
 	})
 }
@@ -602,10 +848,9 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := StateOptionsRequest{}
 	options.SetName("some name").SetPartition("some partition")
 	grpcOptions := options.Build()
@@ -617,23 +862,52 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().State(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(response, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().State(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(response, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
 		expectedStateResponse := newStateResponse(response)
 
-		state, err := client.GetProjectionState(ctx, handle, options)
+		state, err := client.GetProjectionState(ctx, options)
 		require.Equal(t, expectedStateResponse, state)
 		require.NoError(t, err)
 	})
 
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		_, err := client.GetProjectionState(ctx, options)
+		require.Equal(t, errorResult, err)
+	})
+
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -647,6 +921,10 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().State(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -668,11 +946,11 @@ func TestClientImpl_ProjectionState(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		state, err := client.GetProjectionState(ctx, handle, options)
+		state, err := client.GetProjectionState(ctx, options)
 		require.Nil(t, state)
 		require.Equal(t, FailedToGetProjectionStateErr, err.Code())
 	})
@@ -682,10 +960,9 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := ResultOptionsRequest{}
 	options.SetName("some name").SetPartition("some partition")
 	grpcOptions := options.Build()
@@ -697,23 +974,52 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Result(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(response, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Result(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(response, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
 		expectedStateResponse := newResultResponse(response)
 
-		state, err := client.GetProjectionResult(ctx, handle, options)
+		state, err := client.GetProjectionResult(ctx, options)
 		require.Equal(t, expectedStateResponse, state)
 		require.NoError(t, err)
 	})
 
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		_, err := client.GetProjectionResult(ctx, options)
+		require.Equal(t, errorResult, err)
+	})
+
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -727,6 +1033,10 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Result(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -748,11 +1058,11 @@ func TestClientImpl_ProjectionResult(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		state, err := client.GetProjectionResult(ctx, handle, options)
+		state, err := client.GetProjectionResult(ctx, options)
 		require.Nil(t, state)
 		require.Equal(t, FailedToGetProjectionResultErr, err.Code())
 	})
@@ -762,38 +1072,79 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcClientConn := &grpc.ClientConn{}
 	ctx := context.Background()
 
 	t.Run("Success with RestartSubsystem return nil", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.RestartProjectionsSubsystem(ctx, handle)
+		err := client.RestartProjectionsSubsystem(ctx)
 		require.NoError(t, err)
 	})
 
 	t.Run("Success with RestartSubsystem return &shared.Empty{}", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(&shared.Empty{}, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(&shared.Empty{}, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.RestartProjectionsSubsystem(ctx, handle)
+		err := client.RestartProjectionsSubsystem(ctx)
 		require.NoError(t, err)
+	})
+
+	t.Run("Error when obtaining connection", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		errorResult := errors.NewErrorCode("some error")
+		grpcClient.EXPECT().GetConnectionHandle().Return(nil, errorResult)
+
+		client := ClientImpl{
+			grpcClient: grpcClient,
+		}
+
+		err := client.RestartProjectionsSubsystem(ctx)
+		require.Equal(t, errorResult, err)
 	})
 
 	t.Run("Error returned from grpc", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -807,6 +1158,10 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().RestartSubsystem(ctx, &shared.Empty{},
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -829,11 +1184,11 @@ func TestClientImpl_RestartProjectionsSubsystem(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		err := client.RestartProjectionsSubsystem(ctx, handle)
+		err := client.RestartProjectionsSubsystem(ctx)
 		require.Equal(t, FailedToRestartProjectionsSubsystemErr, err.Code())
 	})
 }
@@ -842,18 +1197,21 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-	statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
-
 	ctx := context.Background()
 
+	grpcClientConn := &grpc.ClientConn{}
 	options := StatisticsOptionsRequest{}
 	options.SetMode(StatisticsOptionsRequestModeAll{})
 
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
 		responseList := []*projections.StatisticsResp{
 			{
 				Details: &projections.StatisticsResp_Details{
@@ -874,14 +1232,22 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		statisticsClient.EXPECT().Recv().Return(nil, io.EOF)
 
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
+		allProjectionsResult, err := client.ListAllProjections(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, allProjectionsResult)
 		require.Len(t, allProjectionsResult, len(responseList))
@@ -889,6 +1255,9 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 
 	t.Run("Error returned from Statistics", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -902,6 +1271,10 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -924,29 +1297,43 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
+		allProjectionsResult, err := client.ListAllProjections(ctx)
 		require.Error(t, err)
 		require.Nil(t, allProjectionsResult)
 		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 
 	t.Run("Error returned from statistics client read", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
 		errorResult := errors.NewErrorCode("some error")
-		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
 
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+			statisticsClient.EXPECT().Recv().Return(nil, errorResult),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListAllProjections(ctx, handle)
+		allProjectionsResult, err := client.ListAllProjections(ctx)
 		require.Error(t, err)
 		require.Equal(t, FailedToReadStatistics, err.Code())
 		require.Nil(t, allProjectionsResult)
@@ -957,10 +1344,7 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-	statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
-
+	grpcClientConn := &grpc.ClientConn{}
 	ctx := context.Background()
 
 	options := StatisticsOptionsRequest{}
@@ -969,6 +1353,12 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
 		var headers, trailers metadata.MD
 		responseList := []*projections.StatisticsResp{
 			{
@@ -983,20 +1373,25 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 			},
 		}
 
-		for _, item := range responseList {
-			statisticsClient.EXPECT().Recv().Return(item, nil)
-		}
-
-		statisticsClient.EXPECT().Recv().Return(nil, io.EOF)
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			statisticsClient.EXPECT().Recv().Return(responseList[0], nil),
+			statisticsClient.EXPECT().Recv().Return(responseList[1], nil),
+			statisticsClient.EXPECT().Recv().Return(nil, io.EOF),
+		)
 
 		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		projectionsResult, err := client.ListContinuousProjections(ctx, handle)
+		projectionsResult, err := client.ListContinuousProjections(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, projectionsResult)
 		require.Len(t, projectionsResult, len(responseList))
@@ -1004,6 +1399,9 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 
 	t.Run("Error returned from Statistics", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -1017,6 +1415,10 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -1039,29 +1441,43 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListContinuousProjections(ctx, handle)
+		allProjectionsResult, err := client.ListContinuousProjections(ctx)
 		require.Error(t, err)
 		require.Nil(t, allProjectionsResult)
 		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 
 	t.Run("Error returned from statistics client read", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
 		errorResult := errors.NewErrorCode("some error")
-		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
 
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+			statisticsClient.EXPECT().Recv().Return(nil, errorResult),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListContinuousProjections(ctx, handle)
+		allProjectionsResult, err := client.ListContinuousProjections(ctx)
 		require.Error(t, err)
 		require.Equal(t, FailedToReadStatistics, err.Code())
 		require.Nil(t, allProjectionsResult)
@@ -1072,10 +1488,7 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-	statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
-
+	grpcClientConn := &grpc.ClientConn{}
 	ctx := context.Background()
 
 	options := StatisticsOptionsRequest{}
@@ -1084,6 +1497,12 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 	grpcOptions := options.Build()
 
 	t.Run("Success", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
 		var headers, trailers metadata.MD
 		responseList := []*projections.StatisticsResp{
 			{
@@ -1098,20 +1517,25 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 			},
 		}
 
-		for _, item := range responseList {
-			statisticsClient.EXPECT().Recv().Return(item, nil)
-		}
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
 
-		statisticsClient.EXPECT().Recv().Return(nil, io.EOF)
-
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+			statisticsClient.EXPECT().Recv().Return(responseList[0], nil),
+			statisticsClient.EXPECT().Recv().Return(responseList[1], nil),
+			statisticsClient.EXPECT().Recv().Return(nil, io.EOF),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		projectionsResult, err := client.ListOneTimeProjections(ctx, handle)
+		projectionsResult, err := client.ListOneTimeProjections(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, projectionsResult)
 		require.Len(t, projectionsResult, len(responseList))
@@ -1119,6 +1543,9 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 
 	t.Run("Error returned from Statistics", func(t *testing.T) {
 		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 
 		errorResult := errors.NewErrorCode("some error")
 		expectedHeader := metadata.MD{
@@ -1132,6 +1559,10 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 		var headers, trailers metadata.MD
 
 		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).
 				DoAndReturn(func(
@@ -1153,29 +1584,44 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
-			grpcClient:        grpcClient,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListOneTimeProjections(ctx, handle)
+		allProjectionsResult, err := client.ListOneTimeProjections(ctx)
 		require.Error(t, err)
 		require.Nil(t, allProjectionsResult)
 		require.Equal(t, FailedToFetchProjectionStatisticsErr, err.Code())
 	})
 
 	t.Run("Error returned from statistics client read", func(t *testing.T) {
+		grpcClient := connection.NewMockGrpcClient(ctrl)
+		handle := connection.NewMockConnectionHandle(ctrl)
+		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
+		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
+
 		errorResult := errors.NewErrorCode("some error")
 		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
 
 		var headers, trailers metadata.MD
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
+
+		gomock.InOrder(
+			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+			handle.EXPECT().Connection().Return(grpcClientConn),
+			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
+				Return(grpcProjectionsClientMock),
+
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+		)
 
 		client := ClientImpl{
-			projectionsClient: grpcProjectionsClientMock,
+			grpcClient:                   grpcClient,
+			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
 		}
 
-		allProjectionsResult, err := client.ListOneTimeProjections(ctx, handle)
+		allProjectionsResult, err := client.ListOneTimeProjections(ctx)
 		require.Error(t, err)
 		require.Equal(t, FailedToReadStatistics, err.Code())
 		require.Nil(t, allProjectionsResult)

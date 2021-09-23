@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/errors"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -28,6 +27,9 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
 	expectedSyncReadConnection := NewMockSyncReadConnection(ctrl)
@@ -43,13 +45,17 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 		},
 	}
 
+	grpcClientConn := &grpc.ClientConn{}
 	messageAdapterInstance := messageAdapterImpl{}
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
 
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().
-			Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
 		persistentReadClient.EXPECT().Recv().Return(protoReadResponse, nil),
@@ -60,15 +66,38 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		syncReadConnectionFactory:    syncReadConnectionFactory,
-		messageAdapterProvider:       messageAdapterProviderInstance,
+		grpcClient:                    grpcClient,
+		syncReadConnectionFactory:     syncReadConnectionFactory,
+		messageAdapterProvider:        messageAdapterProviderInstance,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
-	handle := connection.NewMockConnectionHandle(ctrl)
 
-	resultSyncReadConnection, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
+	resultSyncReadConnection, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
 	require.NoError(t, err)
 	require.Equal(t, expectedSyncReadConnection, resultSyncReadConnection)
+}
+
+func Test_Client_CreateSyncConnection_GetHandleConnectionError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	defer ctrl.Finish()
+
+	ctx := context.Background()
+	var bufferSize int32 = 2
+	groupName := "group 1"
+	streamName := "stream name"
+
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+
+	expectedError := errors.NewErrorCode("new error")
+	grpcClient.EXPECT().GetConnectionHandle().Return(nil, expectedError)
+
+	client := clientImpl{
+		grpcClient: grpcClient,
+	}
+
+	_, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
+	require.Equal(t, expectedError, err)
 }
 
 func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
@@ -81,9 +110,16 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 	groupName := "group 1"
 	streamName := "stream name"
 
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
-	expectedError := errors.NewErrorCode("new error")
+	grpcClientConn := &grpc.ClientConn{}
+	readError := errors.NewErrorCode("new error")
+	expectedError := errors.NewErrorCode(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr)
+	var headers, trailers metadata.MD
+	cancelCtx, _ := context.WithCancel(ctx)
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -92,14 +128,13 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 		"trailer_key": []string{"trailer_value"},
 	}
 
-	grpcClient := connection.NewMockGrpcClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-
-	var headers, trailers metadata.MD
-	canceContext, _ := context.WithCancel(ctx)
-
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().Read(canceContext, grpc.Header(&headers), grpc.Trailer(&trailers)).
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
 				_ctx context.Context,
 				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
@@ -111,20 +146,18 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 				*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
 					"trailer_key": []string{"trailer_value"},
 				}
-				return nil, expectedError
+				return nil, readError
 			}),
-		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, expectedError,
-			SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr).Return(
-			errors.NewErrorCode(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr)),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, readError,
+			SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr).Return(expectedError),
 	)
-
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr, err.Code())
+	_, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
+	require.Equal(t, expectedError, err)
 }
 
 func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitializationErr(t *testing.T) {
@@ -139,27 +172,33 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
-	grpcClient := connection.NewMockGrpcClient(ctrl)
 
+	grpcClientConn := &grpc.ClientConn{}
 	expectedError := errors.NewErrorCode("new error")
 
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(expectedError),
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
+	_, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
 	require.Equal(t, SubscribeToStreamSync_FailedToSendStreamInitializationErr, err.Code())
 }
 
@@ -175,27 +214,58 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 
-	expectedError := errors.NewErrorCode("new error")
+	grpcClientConn := &grpc.ClientConn{}
+	readError := errors.NewErrorCode("new error")
+	expectdError := errors.NewErrorCode("expected error")
+	expectedHeader := metadata.MD{
+		"header_key": []string{"header_value"},
+	}
+
+	expectedTrailer := metadata.MD{
+		"trailer_key": []string{"trailer_value"},
+	}
 
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
 	gomock.InOrder(
-		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
-			Return(persistentReadClient, nil),
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).
+			DoAndReturn(func(
+				_ctx context.Context,
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
+
+				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+					"header_key": []string{"header_value"},
+				}
+
+				*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+					"trailer_key": []string{"trailer_value"},
+				}
+				return persistentReadClient, nil
+			}),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
-		persistentReadClient.EXPECT().Recv().Return(nil, expectedError),
+		persistentReadClient.EXPECT().Recv().Return(nil, readError),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, readError,
+			SubscribeToStreamSync_FailedToReceiveStreamInitializationErr).Return(expectdError),
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_FailedToReceiveStreamInitializationErr, err.Code())
+	_, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
+	require.Equal(t, expectdError, err)
 }
 
 func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T) {
@@ -210,17 +280,25 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 
 	protoSendRequest := toPersistentReadRequest(bufferSize, groupName, streamName)
 
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 
+	grpcClientConn := &grpc.ClientConn{}
 	protoReadResponse := &persistent.ReadResp{
 		Content: &persistent.ReadResp_Event{},
 	}
 
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
+
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			Return(persistentReadClient, nil),
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
@@ -228,10 +306,11 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	_, err := client.SubscribeToStreamSync(ctx, handle, bufferSize, groupName, streamName)
+	_, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
 	require.Equal(t, SubscribeToStreamSync_NoSubscriptionConfirmationErr, err.Code())
 }
 
@@ -249,19 +328,30 @@ func Test_Client_CreateStreamSubscription_Success(t *testing.T) {
 		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.BuildCreateStreamRequest()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	grpcClient := connection.NewMockGrpcClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.BuildCreateStreamRequest()
 
+	grpcClientConn := &grpc.ClientConn{}
 	var headers, trailers metadata.MD
-	persistentSubscriptionClient.EXPECT().Create(ctx, expectedProtoRequest,
-		grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil)
+
+	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Create(ctx, expectedProtoRequest,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil),
+	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.CreateStreamSubscription(ctx, handle, config)
+	err := client.CreateStreamSubscription(ctx, config)
 	require.NoError(t, err)
 }
 
@@ -279,11 +369,13 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.BuildCreateStreamRequest()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.BuildCreateStreamRequest()
 
+	grpcClientConn := &grpc.ClientConn{}
 	clientError := errors.NewErrorCode("some error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
@@ -296,6 +388,10 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 	var headers, trailers metadata.MD
 
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().
 			Create(ctx, expectedProtoRequest, grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
@@ -318,11 +414,11 @@ func Test_Client_CreateStreamSubscription_FailedToCreateSubscription(t *testing.
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.CreateStreamSubscription(ctx, handle, config)
+	err := client.CreateStreamSubscription(ctx, config)
 	require.Equal(t, CreateStreamSubscription_FailedToCreatePermanentSubscriptionErr, err.Code())
 }
 
@@ -348,19 +444,30 @@ func Test_Client_CreateAllSubscription_Success(t *testing.T) {
 		Settings: DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.Build()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	grpcClient := connection.NewMockGrpcClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.Build()
 
+	grpcClientConn := &grpc.ClientConn{}
 	var headers, trailers metadata.MD
-	persistentSubscriptionClient.EXPECT().Create(ctx, expectedProtoRequest,
-		grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil)
+
+	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Create(ctx, expectedProtoRequest,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil),
+	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.CreateAllSubscription(ctx, handle, config)
+	err := client.CreateAllSubscription(ctx, config)
 	require.NoError(t, err)
 }
 
@@ -386,11 +493,13 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 		Settings: DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.Build()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.Build()
 
+	grpcClientConn := &grpc.ClientConn{}
 	errorResult := errors.NewErrorCode("some error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
@@ -402,6 +511,10 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 
 	var headers, trailers metadata.MD
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Create(ctx, expectedProtoRequest,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
@@ -424,11 +537,11 @@ func Test_Client_CreateAllSubscription_CreateFailure(t *testing.T) {
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.CreateAllSubscription(ctx, handle, config)
+	err := client.CreateAllSubscription(ctx, config)
 	require.Equal(t, CreateAllSubscription_FailedToCreatePermanentSubscriptionErr, err.Code())
 }
 
@@ -446,19 +559,30 @@ func Test_Client_UpdateStreamSubscription_Success(t *testing.T) {
 		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.BuildUpdateStreamRequest()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	grpcClient := connection.NewMockGrpcClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.BuildUpdateStreamRequest()
 
+	grpcClientConn := &grpc.ClientConn{}
 	var headers, trailers metadata.MD
-	persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
-		grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil)
+
+	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil),
+	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.UpdateStreamSubscription(ctx, handle, config)
+	err := client.UpdateStreamSubscription(ctx, config)
 	require.NoError(t, err)
 }
 
@@ -476,11 +600,13 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 		Settings:   DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.BuildUpdateStreamRequest()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.BuildUpdateStreamRequest()
 
+	grpcClientConn := &grpc.ClientConn{}
 	errorResult := errors.NewErrorCode("some error")
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
@@ -493,6 +619,10 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 	var headers, trailers metadata.MD
 
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
@@ -515,11 +645,11 @@ func Test_Client_UpdateStreamSubscription_Failure(t *testing.T) {
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.UpdateStreamSubscription(ctx, handle, config)
+	err := client.UpdateStreamSubscription(ctx, config)
 	require.Equal(t, UpdateStreamSubscription_FailedToUpdateErr, err.Code())
 }
 
@@ -536,19 +666,30 @@ func Test_Client_UpdateAllSubscription_Success(t *testing.T) {
 		Settings:  DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.Build()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	grpcClient := connection.NewMockGrpcClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.Build()
 
+	grpcClientConn := &grpc.ClientConn{}
 	var headers, trailers metadata.MD
-	persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
-		grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil)
+
+	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil),
+	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.UpdateAllSubscription(ctx, handle, config)
+	err := client.UpdateAllSubscription(ctx, config)
 	require.NoError(t, err)
 }
 
@@ -565,11 +706,13 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 		Settings:  DefaultRequestSettings,
 	}
 
-	expectedProtoRequest := config.Build()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.Build()
 
+	grpcClientConn := &grpc.ClientConn{}
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -582,6 +725,10 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 
 	errorResult := errors.NewErrorCode("some error")
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Update(ctx, expectedProtoRequest,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
@@ -604,11 +751,11 @@ func Test_Client_UpdateAllSubscription_Failure(t *testing.T) {
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.UpdateAllSubscription(ctx, handle, config)
+	err := client.UpdateAllSubscription(ctx, config)
 	require.Equal(t, UpdateAllSubscription_FailedToUpdateErr, err.Code())
 }
 
@@ -624,19 +771,30 @@ func Test_Client_DeleteStreamSubscription_Success(t *testing.T) {
 		GroupName:  "some group name",
 	}
 
+	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	expectedProtoRequest := config.Build()
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 
+	grpcClientConn := &grpc.ClientConn{}
 	var headers, trailers metadata.MD
-	persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
-		grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil)
+
+	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil),
+	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.DeleteStreamSubscription(ctx, handle, config)
+	err := client.DeleteStreamSubscription(ctx, config)
 	require.NoError(t, err)
 }
 
@@ -652,11 +810,13 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 		GroupName:  "some group name",
 	}
 
-	expectedProtoRequest := config.Build()
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := config.Build()
 
+	grpcClientConn := &grpc.ClientConn{}
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -669,6 +829,10 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 	errorResult := errors.NewErrorCode("some error")
 
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
@@ -691,11 +855,11 @@ func Test_Client_DeleteStreamSubscription_Failure(t *testing.T) {
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.DeleteStreamSubscription(ctx, handle, config)
+	err := client.DeleteStreamSubscription(ctx, config)
 	require.Equal(t, DeleteStreamSubscription_FailedToDeleteErr, err.Code())
 }
 
@@ -706,19 +870,30 @@ func Test_Client_DeleteAllSubscription_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	expectedProtoRequest := deleteRequestAllOptionsProto("some group")
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	grpcClient := connection.NewMockGrpcClient(ctrl)
 	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
+	expectedProtoRequest := deleteRequestAllOptionsProto("some group")
 
+	grpcClientConn := &grpc.ClientConn{}
 	var headers, trailers metadata.MD
-	persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
-		grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil)
+
+	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
+		persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).Return(nil, nil),
+	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.DeleteAllSubscription(ctx, handle, "some group")
+	err := client.DeleteAllSubscription(ctx, "some group")
 	require.NoError(t, err)
 }
 
@@ -732,10 +907,12 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 	groupName := "group name"
 	expectedProtoRequest := deleteRequestAllOptionsProto(groupName)
 
-	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
-	handle := connection.NewMockConnectionHandle(ctrl)
 	grpcClient := connection.NewMockGrpcClient(ctrl)
+	handle := connection.NewMockConnectionHandle(ctrl)
+	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
+	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 
+	grpcClientConn := &grpc.ClientConn{}
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -745,10 +922,13 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 	}
 
 	var headers, trailers metadata.MD
-
 	errorResult := errors.NewErrorCode("some error")
 
 	gomock.InOrder(
+		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
+		handle.EXPECT().Connection().Return(grpcClientConn),
+		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
+			Return(persistentSubscriptionClient),
 		persistentSubscriptionClient.EXPECT().Delete(ctx, expectedProtoRequest,
 			grpc.Header(&headers), grpc.Trailer(&trailers)).
 			DoAndReturn(func(
@@ -771,10 +951,10 @@ func Test_Client_DeleteAllSubscription_Failure(t *testing.T) {
 	)
 
 	client := clientImpl{
-		persistentSubscriptionClient: persistentSubscriptionClient,
-		grpcClient:                   grpcClient,
+		grpcClient:                    grpcClient,
+		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
-	err := client.DeleteAllSubscription(ctx, handle, groupName)
+	err := client.DeleteAllSubscription(ctx, groupName)
 	require.Equal(t, DeleteAllSubscription_FailedToDeleteErr, err.Code())
 }

@@ -51,7 +51,7 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 	deletedStream := "deleted_stream"
 	linkedStream := "linked_stream"
 
-	_, err := client.AppendToStream(context.Background(),
+	_, err := client.EventStreams().AppendToStream(context.Background(),
 		deletedStream,
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		testCreateEvents(1))
@@ -62,20 +62,20 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 		MaxCount: &two,
 	}
 
-	_, err = client.SetStreamMetadata(context.Background(),
+	_, err = client.EventStreams().SetStreamMetadata(context.Background(),
 		deletedStream,
 		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		streamMetaData,
 	)
 	require.NoError(t, err)
 
-	_, err = client.AppendToStream(context.Background(),
+	_, err = client.EventStreams().AppendToStream(context.Background(),
 		deletedStream,
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		testCreateEvents(1))
 	require.NoError(t, err)
 
-	_, err = client.AppendToStream(context.Background(),
+	_, err = client.EventStreams().AppendToStream(context.Background(),
 		deletedStream,
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		testCreateEvents(1))
@@ -89,13 +89,13 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 		Data:         []byte("0@" + deletedStream),
 		UserMetadata: []byte{},
 	}
-	_, err = client.AppendToStream(context.Background(),
+	_, err = client.EventStreams().AppendToStream(context.Background(),
 		linkedStream,
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		[]event_streams.ProposedEvent{linkedEvent})
 	require.NoError(t, err)
 
-	readEvents, err := client.ReadStreamEvents(context.Background(),
+	readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 		linkedStream,
 		event_streams.ReadRequestDirectionForward,
 		event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -119,7 +119,7 @@ func Test_Read_Forwards_Linked_Stream(t *testing.T) {
 	deletedStream := "deleted_stream"
 	linkedStream := "linked_stream"
 
-	_, err := client.AppendToStream(context.Background(),
+	_, err := client.EventStreams().AppendToStream(context.Background(),
 		deletedStream,
 		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		testCreateEvents(1))
@@ -133,18 +133,18 @@ func Test_Read_Forwards_Linked_Stream(t *testing.T) {
 		Data:         []byte("0@" + deletedStream),
 		UserMetadata: []byte{},
 	}
-	_, err = client.AppendToStream(context.Background(),
+	_, err = client.EventStreams().AppendToStream(context.Background(),
 		linkedStream,
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		[]event_streams.ProposedEvent{linkedEvent})
 	require.NoError(t, err)
 
-	_, err = client.DeleteStream(
+	_, err = client.EventStreams().DeleteStream(
 		context.Background(),
 		deletedStream, event_streams.DeleteRequestExpectedStreamRevisionAny{})
 	require.NoError(t, err)
 
-	readEvents, err := client.ReadStreamEvents(context.Background(),
+	readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 		linkedStream,
 		event_streams.ReadRequestDirectionForward,
 		event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -180,7 +180,7 @@ func Test_Read_Backwards_Linked_Stream(t *testing.T) {
 	deletedStream := "deleted_stream"
 	linkedStream := "linked_stream"
 
-	_, err := client.AppendToStream(context.Background(),
+	_, err := client.EventStreams().AppendToStream(context.Background(),
 		deletedStream,
 		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		testCreateEvents(1))
@@ -194,18 +194,18 @@ func Test_Read_Backwards_Linked_Stream(t *testing.T) {
 		Data:         []byte("0@" + deletedStream),
 		UserMetadata: []byte{},
 	}
-	_, err = client.AppendToStream(context.Background(),
+	_, err = client.EventStreams().AppendToStream(context.Background(),
 		linkedStream,
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		[]event_streams.ProposedEvent{linkedEvent})
 	require.NoError(t, err)
 
-	_, err = client.DeleteStream(
+	_, err = client.EventStreams().DeleteStream(
 		context.Background(),
 		deletedStream, event_streams.DeleteRequestExpectedStreamRevisionAny{})
 	require.NoError(t, err)
 
-	readEvents, err := client.ReadStreamEvents(context.Background(),
+	readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 		linkedStream,
 		event_streams.ReadRequestDirectionBackward,
 		event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -240,13 +240,13 @@ func Test_Read_Backwards(t *testing.T) {
 
 	t.Run("Stream Does Not Exist Throws", func(t *testing.T) {
 		streamId := "stream_does_not_exist_throws"
-		_, err := client.ReadStreamEvents(context.Background(),
+		_, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
 			1,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Deleted Stream", func(t *testing.T) {
@@ -254,7 +254,7 @@ func Test_Read_Backwards(t *testing.T) {
 
 		events := testCreateEvents(1)
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
@@ -264,29 +264,29 @@ func Test_Read_Backwards(t *testing.T) {
 		require.True(t, isCurrentRevision)
 		require.Zero(t, currentRevision)
 
-		_, err = client.DeleteStream(context.Background(),
+		_, err = client.EventStreams().DeleteStream(context.Background(),
 			streamId,
 			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
 		require.NoError(t, err)
 
-		_, err = client.ReadStreamEvents(context.Background(),
+		_, err = client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
 			event_streams.ReadCountMax,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Tombstoned Stream StreamDeletedErr", func(t *testing.T) {
 		streamId := "tombstoned_stream_err"
 
-		_, err := client.TombstoneStream(context.Background(),
+		_, err := client.EventStreams().TombstoneStream(context.Background(),
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
-		_, err = client.ReadStreamEvents(context.Background(),
+		_, err = client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
@@ -299,13 +299,13 @@ func Test_Read_Backwards(t *testing.T) {
 		streamId := "returns_events_in_reversed_order_small_events"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
@@ -320,13 +320,13 @@ func Test_Read_Backwards(t *testing.T) {
 		streamId := "read_single_event_from_arbitrary_position"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevision{Revision: 7},
@@ -340,13 +340,13 @@ func Test_Read_Backwards(t *testing.T) {
 		streamId := "read_many_events_from_arbitrary_position"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevision{Revision: 3},
@@ -360,13 +360,13 @@ func Test_Read_Backwards(t *testing.T) {
 		streamId := "read_first_event"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -380,13 +380,13 @@ func Test_Read_Backwards(t *testing.T) {
 		streamId := "read_last_event"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
@@ -400,13 +400,13 @@ func Test_Read_Backwards(t *testing.T) {
 		streamId := "max_count_is_respected"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
@@ -423,7 +423,7 @@ func Test_Read_Backwards(t *testing.T) {
 		timeoutCtx, cancelFunc := context.WithTimeout(ctx, 0)
 		defer cancelFunc()
 
-		_, err := client.ReadStreamEvents(timeoutCtx,
+		_, err := client.EventStreams().ReadStreamEvents(timeoutCtx,
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
@@ -447,13 +447,13 @@ func Test_Read_Forwards(t *testing.T) {
 
 	t.Run("Stream Does Not Exist Throws", func(t *testing.T) {
 		streamId := "stream_does_not_exist_throws"
-		_, err := client.ReadStreamEvents(context.Background(),
+		_, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
 			1,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Deleted Stream", func(t *testing.T) {
@@ -461,7 +461,7 @@ func Test_Read_Forwards(t *testing.T) {
 
 		events := testCreateEvents(1)
 
-		writeResult, err := client.AppendToStream(context.Background(),
+		writeResult, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
@@ -471,29 +471,29 @@ func Test_Read_Forwards(t *testing.T) {
 		require.True(t, isCurrentRevision)
 		require.Zero(t, currentRevision)
 
-		_, err = client.DeleteStream(context.Background(),
+		_, err = client.EventStreams().DeleteStream(context.Background(),
 			streamId,
 			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
 		require.NoError(t, err)
 
-		_, err = client.ReadStreamEvents(context.Background(),
+		_, err = client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
 			event_streams.ReadCountMax,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Tombstoned Stream StreamDeletedErr", func(t *testing.T) {
 		streamId := "tombstoned_stream"
 
-		_, err := client.TombstoneStream(context.Background(),
+		_, err := client.EventStreams().TombstoneStream(context.Background(),
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
-		_, err = client.ReadStreamEvents(context.Background(),
+		_, err = client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -506,13 +506,13 @@ func Test_Read_Forwards(t *testing.T) {
 		streamId := "returns_events_in_reversed_order_small_events"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -524,16 +524,16 @@ func Test_Read_Forwards(t *testing.T) {
 	})
 
 	t.Run("Returns Events In Order Large Events", func(t *testing.T) {
-		streamId := "returns_events_in_reversed_order_small_events"
+		streamId := "returns_events_in_order_small_events"
 		events := testCreateEventsWithMetadata(2, 1_000_000)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -548,13 +548,13 @@ func Test_Read_Forwards(t *testing.T) {
 		streamId := "read_single_event_from_arbitrary_position"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevision{Revision: 7},
@@ -568,13 +568,13 @@ func Test_Read_Forwards(t *testing.T) {
 		streamId := "read_many_events_from_arbitrary_position"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevision{Revision: 3},
@@ -588,13 +588,13 @@ func Test_Read_Forwards(t *testing.T) {
 		streamId := "read_first_event"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -608,13 +608,13 @@ func Test_Read_Forwards(t *testing.T) {
 		streamId := "max_count_is_respected"
 		events := testCreateEvents(10)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -628,13 +628,13 @@ func Test_Read_Forwards(t *testing.T) {
 		streamId := "reads_all_events_by_default"
 		events := testCreateEvents(200)
 
-		_, err := client.AppendToStream(context.Background(),
+		_, err := client.EventStreams().AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
+		readEvents, err := client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
@@ -651,7 +651,7 @@ func Test_Read_Forwards(t *testing.T) {
 		timeoutCtx, cancelFunc := context.WithTimeout(ctx, 0)
 		defer cancelFunc()
 
-		_, err := client.ReadStreamEvents(timeoutCtx,
+		_, err := client.EventStreams().ReadStreamEvents(timeoutCtx,
 			streamId,
 			event_streams.ReadRequestDirectionForward,
 			event_streams.ReadRequestOptionsStreamRevisionStart{},

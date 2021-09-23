@@ -21,12 +21,12 @@ func Test_NotLeaderExceptionButWorkAfterRetry(t *testing.T) {
 		Settings:   persistent.DefaultRequestSettings,
 	}
 
-	err := client.CreatePersistentSubscription(ctx, config)
+	err := client.PersistentSubscriptions().CreateStreamSubscription(ctx, config)
 
 	assert.NotNil(t, err)
 
 	// It should work now as the client automatically reconnected to the leader node.
-	err = client.CreatePersistentSubscription(ctx, config)
+	err = client.PersistentSubscriptions().CreateStreamSubscription(ctx, config)
 
 	if err != nil {
 		t.Fatalf("Failed to create persistent subscription: %v", err)

@@ -4,17 +4,15 @@ package persistent
 
 import (
 	"github.com/EventStore/EventStore-Client-Go/connection"
-	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 )
 
 type ClientFactory interface {
-	CreateClient(grpcClient connection.GrpcClient, client persistentProto.PersistentSubscriptionsClient) Client
+	CreateClient(grpcClient connection.GrpcClient) Client
 }
 
 type ClientFactoryImpl struct{}
 
 func (clientFactory ClientFactoryImpl) CreateClient(
-	grpcClient connection.GrpcClient,
-	client persistentProto.PersistentSubscriptionsClient) Client {
-	return newClientImpl(grpcClient, client)
+	grpcClient connection.GrpcClient) Client {
+	return newClientImpl(grpcClient)
 }
