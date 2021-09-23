@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	connection "github.com/EventStore/EventStore-Client-Go/connection"
-	projections "github.com/EventStore/EventStore-Client-Go/protos/projections"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,15 +35,15 @@ func (m *MockClientFactory) EXPECT() *MockClientFactoryMockRecorder {
 }
 
 // CreateClient mocks base method.
-func (m *MockClientFactory) CreateClient(grpcClient connection.GrpcClient, projectionsClient projections.ProjectionsClient) Client {
+func (m *MockClientFactory) CreateClient(grpcClient connection.GrpcClient) Client {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateClient", grpcClient, projectionsClient)
+	ret := m.ctrl.Call(m, "CreateClient", grpcClient)
 	ret0, _ := ret[0].(Client)
 	return ret0
 }
 
 // CreateClient indicates an expected call of CreateClient.
-func (mr *MockClientFactoryMockRecorder) CreateClient(grpcClient, projectionsClient interface{}) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) CreateClient(grpcClient interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClient", reflect.TypeOf((*MockClientFactory)(nil).CreateClient), grpcClient, projectionsClient)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClient", reflect.TypeOf((*MockClientFactory)(nil).CreateClient), grpcClient)
 }

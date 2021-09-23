@@ -22,7 +22,6 @@ const FailedToCreateProjectionErr errors.ErrorCode = "FailedToCreateProjectionEr
 func (client *ClientImpl) CreateProjection(
 	ctx context.Context,
 	options CreateOptionsRequest) errors.Error {
-
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return err
