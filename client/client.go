@@ -8,7 +8,6 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/EventStore/EventStore-Client-Go/persistent"
 	"github.com/EventStore/EventStore-Client-Go/projections"
-	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	projectionsProto "github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"github.com/EventStore/EventStore-Client-Go/user_management"
 )
@@ -46,113 +45,6 @@ func NewClient(configuration *connection.Configuration) (*Client, error) {
 func (client *Client) Close() error {
 	client.grpcClient.Close()
 	return nil
-}
-
-// ConnectToPersistentSubscription ...
-func (client *Client) ConnectToPersistentSubscription(
-	ctx context.Context,
-	bufferSize int32,
-	groupName string,
-	streamName string,
-) (persistent.SyncReadConnection, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.SubscribeToStreamSync(
-		ctx,
-		handle,
-		bufferSize,
-		groupName,
-		streamName,
-	)
-}
-
-func (client *Client) CreatePersistentSubscription(
-	ctx context.Context,
-	request persistent.CreateOrUpdateStreamRequest,
-) errors.Error {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, request)
-}
-
-func (client *Client) CreatePersistentSubscriptionAll(
-	ctx context.Context,
-	request persistent.CreateAllRequest,
-) errors.Error {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.CreateAllSubscription(ctx, handle, request)
-}
-
-func (client *Client) UpdatePersistentStreamSubscription(
-	ctx context.Context,
-	request persistent.CreateOrUpdateStreamRequest,
-) errors.Error {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, request)
-}
-
-func (client *Client) UpdatePersistentSubscriptionAll(
-	ctx context.Context,
-	request persistent.UpdateAllRequest,
-) errors.Error {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, request)
-}
-
-func (client *Client) DeletePersistentSubscription(
-	ctx context.Context,
-	request persistent.DeleteRequest,
-) errors.Error {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, handle, request)
-}
-
-func (client *Client) DeletePersistentSubscriptionAll(
-	ctx context.Context,
-	groupName string,
-) errors.Error {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return err
-	}
-	persistentSubscriptionClient := client.persistentClientFactory.
-		CreateClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-
-	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName)
 }
 
 func (client *Client) CreateProjection(
@@ -352,4 +244,8 @@ func (client *Client) UserManagement() user_management.Client {
 
 func (client *Client) EventStreams() event_streams.Client {
 	return client.eventStreamsClientFactory.CreateClient(client.grpcClient)
+}
+
+func (client *Client) PersistentSubscriptions() persistent.Client {
+	return client.persistentClientFactory.CreateClient(client.grpcClient)
 }

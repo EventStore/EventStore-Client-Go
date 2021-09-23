@@ -19,7 +19,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 		streamID := "WithDefaultSettings"
 		pushEventToStream(t, clientInstance, streamID)
 
-		err := clientInstance.CreatePersistentSubscription(
+		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
 			context.Background(),
 			persistent.CreateOrUpdateStreamRequest{
 				StreamName: streamID,
@@ -39,7 +39,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 		settings := persistent.DefaultRequestSettings
 		settings.MessageTimeout = persistent.MessageTimeoutInMs{MilliSeconds: 0}
 
-		err := clientInstance.CreatePersistentSubscription(
+		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
 			context.Background(),
 			persistent.CreateOrUpdateStreamRequest{
 				StreamName: streamID,
@@ -54,7 +54,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 	t.Run("StreamNotExits", func(t *testing.T) {
 		streamID := "StreamNotExits"
 
-		err := clientInstance.CreatePersistentSubscription(
+		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
 			context.Background(),
 			persistent.CreateOrUpdateStreamRequest{
 				StreamName: streamID,
@@ -71,7 +71,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 		streamID := "FailsIfAlreadyExists"
 		pushEventToStream(t, clientInstance, streamID)
 
-		err := clientInstance.CreatePersistentSubscription(
+		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
 			context.Background(),
 			persistent.CreateOrUpdateStreamRequest{
 				StreamName: streamID,
@@ -83,7 +83,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 
 		require.NoError(t, err)
 
-		err = clientInstance.CreatePersistentSubscription(
+		err = clientInstance.PersistentSubscriptions().CreateStreamSubscription(
 			context.Background(),
 			persistent.CreateOrUpdateStreamRequest{
 				StreamName: streamID,
@@ -107,19 +107,22 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 			Settings:   persistent.DefaultRequestSettings,
 		}
 
-		err := clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+		err := clientInstance.PersistentSubscriptions().
+			CreateStreamSubscription(context.Background(), streamConfig)
 
 		require.NoError(t, err)
 
-		err = clientInstance.DeletePersistentSubscription(context.Background(),
-			persistent.DeleteRequest{
-				StreamName: streamID,
-				GroupName:  streamConfig.GroupName,
-			})
+		err = clientInstance.PersistentSubscriptions().
+			DeleteStreamSubscription(context.Background(),
+				persistent.DeleteRequest{
+					StreamName: streamID,
+					GroupName:  streamConfig.GroupName,
+				})
 
 		require.NoError(t, err)
 
-		err = clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+		err = clientInstance.PersistentSubscriptions().
+			CreateStreamSubscription(context.Background(), streamConfig)
 
 		require.NoError(t, err)
 	})
@@ -141,7 +144,8 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 			Settings:   persistent.DefaultRequestSettings,
 		}
 
-		err := clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+		err := clientInstance.PersistentSubscriptions().
+			CreateStreamSubscription(context.Background(), streamConfig)
 
 		require.NoError(t, err)
 
@@ -158,7 +162,8 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 		streamConfig.Settings.ExtraStatistics = !streamConfig.Settings.ExtraStatistics
 		streamConfig.Settings.ResolveLinks = !streamConfig.Settings.ResolveLinks
 
-		err = clientInstance.UpdatePersistentStreamSubscription(context.Background(), streamConfig)
+		err = clientInstance.PersistentSubscriptions().
+			UpdateStreamSubscription(context.Background(), streamConfig)
 
 		require.NoError(t, err)
 	})
@@ -173,7 +178,8 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 			Settings:   persistent.DefaultRequestSettings,
 		}
 
-		err := clientInstance.UpdatePersistentStreamSubscription(context.Background(), streamConfig)
+		err := clientInstance.PersistentSubscriptions().
+			UpdateStreamSubscription(context.Background(), streamConfig)
 
 		require.Error(t, err)
 	})
@@ -195,25 +201,28 @@ func Test_DeletePersistentStreamSubscription(t *testing.T) {
 			Settings:   persistent.DefaultRequestSettings,
 		}
 
-		err := clientInstance.CreatePersistentSubscription(context.Background(), streamConfig)
+		err := clientInstance.PersistentSubscriptions().
+			CreateStreamSubscription(context.Background(), streamConfig)
 
 		require.NoError(t, err)
 
-		err = clientInstance.DeletePersistentSubscription(context.Background(),
-			persistent.DeleteRequest{
-				StreamName: streamID,
-				GroupName:  streamConfig.GroupName,
-			})
+		err = clientInstance.PersistentSubscriptions().
+			DeleteStreamSubscription(context.Background(),
+				persistent.DeleteRequest{
+					StreamName: streamID,
+					GroupName:  streamConfig.GroupName,
+				})
 
 		require.NoError(t, err)
 	})
 
 	t.Run("Error If Subscription Does Not Exist", func(t *testing.T) {
-		err := clientInstance.DeletePersistentSubscription(context.Background(),
-			persistent.DeleteRequest{
-				StreamName: "a",
-				GroupName:  "a",
-			})
+		err := clientInstance.PersistentSubscriptions().
+			DeleteStreamSubscription(context.Background(),
+				persistent.DeleteRequest{
+					StreamName: "a",
+					GroupName:  "a",
+				})
 
 		require.Error(t, err)
 	})
@@ -236,14 +245,15 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 		Settings:   persistent.DefaultRequestSettings,
 	}
 
-	err := client.CreatePersistentSubscription(context.Background(), streamConfig)
+	err := client.PersistentSubscriptions().
+		CreateStreamSubscription(context.Background(), streamConfig)
 
 	require.NoError(t, err)
 
 	var receivedEvents sync.WaitGroup
 	var droppedEvent sync.WaitGroup
 
-	subscription, err := client.ConnectToPersistentSubscription(
+	subscription, err := client.PersistentSubscriptions().SubscribeToStreamSync(
 		context.Background(), bufferSize, groupName, streamID)
 
 	require.NoError(t, err)
