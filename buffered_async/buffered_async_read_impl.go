@@ -44,6 +44,10 @@ func (reader *ReaderImpl) Stop() error {
 	return err
 }
 
+func (reader *ReaderImpl) isBufferFull() bool {
+	return len(reader.messageChannel) >= reader.maxCacheSize
+}
+
 func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
 	type fetchResult struct {
 		fetchedMessage interface{}
@@ -54,9 +58,9 @@ func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
 	var fetchDelay time.Duration
 	var err error
 	for {
-		// Enable new fetch if we are not fetching or if message cache is not full
+		// Enable new fetch if we are not fetching or if message buffer is not full
 		var doFetch <-chan time.Time
-		if fetchOne == nil && len(reader.messageChannel) < reader.maxCacheSize {
+		if fetchOne == nil && !reader.isBufferFull() {
 			doFetch = time.After(fetchDelay) // enable fetch case
 		}
 		select {
