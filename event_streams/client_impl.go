@@ -2,7 +2,6 @@ package event_streams
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/EventStore/EventStore-Client-Go/connection"
@@ -209,7 +208,6 @@ func (client *ClientImpl) readStreamEvents(
 				break
 			}
 			err = client.grpcClient.HandleError(handle, headers, trailers, protoError)
-			fmt.Println("Failed to receive subscription response. Reason: ", err)
 			readError = err
 			break
 		}
@@ -349,7 +347,6 @@ func (client *ClientImpl) SubscribeToAll(
 const (
 	FailedToCreateReaderErr                errors.ErrorCode = "FailedToCreateReaderErr"
 	FailedToReceiveSubscriptionResponseErr errors.ErrorCode = "FailedToReceiveSubscriptionResponseErr"
-	FailedToSubscribe_StreamNotFoundErr    errors.ErrorCode = "FailedToSubscribe_StreamNotFoundErr"
 )
 
 func (client *ClientImpl) subscribeToStream(
@@ -387,17 +384,12 @@ func (client *ClientImpl) subscribeToStream(
 	case *streams2.ReadResp_Confirmation:
 		{
 			readClient := client.readClientFactory.Create(readStreamClient, cancel)
-
 			return readClient, nil
 		}
 	case *streams2.ReadResp_StreamNotFound_:
 		{
 			defer cancel()
-			streamNotFoundResult := readResult.Content.(*streams2.ReadResp_StreamNotFound_)
-
-			fmt.Println("Failed to initiate subscription because the stream was not found.",
-				string(streamNotFoundResult.StreamNotFound.StreamIdentifier.StreamName))
-			return nil, errors.NewErrorCode(FailedToSubscribe_StreamNotFoundErr)
+			return nil, errors.NewErrorCode(errors.StreamNotFoundErr)
 		}
 	}
 	defer cancel()
