@@ -17,21 +17,21 @@ func TestReaderImpl_Start_Reading(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+	readerStartWait := sync.WaitGroup{}
+	readerStartWait.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
 	readerHelper.EXPECT().Read().Return("aaaa", nil)
 	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		wg.Wait()
+		readerStartWait.Wait()
 		return "bbb", nil
 	})
 
-	reader := NewReaderImpl(2, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
 	require.Equal(t, "aaaa", value)
-	wg.Done()
+	readerStartWait.Done()
 }
 
 func TestReaderImpl_Start_Reading_WaitsForAvailableSpotInBuffer(t *testing.T) {
