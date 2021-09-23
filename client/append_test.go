@@ -78,7 +78,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
 			2,
 			false)
-		require.Equal(t, err.Code(), event_streams.StreamNotFoundErr)
+		require.Equal(t, err.Code(), errors.StreamNotFoundErr)
 	})
 }
 

@@ -8,14 +8,12 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
-	"github.com/davecgh/go-spew/spew"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
 type ClientImpl struct {
 	grpcClient               connection.GrpcClient
-	grpcStreamsClient        streams2.StreamsClient
 	deleteResponseAdapter    deleteResponseAdapter
 	tombstoneResponseAdapter tombstoneResponseAdapter
 	readClientFactory        ReadClientFactory
@@ -40,8 +38,10 @@ func (client *ClientImpl) AppendToStream(
 		return AppendResponse{}, err
 	}
 
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
+
 	var headers, trailers metadata.MD
-	appendClient, protoErr := client.grpcStreamsClient.Append(ctx,
+	appendClient, protoErr := grpcStreamsClient.Append(ctx,
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
@@ -90,8 +90,10 @@ func (client *ClientImpl) DeleteStream(
 		return DeleteResponse{}, err
 	}
 
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
+
 	var headers, trailers metadata.MD
-	deleteResponse, protoErr := client.grpcStreamsClient.Delete(context, deleteRequest.Build(),
+	deleteResponse, protoErr := grpcStreamsClient.Delete(context, deleteRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToDeleteStreamErr)
@@ -111,8 +113,11 @@ func (client *ClientImpl) TombstoneStream(
 	if err != nil {
 		return TombstoneResponse{}, err
 	}
+
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
+
 	var headers, trailers metadata.MD
-	tombstoneResponse, protoErr := client.grpcStreamsClient.Tombstone(context, tombstoneRequest.Build(),
+	tombstoneResponse, protoErr := grpcStreamsClient.Tombstone(context, tombstoneRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr, FailedToTombstoneStreamErr)
@@ -123,10 +128,7 @@ func (client *ClientImpl) TombstoneStream(
 }
 
 const (
-	FailedToReceiveResponseErr     errors.ErrorCode = "FailedToReceiveResponseErr"
-	StreamNotFoundErr              errors.ErrorCode = "StreamNotFoundErr"
 	FailedToConstructReadStreamErr errors.ErrorCode = "FailedToConstructReadStreamErr"
-	FatalError                     errors.ErrorCode = "FatalError"
 )
 
 func (client *ClientImpl) ReadStreamEvents(
@@ -138,9 +140,11 @@ func (client *ClientImpl) ReadStreamEvents(
 		return nil, err
 	}
 
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
+
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
-	readStreamClient, protoErr := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
+	readStreamClient, protoErr := grpcStreamsClient.Read(ctx, readRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		defer cancel()
@@ -167,7 +171,7 @@ func (client *ClientImpl) ReadStreamEvents(
 
 		readResult := client.readResponseAdapter.Create(protoReadResult)
 		if _, streamIsNotFound := readResult.GetStreamNotFound(); streamIsNotFound {
-			readError = errors.NewErrorCode(StreamNotFoundErr)
+			readError = errors.NewErrorCode(errors.StreamNotFoundErr)
 			break
 		} else if _, isCheckpoint := readResult.GetCheckpoint(); isCheckpoint {
 			continue
@@ -195,9 +199,11 @@ func (client *ClientImpl) ReadStreamEventsReader(
 		return nil, err
 	}
 
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
+
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
-	readStreamClient, protoErr := client.grpcStreamsClient.Read(ctx, readRequest.Build(),
+	readStreamClient, protoErr := grpcStreamsClient.Read(ctx, readRequest.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		defer cancel()
@@ -218,15 +224,20 @@ const (
 
 func (client *ClientImpl) SubscribeToStream(
 	ctx context.Context,
-	handle connection.ConnectionHandle,
 	request SubscribeToStreamRequest,
 ) (ReadClient, errors.Error) {
 	var headers, trailers metadata.MD
+
 	ctx, cancel := context.WithCancel(ctx)
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		defer cancel()
+		return nil, err
+	}
 
-	fmt.Println(spew.Sdump(request.Build()))
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
 
-	readStreamClient, protoErr := client.grpcStreamsClient.Read(ctx, request.Build(),
+	readStreamClient, protoErr := grpcStreamsClient.Read(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		defer cancel()
@@ -260,5 +271,5 @@ func (client *ClientImpl) SubscribeToStream(
 		}
 	}
 	defer cancel()
-	return nil, errors.NewErrorCode(FatalError)
+	return nil, errors.NewErrorCode(errors.FatalError)
 }

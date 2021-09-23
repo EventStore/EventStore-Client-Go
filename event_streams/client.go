@@ -3,7 +3,6 @@ package event_streams
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
 	"github.com/EventStore/EventStore-Client-Go/errors"
 )
 
@@ -34,7 +33,6 @@ type Client interface {
 
 	SubscribeToStream(
 		ctx context.Context,
-		handle connection.ConnectionHandle,
 		request SubscribeToStreamRequest,
 	) (ReadClient, errors.Error)
 }

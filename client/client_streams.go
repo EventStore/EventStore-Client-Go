@@ -5,7 +5,6 @@ import (
 
 	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/EventStore/EventStore-Client-Go/event_streams"
-	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 )
 
 func (client *Client) AppendToStream(
@@ -14,12 +13,7 @@ func (client *Client) AppendToStream(
 	expectedStreamRevision event_streams.IsAppendRequestExpectedStreamRevision,
 	events []event_streams.ProposedEvent,
 ) (event_streams.AppendResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.AppendResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.AppendToStream(ctx, event_streams.AppendRequestContentOptions{
 		StreamIdentifier:       streamID,
@@ -31,12 +25,7 @@ func (client *Client) DeleteStream(
 	ctx context.Context,
 	streamID string,
 	revision event_streams.IsDeleteRequestExpectedStreamRevision) (event_streams.DeleteResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.DeleteResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.DeleteStream(ctx, event_streams.DeleteRequest{
 		StreamIdentifier:       streamID,
@@ -48,12 +37,7 @@ func (client *Client) TombstoneStream(
 	ctx context.Context,
 	streamID string,
 	revision event_streams.IsTombstoneRequestExpectedStreamRevision) (event_streams.TombstoneResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.TombstoneResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.TombstoneStream(ctx, event_streams.TombstoneRequest{
 		StreamIdentifier:       streamID,
@@ -68,12 +52,7 @@ func (client *Client) ReadStreamEvents(
 	revision event_streams.IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
 	resolveLinks bool) (event_streams.ReadResponseEventList, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.ReadStreamEvents(ctx, event_streams.ReadRequest{
 		StreamOption: event_streams.ReadRequestStreamOptions{
@@ -94,12 +73,7 @@ func (client *Client) GetStreamReader(
 	revision event_streams.IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
 	resolveLinks bool) (event_streams.ReadClient, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.ReadStreamEventsReader(ctx, event_streams.ReadRequest{
 		StreamOption: event_streams.ReadRequestStreamOptions{
@@ -120,12 +94,7 @@ func (client *Client) ReadAllEvents(
 	count uint64,
 	resolveLinks bool,
 ) (event_streams.ReadResponseEventList, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.ReadStreamEvents(ctx, event_streams.ReadRequest{
 		StreamOption: event_streams.ReadRequestStreamOptionsAll{
@@ -145,12 +114,7 @@ func (client *Client) GetAllEventsReader(
 	count uint64,
 	resolveLinks bool,
 ) (event_streams.ReadClient, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	return eventStreamsClient.ReadStreamEventsReader(ctx, event_streams.ReadRequest{
 		StreamOption: event_streams.ReadRequestStreamOptionsAll{
@@ -169,14 +133,9 @@ func (client *Client) SubscribeToStream(
 	revision event_streams.IsSubscribeRequestStreamOptionsStreamRevision,
 	resolveLinks bool,
 ) (event_streams.ReadClient, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
-	return eventStreamsClient.SubscribeToStream(ctx, handle, event_streams.SubscribeToStreamRequest{
+	return eventStreamsClient.SubscribeToStream(ctx, event_streams.SubscribeToStreamRequest{
 		StreamOption: event_streams.SubscribeRequestStreamOptions{
 			StreamIdentifier: streamID,
 			Revision:         revision,
@@ -192,14 +151,9 @@ func (client *Client) SubscribeToAll(
 	position event_streams.IsSubscribeRequestOptionsAllPosition,
 	resolveLinks bool,
 ) (event_streams.ReadClient, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
-	return eventStreamsClient.SubscribeToStream(ctx, handle, event_streams.SubscribeToStreamRequest{
+	return eventStreamsClient.SubscribeToStream(ctx, event_streams.SubscribeToStreamRequest{
 		StreamOption: event_streams.SubscribeRequestStreamOptionsAll{
 			Position: position,
 		},
@@ -215,14 +169,9 @@ func (client *Client) SubscribeToAllFiltered(
 	resolveLinks bool,
 	filter event_streams.SubscribeRequestFilter,
 ) (event_streams.ReadClient, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
-	return eventStreamsClient.SubscribeToStream(ctx, handle, event_streams.SubscribeToStreamRequest{
+	return eventStreamsClient.SubscribeToStream(ctx, event_streams.SubscribeToStreamRequest{
 		StreamOption: event_streams.SubscribeRequestStreamOptionsAll{
 			Position: position,
 		},
@@ -237,12 +186,7 @@ func (client *Client) SetStreamMetadata(
 	streamID string,
 	expectedStreamRevision event_streams.IsAppendRequestExpectedStreamRevision,
 	metadata event_streams.StreamMetadata) (event_streams.AppendResponse, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.AppendResponse{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	streamMetadataEvent := event_streams.NewMetadataEvent(metadata)
 
@@ -255,12 +199,7 @@ func (client *Client) SetStreamMetadata(
 func (client *Client) GetStreamMetadata(
 	ctx context.Context,
 	streamID string) (event_streams.StreamMetadataResult, errors.Error) {
-	handle, err := client.grpcClient.GetConnectionHandle()
-	if err != nil {
-		return event_streams.StreamMetadataNone{}, err
-	}
-	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(
-		client.grpcClient, streams2.NewStreamsClient(handle.Connection()))
+	eventStreamsClient := client.eventStreamsClientFactory.CreateClient(client.grpcClient)
 
 	events, err := eventStreamsClient.ReadStreamEvents(ctx, event_streams.ReadRequest{
 		StreamOption: event_streams.ReadRequestStreamOptions{

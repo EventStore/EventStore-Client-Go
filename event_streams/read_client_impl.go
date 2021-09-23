@@ -28,7 +28,7 @@ func (this *ReadClientImpl) Recv() (ReadResponse, errors.Error) {
 		if err != nil {
 			return ReadResponse{}, err
 		}
-		return ReadResponse{}, errors.NewError(FatalError, protoErr)
+		return ReadResponse{}, errors.NewError(errors.FatalError, protoErr)
 	}
 
 	result := this.readResponseAdapter.Create(protoResponse)

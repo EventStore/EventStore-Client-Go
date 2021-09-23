@@ -246,7 +246,7 @@ func Test_Read_Backwards(t *testing.T) {
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
 			1,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Deleted Stream", func(t *testing.T) {
@@ -275,7 +275,7 @@ func Test_Read_Backwards(t *testing.T) {
 			event_streams.ReadRequestOptionsStreamRevisionEnd{},
 			event_streams.ReadCountMax,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Tombstoned Stream StreamDeletedErr", func(t *testing.T) {
@@ -453,7 +453,7 @@ func Test_Read_Forwards(t *testing.T) {
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
 			1,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Deleted Stream", func(t *testing.T) {
@@ -482,7 +482,7 @@ func Test_Read_Forwards(t *testing.T) {
 			event_streams.ReadRequestOptionsStreamRevisionStart{},
 			event_streams.ReadCountMax,
 			false)
-		require.Equal(t, event_streams.StreamNotFoundErr, err.Code())
+		require.Equal(t, errors.StreamNotFoundErr, err.Code())
 	})
 
 	t.Run("Tombstoned Stream StreamDeletedErr", func(t *testing.T) {

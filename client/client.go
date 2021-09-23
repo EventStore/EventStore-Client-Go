@@ -349,3 +349,7 @@ func (client *Client) ListOneTimeProjections(
 func (client *Client) UserManagement() user_management.Client {
 	return client.userManagementFactory.Create(client.grpcClient)
 }
+
+func (client *Client) EventStreams() event_streams.Client {
+	return client.eventStreamsClientFactory.CreateClient(client.grpcClient)
+}
