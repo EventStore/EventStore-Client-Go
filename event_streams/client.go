@@ -56,7 +56,7 @@ type Client interface {
 		direction ReadRequestDirection,
 		revision IsReadRequestStreamOptionsStreamRevision,
 		count uint64,
-		resolveLinks bool) (ReadClient, errors.Error)
+		resolveLinks bool) (StreamReader, errors.Error)
 
 	GetAllEventsReader(
 		ctx context.Context,
@@ -64,19 +64,19 @@ type Client interface {
 		position IsReadRequestOptionsAllPosition,
 		count uint64,
 		resolveLinks bool,
-	) (ReadClient, errors.Error)
+	) (StreamReader, errors.Error)
 
 	SubscribeToStream(
 		ctx context.Context,
 		streamID string,
 		revision IsSubscribeRequestStreamOptionsStreamRevision,
 		resolveLinks bool,
-	) (ReadClient, errors.Error)
+	) (StreamReader, errors.Error)
 
 	SubscribeToAllFiltered(
 		ctx context.Context,
 		position IsSubscribeRequestOptionsAllPosition,
 		resolveLinks bool,
 		filter SubscribeRequestFilter,
-	) (ReadClient, errors.Error)
+	) (StreamReader, errors.Error)
 }

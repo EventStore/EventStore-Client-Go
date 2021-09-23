@@ -10,14 +10,14 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 )
 
-type ReadClientImpl struct {
+type StreamReaderImpl struct {
 	protoClient         streams2.Streams_ReadClient
 	readResponseAdapter readResponseAdapter
 	cancelFunc          context.CancelFunc
 	once                sync.Once
 }
 
-func (this *ReadClientImpl) ReadOne() (ReadResponse, errors.Error) {
+func (this *StreamReaderImpl) ReadOne() (ReadResponse, errors.Error) {
 	protoResponse, protoErr := this.protoClient.Recv()
 	if protoErr != nil {
 		if protoErr == io.EOF {
@@ -35,15 +35,15 @@ func (this *ReadClientImpl) ReadOne() (ReadResponse, errors.Error) {
 	return result, nil
 }
 
-func (this *ReadClientImpl) Close() {
+func (this *StreamReaderImpl) Close() {
 	this.once.Do(this.cancelFunc)
 }
 
 func newReadClientImpl(
 	protoClient streams2.Streams_ReadClient,
 	cancelFunc context.CancelFunc,
-	readResponseAdapter readResponseAdapter) *ReadClientImpl {
-	return &ReadClientImpl{
+	readResponseAdapter readResponseAdapter) *StreamReaderImpl {
+	return &StreamReaderImpl{
 		protoClient:         protoClient,
 		readResponseAdapter: readResponseAdapter,
 		cancelFunc:          cancelFunc,

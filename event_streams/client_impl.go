@@ -16,7 +16,7 @@ type ClientImpl struct {
 	grpcClient               connection.GrpcClient
 	deleteResponseAdapter    deleteResponseAdapter
 	tombstoneResponseAdapter tombstoneResponseAdapter
-	readClientFactory        ReadClientFactory
+	readClientFactory        StreamReaderFactory
 	appendResponseAdapter    appendResponseAdapter
 	readResponseAdapter      readResponseAdapter
 }
@@ -241,7 +241,7 @@ func (client *ClientImpl) GetStreamReader(
 	direction ReadRequestDirection,
 	revision IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
-	resolveLinks bool) (ReadClient, errors.Error) {
+	resolveLinks bool) (StreamReader, errors.Error) {
 	return client.getStreamEventsReader(ctx, ReadRequest{
 		StreamOption: ReadRequestStreamOptions{
 			StreamIdentifier: streamID,
@@ -260,7 +260,7 @@ func (client *ClientImpl) GetAllEventsReader(
 	position IsReadRequestOptionsAllPosition,
 	count uint64,
 	resolveLinks bool,
-) (ReadClient, errors.Error) {
+) (StreamReader, errors.Error) {
 	return client.getStreamEventsReader(ctx, ReadRequest{
 		StreamOption: ReadRequestStreamOptionsAll{
 			Position: position,
@@ -274,7 +274,7 @@ func (client *ClientImpl) GetAllEventsReader(
 
 func (client *ClientImpl) getStreamEventsReader(
 	ctx context.Context,
-	readRequest ReadRequest) (ReadClient, errors.Error) {
+	readRequest ReadRequest) (StreamReader, errors.Error) {
 
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -303,7 +303,7 @@ func (client *ClientImpl) SubscribeToStream(
 	streamID string,
 	revision IsSubscribeRequestStreamOptionsStreamRevision,
 	resolveLinks bool,
-) (ReadClient, errors.Error) {
+) (StreamReader, errors.Error) {
 	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
 		StreamOption: SubscribeRequestStreamOptions{
 			StreamIdentifier: streamID,
@@ -320,7 +320,7 @@ func (client *ClientImpl) SubscribeToAllFiltered(
 	position IsSubscribeRequestOptionsAllPosition,
 	resolveLinks bool,
 	filter SubscribeRequestFilter,
-) (ReadClient, errors.Error) {
+) (StreamReader, errors.Error) {
 	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
 		StreamOption: SubscribeRequestStreamOptionsAll{
 			Position: position,
@@ -335,7 +335,7 @@ func (client *ClientImpl) SubscribeToAll(
 	ctx context.Context,
 	position IsSubscribeRequestOptionsAllPosition,
 	resolveLinks bool,
-) (ReadClient, errors.Error) {
+) (StreamReader, errors.Error) {
 	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
 		StreamOption: SubscribeRequestStreamOptionsAll{
 			Position: position,
@@ -355,7 +355,7 @@ const (
 func (client *ClientImpl) subscribeToStream(
 	ctx context.Context,
 	request SubscribeToStreamRequest,
-) (ReadClient, errors.Error) {
+) (StreamReader, errors.Error) {
 	var headers, trailers metadata.MD
 
 	ctx, cancel := context.WithCancel(ctx)

@@ -7,22 +7,22 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 )
 
-type ReadClient interface {
+type StreamReader interface {
 	ReadOne() (ReadResponse, errors.Error)
 	Close()
 }
 
-type ReadClientFactory interface {
+type StreamReaderFactory interface {
 	Create(
 		protoClient streams2.Streams_ReadClient,
-		cancelFunc context.CancelFunc) ReadClient
+		cancelFunc context.CancelFunc) StreamReader
 }
 
-type ReadClientFactoryImpl struct{}
+type StreamReaderFactoryImpl struct{}
 
-func (this ReadClientFactoryImpl) Create(
+func (this StreamReaderFactoryImpl) Create(
 	protoClient streams2.Streams_ReadClient,
-	cancelFunc context.CancelFunc) ReadClient {
+	cancelFunc context.CancelFunc) StreamReader {
 	return newReadClientImpl(
 		protoClient,
 		cancelFunc,
