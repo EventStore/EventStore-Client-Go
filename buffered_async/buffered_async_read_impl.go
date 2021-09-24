@@ -12,16 +12,16 @@ type ReaderImpl struct {
 	stopOnce                sync.Once
 	closeMessageChannelOnce sync.Once
 	stopRequestChannel      chan chan error
-	messageChannel          chan interface{} // sends items to the user
+	messageChannel          chan FetchResult // sends items to the user
 	maxCacheSize            int
 	backOff                 backoff.BackOff
 }
 
 type ReaderFunc func() (interface{}, error)
 
-func (reader *ReaderImpl) Start(readerFunc ReaderFunc) <-chan interface{} {
+func (reader *ReaderImpl) Start(readerFunc ReaderFunc) <-chan FetchResult {
 	reader.startOnce.Do(func() {
-		reader.messageChannel = make(chan interface{}, reader.maxCacheSize)
+		reader.messageChannel = make(chan FetchResult, reader.maxCacheSize)
 		reader.closeMessageChannelOnce = sync.Once{}
 		go reader.loop(readerFunc)
 		reader.stopOnce = sync.Once{}
@@ -48,13 +48,13 @@ func (reader *ReaderImpl) isBufferFull() bool {
 	return len(reader.messageChannel) >= reader.maxCacheSize
 }
 
-func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
-	type fetchResult struct {
-		fetchedMessage interface{}
-		err            error
-	}
+type FetchResult struct {
+	FetchedMessage interface{}
+	Err            error
+}
 
-	var fetchOne chan fetchResult // if non-nil, Fetch is running
+func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
+	var fetchOne chan FetchResult // if non-nil, Fetch is running
 	var fetchDelay time.Duration
 	var err error
 	for {
@@ -65,18 +65,19 @@ func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
 		}
 		select {
 		case <-doFetch: // we are ready to read one message
-			fetchOne = make(chan fetchResult, 1)
+			fetchOne = make(chan FetchResult, 1)
 			go func() {
 				fetched, err := readerFunc()
-				fetchOne <- fetchResult{fetchedMessage: fetched, err: err}
+				fetchOne <- FetchResult{FetchedMessage: fetched, Err: err}
 			}()
 		case result := <-fetchOne: // reading of one message is done
 			fetchOne = nil // when fetch is done block listening on fetchOne channel
 
 			// set error to the error received from reading last message
-			err = result.err
-			if result.err != nil { // if error was received initiate backoff mechanism
+			err = result.Err
+			if result.Err != nil { // if error was received initiate backoff mechanism
 				if reader.backOff.NextBackOff() == backoff.Stop {
+					reader.messageChannel <- result
 					reader.closeMessageChannel()
 					return
 				}
@@ -86,7 +87,7 @@ func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
 
 			reader.backOff.Reset()
 			fetchDelay = 0
-			reader.messageChannel <- result.fetchedMessage
+			reader.messageChannel <- result
 		case stopResponseChannel := <-reader.stopRequestChannel: // if Stop is initiated
 			// return error received from reading last message
 			stopResponseChannel <- err

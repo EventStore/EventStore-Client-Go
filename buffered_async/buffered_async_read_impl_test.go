@@ -30,7 +30,7 @@ func TestReaderImpl_Start_Reading(t *testing.T) {
 	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
-	require.Equal(t, "aaaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaaa", Err: nil}, value)
 	readerStartWait.Done()
 }
 
@@ -57,11 +57,11 @@ func TestReaderImpl_Start_Reading_WaitsForAvailableSpotInBuffer(t *testing.T) {
 	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
-	require.Equal(t, "aaaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaaa", Err: nil}, value)
 	require.Len(t, messageChannel, 0)
 	secondReaderWait.Done()
 	value = <-messageChannel
-	require.Equal(t, "bbb", value)
+	require.Equal(t, FetchResult{FetchedMessage: "bbb", Err: nil}, value)
 	thirdReaderWait.Done()
 }
 
@@ -83,7 +83,7 @@ func TestReaderImpl_Start_Reading_IsIdempotent(t *testing.T) {
 	reader.Start(readerHelper.Read)
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
-	require.Equal(t, "aaaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaaa", Err: nil}, value)
 	wg.Done()
 }
 
@@ -116,7 +116,7 @@ func TestReaderImpl_Start_ReadingError_BackoffIsNotStop(t *testing.T) {
 	messageChannel := reader.Start(readerHelper.Read)
 	readerWait.Wait()
 	value := <-messageChannel
-	require.Equal(t, "aaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaa", Err: nil}, value)
 	wg.Done()
 }
 
@@ -143,7 +143,7 @@ func TestReaderImpl_Start_ReadingError_BackoffIsStop(t *testing.T) {
 	messageChannel := reader.Start(readerHelper.Read)
 	readerWait.Wait()
 	value := <-messageChannel
-	require.Equal(t, nil, value)
+	require.Equal(t, FetchResult{FetchedMessage: "", Err: errorResult}, value)
 }
 
 func TestReaderImpl_StartAndStop_ReadingError_BackoffIsStop(t *testing.T) {
