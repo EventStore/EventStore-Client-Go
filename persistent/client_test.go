@@ -179,18 +179,41 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
 
 	grpcClientConn := &grpc.ClientConn{}
+	protoError := errors.NewErrorCode("proto error")
 	expectedError := errors.NewErrorCode("new error")
+	expectedHeader := metadata.MD{
+		"header_key": []string{"header_value"},
+	}
 
+	expectedTrailer := metadata.MD{
+		"trailer_key": []string{"trailer_value"},
+	}
 	var headers, trailers metadata.MD
 	cancelCtx, _ := context.WithCancel(ctx)
+
 	gomock.InOrder(
 		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
 		handle.EXPECT().Connection().Return(grpcClientConn),
 		grpcSubscriptionClientFactoryInstance.EXPECT().Create(grpcClientConn).
 			Return(persistentSubscriptionClient),
-		persistentSubscriptionClient.EXPECT().Read(cancelCtx, grpc.Header(&headers), grpc.Trailer(&trailers)).
-			Return(persistentReadClient, nil),
-		persistentReadClient.EXPECT().Send(protoSendRequest).Return(expectedError),
+		persistentSubscriptionClient.EXPECT().Read(cancelCtx,
+			grpc.Header(&headers), grpc.Trailer(&trailers)).
+			DoAndReturn(func(
+				_ctx context.Context,
+				options ...grpc.CallOption) (persistent.PersistentSubscriptions_ReadClient, errors.Error) {
+
+				*options[0].(grpc.HeaderCallOption).HeaderAddr = metadata.MD{
+					"header_key": []string{"header_value"},
+				}
+
+				*options[1].(grpc.TrailerCallOption).TrailerAddr = metadata.MD{
+					"trailer_key": []string{"trailer_value"},
+				}
+				return persistentReadClient, nil
+			}),
+		persistentReadClient.EXPECT().Send(protoSendRequest).Return(protoError),
+		grpcClient.EXPECT().HandleError(handle, expectedHeader, expectedTrailer, protoError,
+			SubscribeToStreamSync_FailedToSendStreamInitializationErr).Return(expectedError),
 	)
 
 	client := clientImpl{
@@ -199,7 +222,7 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 	}
 
 	_, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
-	require.Equal(t, SubscribeToStreamSync_FailedToSendStreamInitializationErr, err.Code())
+	require.Equal(t, expectedError, err)
 }
 
 func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializationErr(t *testing.T) {

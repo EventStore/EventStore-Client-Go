@@ -50,7 +50,8 @@ func (client clientImpl) SubscribeToStreamSync(
 	protoErr = readClient.Send(toPersistentReadRequest(bufferSize, groupName, streamName))
 	if protoErr != nil {
 		defer cancel()
-		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr)
+		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			SubscribeToStreamSync_FailedToSendStreamInitializationErr)
 		return nil, err
 	}
 

@@ -25,12 +25,12 @@ func Test_SubscribeToStream(t *testing.T) {
 	}()
 
 	t.Run("Subscribe, With Timeout, From Start To Non-Existing Stream", func(t *testing.T) {
-		streamId := "subscribe_to_non_existing_stream"
+		streamId := "subscribe_with_timeout_from_start_to_non_existing_stream"
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
 		ctx := context.Background()
-		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
 		defer cancelFunc()
 
 		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
