@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - develop
 jobs:
   build:
     name: Code generation & compile
@@ -36,7 +36,7 @@ jobs:
     - name: Docker Login
       run: |
         echo ${{ secrets.GITHUB_TOKEN }} | docker login -u EventStore --password-stdin docker.pkg.github.com
-        docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:20.6.0-buster-slim
+        docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim
 
     - name: Tests
       run: |
