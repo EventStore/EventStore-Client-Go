@@ -48,7 +48,8 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 	grpcClientConn := &grpc.ClientConn{}
 	messageAdapterInstance := messageAdapterImpl{}
 	var headers, trailers metadata.MD
-	cancelCtx, _ := context.WithCancel(ctx)
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	defer cancelFunc()
 
 	gomock.InOrder(
 		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
@@ -119,7 +120,9 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReadErr(t *testing.T) {
 	readError := errors.NewErrorCode("new error")
 	expectedError := errors.NewErrorCode(SubscribeToStreamSync_FailedToInitPersistentSubscriptionClientErr)
 	var headers, trailers metadata.MD
-	cancelCtx, _ := context.WithCancel(ctx)
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	defer cancelFunc()
+
 	expectedHeader := metadata.MD{
 		"header_key": []string{"header_value"},
 	}
@@ -189,7 +192,8 @@ func Test_Client_CreateSyncConnection_SubscriptionClientSendStreamInitialization
 		"trailer_key": []string{"trailer_value"},
 	}
 	var headers, trailers metadata.MD
-	cancelCtx, _ := context.WithCancel(ctx)
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	defer cancelFunc()
 
 	gomock.InOrder(
 		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
@@ -255,7 +259,9 @@ func Test_Client_CreateSyncConnection_SubscriptionClientReceiveStreamInitializat
 	}
 
 	var headers, trailers metadata.MD
-	cancelCtx, _ := context.WithCancel(ctx)
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	defer cancelFunc()
+
 	gomock.InOrder(
 		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
 		handle.EXPECT().Connection().Return(grpcClientConn),
@@ -315,7 +321,8 @@ func Test_Client_CreateSyncConnection_NoSubscriptionConfirmationErr(t *testing.T
 	}
 
 	var headers, trailers metadata.MD
-	cancelCtx, _ := context.WithCancel(ctx)
+	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	defer cancelFunc()
 
 	gomock.InOrder(
 		grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
