@@ -1,8 +1,8 @@
 package subscription
 
 import (
-	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/EventStore/EventStore-Client-Go/position"
+	"github.com/pivonroll/EventStore-Client-Go/messages"
+	"github.com/pivonroll/EventStore-Client-Go/position"
 )
 
 type SubscriptionEvent struct {

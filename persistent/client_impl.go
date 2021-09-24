@@ -3,9 +3,9 @@ package persistent
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/errors"
-	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	persistentProto "github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

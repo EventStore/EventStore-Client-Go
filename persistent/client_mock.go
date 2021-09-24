@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	gomock "github.com/golang/mock/gomock"
+	errors "github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
 // MockClient is a mock of Client interface.

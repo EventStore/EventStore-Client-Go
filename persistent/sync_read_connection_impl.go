@@ -6,11 +6,11 @@ import (
 	"log"
 	"sync"
 
-	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
-	"github.com/EventStore/EventStore-Client-Go/subscription"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/messages"
+	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/subscription"
 )
 
 const MAX_ACK_COUNT = 2000

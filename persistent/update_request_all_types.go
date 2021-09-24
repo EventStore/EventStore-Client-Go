@@ -1,6 +1,6 @@
 package persistent
 
-import "github.com/EventStore/EventStore-Client-Go/protos/persistent"
+import "github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 
 type UpdateAllRequest struct {
 	GroupName string

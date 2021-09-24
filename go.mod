@@ -1,4 +1,4 @@
-module github.com/EventStore/EventStore-Client-Go
+module github.com/pivonroll/EventStore-Client-Go
 
 go 1.16
 

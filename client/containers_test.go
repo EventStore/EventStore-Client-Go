@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EventStore/EventStore-Client-Go/client"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ory/dockertest/v3"
+	"github.com/pivonroll/EventStore-Client-Go/client"
 	"github.com/stretchr/testify/require"
 )
 

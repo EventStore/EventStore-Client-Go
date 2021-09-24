@@ -7,8 +7,8 @@ package persistent
 import (
 	reflect "reflect"
 
-	persistent "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	gomock "github.com/golang/mock/gomock"
+	persistent "github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 	grpc "google.golang.org/grpc"
 )
 

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/EventStore/EventStore-Client-Go/event_streams"
+	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 )
 
 func Test_DeleteStream_WithTimeout(t *testing.T) {

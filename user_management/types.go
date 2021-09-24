@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/users"
+	"github.com/pivonroll/EventStore-Client-Go/protos/users"
 )
 
 type CreateOrUpdateRequest struct {

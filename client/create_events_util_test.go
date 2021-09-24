@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/EventStore/EventStore-Client-Go/client"
-	"github.com/EventStore/EventStore-Client-Go/event_streams"
+	"github.com/pivonroll/EventStore-Client-Go/client"
+	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/stretchr/testify/require"
 )
 

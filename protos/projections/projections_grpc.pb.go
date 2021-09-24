@@ -4,7 +4,8 @@ package projections
 
 import (
 	context "context"
-	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
+
+	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -170,36 +171,44 @@ type ProjectionsServer interface {
 }
 
 // UnimplementedProjectionsServer must be embedded to have forward compatible implementations.
-type UnimplementedProjectionsServer struct {
-}
+type UnimplementedProjectionsServer struct{}
 
 func (UnimplementedProjectionsServer) Create(context.Context, *CreateReq) (*CreateResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
+
 func (UnimplementedProjectionsServer) Update(context.Context, *UpdateReq) (*UpdateResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
+
 func (UnimplementedProjectionsServer) Delete(context.Context, *DeleteReq) (*DeleteResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
+
 func (UnimplementedProjectionsServer) Statistics(*StatisticsReq, Projections_StatisticsServer) error {
 	return status.Errorf(codes.Unimplemented, "method Statistics not implemented")
 }
+
 func (UnimplementedProjectionsServer) Disable(context.Context, *DisableReq) (*DisableResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Disable not implemented")
 }
+
 func (UnimplementedProjectionsServer) Enable(context.Context, *EnableReq) (*EnableResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Enable not implemented")
 }
+
 func (UnimplementedProjectionsServer) Reset(context.Context, *ResetReq) (*ResetResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Reset not implemented")
 }
+
 func (UnimplementedProjectionsServer) State(context.Context, *StateReq) (*StateResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method State not implemented")
 }
+
 func (UnimplementedProjectionsServer) Result(context.Context, *ResultReq) (*ResultResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Result not implemented")
 }
+
 func (UnimplementedProjectionsServer) RestartSubsystem(context.Context, *shared.Empty) (*shared.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RestartSubsystem not implemented")
 }

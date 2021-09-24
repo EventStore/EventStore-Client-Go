@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/event_streams"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

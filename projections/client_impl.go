@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
 )
 
 type ClientImpl struct {

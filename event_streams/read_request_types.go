@@ -1,8 +1,8 @@
 package event_streams
 
 import (
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
-	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
 const ReadCountMax = ^uint64(0)

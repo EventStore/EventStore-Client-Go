@@ -5,21 +5,21 @@ import (
 	"io"
 	"testing"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"github.com/golang/mock/gomock"
+	"github.com/pivonroll/EventStore-Client-Go/protos/projections"
 )
 
 func TestClientImpl_CreateProjection(t *testing.T) {

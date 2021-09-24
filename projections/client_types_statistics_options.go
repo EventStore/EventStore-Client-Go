@@ -3,8 +3,8 @@ package projections
 import (
 	"strings"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/protos/projections"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 )
 
 type StatisticsOptionsRequestModeType string

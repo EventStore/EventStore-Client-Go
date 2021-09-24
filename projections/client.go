@@ -5,7 +5,7 @@ package projections
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
 type Client interface {

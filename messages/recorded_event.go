@@ -3,8 +3,8 @@ package messages
 import (
 	"time"
 
-	position "github.com/EventStore/EventStore-Client-Go/position"
 	uuid "github.com/gofrs/uuid"
+	position "github.com/pivonroll/EventStore-Client-Go/position"
 )
 
 // RecordedEvent ...

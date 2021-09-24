@@ -1,6 +1,6 @@
 package projections
 
-import "github.com/EventStore/EventStore-Client-Go/protos/projections"
+import "github.com/pivonroll/EventStore-Client-Go/protos/projections"
 
 type StatisticsClientSyncImpl struct {
 	client projections.Projections_StatisticsClient

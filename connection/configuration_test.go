@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
 )
 
 func TestConnectionStringDefaults(t *testing.T) {
@@ -450,7 +450,6 @@ func TestConnectionStringWithDifferentTLSVerifySettings(t *testing.T) {
 
 	config, _ = connection.ParseConnectionString("esdb://127.0.0.1,127.0.0.2:3321,127.0.0.3/?tlsVerifyCert=false")
 	assert.Equal(t, true, config.SkipCertificateVerification)
-
 }
 
 func TestConnectionStringWithoutCertificateFile(t *testing.T) {

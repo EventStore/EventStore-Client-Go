@@ -4,7 +4,8 @@ package gossip
 
 import (
 	context "context"
-	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
+
+	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -48,8 +49,7 @@ type GossipServer interface {
 }
 
 // UnimplementedGossipServer must be embedded to have forward compatible implementations.
-type UnimplementedGossipServer struct {
-}
+type UnimplementedGossipServer struct{}
 
 func (UnimplementedGossipServer) Read(context.Context, *shared.Empty) (*ClusterInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Read not implemented")

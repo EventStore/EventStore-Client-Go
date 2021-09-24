@@ -1,6 +1,6 @@
 package event_streams
 
-import "github.com/EventStore/EventStore-Client-Go/protos/streams2"
+import "github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 
 type BatchAppendClientImpl struct {
 	protoClient          streams2.Streams_BatchAppendClient

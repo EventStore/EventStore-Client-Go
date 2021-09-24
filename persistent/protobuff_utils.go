@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/position"
-	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
-	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/position"
+	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
+	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 )
 
 func eventIDFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {

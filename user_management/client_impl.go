@@ -3,8 +3,8 @@ package user_management
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

@@ -1,9 +1,9 @@
 package persistent
 
 import (
-	"github.com/EventStore/EventStore-Client-Go/messages"
-	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
-	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
+	"github.com/pivonroll/EventStore-Client-Go/messages"
+	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
+	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 )
 
 type messageAdapter interface {

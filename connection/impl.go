@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
-	gossipApi "github.com/EventStore/EventStore-Client-Go/protos/gossip"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	gossipApi "github.com/pivonroll/EventStore-Client-Go/protos/gossip"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

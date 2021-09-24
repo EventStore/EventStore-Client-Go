@@ -1,6 +1,6 @@
 package event_streams
 
-import "github.com/EventStore/EventStore-Client-Go/protos/streams2"
+import "github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 
 type TombstoneResponse struct {
 	// Types that are assignable to PositionOption:

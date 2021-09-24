@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/client"
+	"github.com/pivonroll/EventStore-Client-Go/client"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/EventStore/EventStore-Client-Go/projections"
+	"github.com/pivonroll/EventStore-Client-Go/projections"
 )
 
 func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*Container, *client.Client, closeClientInstanceFunc) {

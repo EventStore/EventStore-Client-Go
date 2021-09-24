@@ -1,11 +1,11 @@
 package client
 
 import (
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/event_streams"
-	"github.com/EventStore/EventStore-Client-Go/persistent"
-	"github.com/EventStore/EventStore-Client-Go/projections"
-	"github.com/EventStore/EventStore-Client-Go/user_management"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/event_streams"
+	"github.com/pivonroll/EventStore-Client-Go/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/projections"
+	"github.com/pivonroll/EventStore-Client-Go/user_management"
 )
 
 type Configuration = connection.Configuration

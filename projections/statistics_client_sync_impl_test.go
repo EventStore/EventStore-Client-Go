@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
 	"github.com/golang/mock/gomock"
+	"github.com/pivonroll/EventStore-Client-Go/protos/projections"
 )
 
 func TestStatisticsClientSyncImpl_Read(t *testing.T) {

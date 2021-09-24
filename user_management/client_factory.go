@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/protos/users"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/protos/users"
 	"google.golang.org/grpc"
 )
 

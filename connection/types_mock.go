@@ -7,9 +7,9 @@ package connection
 import (
 	reflect "reflect"
 
-	errors "github.com/EventStore/EventStore-Client-Go/errors"
 	uuid "github.com/gofrs/uuid"
 	gomock "github.com/golang/mock/gomock"
+	errors "github.com/pivonroll/EventStore-Client-Go/errors"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
 )

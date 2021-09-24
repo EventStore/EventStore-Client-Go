@@ -7,8 +7,8 @@ package persistent
 import (
 	reflect "reflect"
 
-	connection "github.com/EventStore/EventStore-Client-Go/connection"
 	gomock "github.com/golang/mock/gomock"
+	connection "github.com/pivonroll/EventStore-Client-Go/connection"
 )
 
 // MockClientFactory is a mock of ClientFactory interface.

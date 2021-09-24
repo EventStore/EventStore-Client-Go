@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

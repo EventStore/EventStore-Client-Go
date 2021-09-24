@@ -7,9 +7,9 @@ package persistent
 import (
 	reflect "reflect"
 
-	messages "github.com/EventStore/EventStore-Client-Go/messages"
-	subscription "github.com/EventStore/EventStore-Client-Go/subscription"
 	gomock "github.com/golang/mock/gomock"
+	messages "github.com/pivonroll/EventStore-Client-Go/messages"
+	subscription "github.com/pivonroll/EventStore-Client-Go/subscription"
 )
 
 // MockSyncReadConnection is a mock of SyncReadConnection interface.

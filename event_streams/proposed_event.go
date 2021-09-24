@@ -1,8 +1,8 @@
 package event_streams
 
 import (
-	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
 	"github.com/gofrs/uuid"
+	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 )
 
 type ProposedEvent struct {

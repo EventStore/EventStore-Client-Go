@@ -3,7 +3,7 @@ package projections
 import (
 	"testing"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/projections"
+	"github.com/pivonroll/EventStore-Client-Go/protos/projections"
 
 	"github.com/stretchr/testify/require"
 )

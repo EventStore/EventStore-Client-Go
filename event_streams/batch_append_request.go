@@ -3,9 +3,9 @@ package event_streams
 import (
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
-	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

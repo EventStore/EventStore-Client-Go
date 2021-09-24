@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
 	gomock "github.com/golang/mock/gomock"
+	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	grpc "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
 )

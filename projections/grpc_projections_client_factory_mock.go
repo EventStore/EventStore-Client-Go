@@ -7,8 +7,8 @@ package projections
 import (
 	reflect "reflect"
 
-	projections "github.com/EventStore/EventStore-Client-Go/protos/projections"
 	gomock "github.com/golang/mock/gomock"
+	projections "github.com/pivonroll/EventStore-Client-Go/protos/projections"
 	grpc "google.golang.org/grpc"
 )
 

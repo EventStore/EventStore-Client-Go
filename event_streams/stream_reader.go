@@ -3,8 +3,8 @@ package event_streams
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/errors"
-	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
 type StreamReader interface {

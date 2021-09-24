@@ -1,8 +1,8 @@
 package persistent
 
 import (
-	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 )
 
 type isStreamRevision interface {

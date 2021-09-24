@@ -3,8 +3,8 @@ package event_streams
 import (
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/position"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/position"
 )
 
 type ResolvedEvent struct {

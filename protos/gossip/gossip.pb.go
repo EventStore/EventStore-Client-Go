@@ -7,11 +7,12 @@
 package gossip
 
 import (
-	shared "github.com/EventStore/EventStore-Client-Go/protos/shared"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -368,16 +369,19 @@ func file_gossip_proto_rawDescGZIP() []byte {
 	return file_gossip_proto_rawDescData
 }
 
-var file_gossip_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_gossip_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_gossip_proto_goTypes = []interface{}{
-	(MemberInfo_VNodeState)(0), // 0: event_store.client.gossip.MemberInfo.VNodeState
-	(*ClusterInfo)(nil),        // 1: event_store.client.gossip.ClusterInfo
-	(*EndPoint)(nil),           // 2: event_store.client.gossip.EndPoint
-	(*MemberInfo)(nil),         // 3: event_store.client.gossip.MemberInfo
-	(*shared.UUID)(nil),        // 4: event_store.client.shared.UUID
-	(*shared.Empty)(nil),       // 5: event_store.client.shared.Empty
-}
+var (
+	file_gossip_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_gossip_proto_msgTypes  = make([]protoimpl.MessageInfo, 3)
+	file_gossip_proto_goTypes   = []interface{}{
+		(MemberInfo_VNodeState)(0), // 0: event_store.client.gossip.MemberInfo.VNodeState
+		(*ClusterInfo)(nil),        // 1: event_store.client.gossip.ClusterInfo
+		(*EndPoint)(nil),           // 2: event_store.client.gossip.EndPoint
+		(*MemberInfo)(nil),         // 3: event_store.client.gossip.MemberInfo
+		(*shared.UUID)(nil),        // 4: event_store.client.shared.UUID
+		(*shared.Empty)(nil),       // 5: event_store.client.shared.Empty
+	}
+)
+
 var file_gossip_proto_depIdxs = []int32{
 	3, // 0: event_store.client.gossip.ClusterInfo.members:type_name -> event_store.client.gossip.MemberInfo
 	4, // 1: event_store.client.gossip.MemberInfo.instance_id:type_name -> event_store.client.shared.UUID

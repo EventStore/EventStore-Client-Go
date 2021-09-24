@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	system_metadata "github.com/EventStore/EventStore-Client-Go/systemmetadata"
+	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
 type ReadResponse struct {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/EventStore/EventStore-Client-Go/connection"
-	"github.com/EventStore/EventStore-Client-Go/errors"
-	"github.com/EventStore/EventStore-Client-Go/protos/streams2"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
