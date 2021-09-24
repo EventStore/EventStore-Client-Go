@@ -1,6 +1,6 @@
 syntax = "proto3";
 package event_store.client.streams;
-option go_package = "github.com/EventStore/EventStore-Client-Go/protos/streams2";
+option go_package = "github.com/pivonroll/EventStore-Client-Go/protos/streams2";
 
 import "shared.proto";
 import "status.proto";

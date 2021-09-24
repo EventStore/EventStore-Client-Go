@@ -7,12 +7,11 @@
 package persistent
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -3160,15 +3159,11 @@ var file_persistent_proto_rawDesc = []byte{
 	0x76, 0x65, 0x6e, 0x74, 0x5f, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e,
 	0x74, 0x2e, 0x70, 0x65, 0x72, 0x73, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x74, 0x5f, 0x73, 0x75, 0x62,
 	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x52, 0x65, 0x61, 0x64, 0x52,
-	0x65, 0x73, 0x70, 0x28, 0x01, 0x30, 0x01, 0x42, 0x75, 0x0a, 0x35, 0x63, 0x6f, 0x6d, 0x2e, 0x65,
-	0x76, 0x65, 0x6e, 0x74, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x64, 0x62, 0x63, 0x6c, 0x69, 0x65,
-	0x6e, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x70, 0x65, 0x72, 0x73, 0x69, 0x73, 0x74,
-	0x65, 0x6e, 0x74, 0x73, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73,
-	0x5a, 0x3c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x45, 0x76, 0x65,
-	0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2f, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x6f,
-	0x72, 0x65, 0x2d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d, 0x47, 0x6f, 0x2f, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x73, 0x2f, 0x70, 0x65, 0x72, 0x73, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x74, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x73, 0x70, 0x28, 0x01, 0x30, 0x01, 0x42, 0x3d, 0x5a, 0x3b, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x76, 0x6f, 0x6e, 0x72, 0x6f, 0x6c, 0x6c, 0x2f,
+	0x45, 0x76, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2d, 0x43, 0x6c, 0x69, 0x65, 0x6e,
+	0x74, 0x2d, 0x47, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x70, 0x65, 0x72, 0x73,
+	0x69, 0x73, 0x74, 0x65, 0x6e, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3183,48 +3178,45 @@ func file_persistent_proto_rawDescGZIP() []byte {
 	return file_persistent_proto_rawDescData
 }
 
-var (
-	file_persistent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-	file_persistent_proto_msgTypes  = make([]protoimpl.MessageInfo, 29)
-	file_persistent_proto_goTypes   = []interface{}{
-		(ReadReq_Nack_Action)(0),                              // 0: event_store.client.persistent_subscriptions.ReadReq.Nack.Action
-		(CreateReq_ConsumerStrategy)(0),                       // 1: event_store.client.persistent_subscriptions.CreateReq.ConsumerStrategy
-		(UpdateReq_ConsumerStrategy)(0),                       // 2: event_store.client.persistent_subscriptions.UpdateReq.ConsumerStrategy
-		(*ReadReq)(nil),                                       // 3: event_store.client.persistent_subscriptions.ReadReq
-		(*ReadResp)(nil),                                      // 4: event_store.client.persistent_subscriptions.ReadResp
-		(*CreateReq)(nil),                                     // 5: event_store.client.persistent_subscriptions.CreateReq
-		(*CreateResp)(nil),                                    // 6: event_store.client.persistent_subscriptions.CreateResp
-		(*UpdateReq)(nil),                                     // 7: event_store.client.persistent_subscriptions.UpdateReq
-		(*UpdateResp)(nil),                                    // 8: event_store.client.persistent_subscriptions.UpdateResp
-		(*DeleteReq)(nil),                                     // 9: event_store.client.persistent_subscriptions.DeleteReq
-		(*DeleteResp)(nil),                                    // 10: event_store.client.persistent_subscriptions.DeleteResp
-		(*ReadReq_Options)(nil),                               // 11: event_store.client.persistent_subscriptions.ReadReq.Options
-		(*ReadReq_Ack)(nil),                                   // 12: event_store.client.persistent_subscriptions.ReadReq.Ack
-		(*ReadReq_Nack)(nil),                                  // 13: event_store.client.persistent_subscriptions.ReadReq.Nack
-		(*ReadReq_Options_UUIDOption)(nil),                    // 14: event_store.client.persistent_subscriptions.ReadReq.Options.UUIDOption
-		(*ReadResp_ReadEvent)(nil),                            // 15: event_store.client.persistent_subscriptions.ReadResp.ReadEvent
-		(*ReadResp_SubscriptionConfirmation)(nil),             // 16: event_store.client.persistent_subscriptions.ReadResp.SubscriptionConfirmation
-		(*ReadResp_ReadEvent_RecordedEvent)(nil),              // 17: event_store.client.persistent_subscriptions.ReadResp.ReadEvent.RecordedEvent
-		nil,                                                   // 18: event_store.client.persistent_subscriptions.ReadResp.ReadEvent.RecordedEvent.MetadataEntry
-		(*CreateReq_Options)(nil),                             // 19: event_store.client.persistent_subscriptions.CreateReq.Options
-		(*CreateReq_StreamOptions)(nil),                       // 20: event_store.client.persistent_subscriptions.CreateReq.StreamOptions
-		(*CreateReq_AllOptions)(nil),                          // 21: event_store.client.persistent_subscriptions.CreateReq.AllOptions
-		(*CreateReq_Position)(nil),                            // 22: event_store.client.persistent_subscriptions.CreateReq.Position
-		(*CreateReq_Settings)(nil),                            // 23: event_store.client.persistent_subscriptions.CreateReq.Settings
-		(*CreateReq_AllOptions_FilterOptions)(nil),            // 24: event_store.client.persistent_subscriptions.CreateReq.AllOptions.FilterOptions
-		(*CreateReq_AllOptions_FilterOptions_Expression)(nil), // 25: event_store.client.persistent_subscriptions.CreateReq.AllOptions.FilterOptions.Expression
-		(*UpdateReq_Options)(nil),                             // 26: event_store.client.persistent_subscriptions.UpdateReq.Options
-		(*UpdateReq_StreamOptions)(nil),                       // 27: event_store.client.persistent_subscriptions.UpdateReq.StreamOptions
-		(*UpdateReq_AllOptions)(nil),                          // 28: event_store.client.persistent_subscriptions.UpdateReq.AllOptions
-		(*UpdateReq_Position)(nil),                            // 29: event_store.client.persistent_subscriptions.UpdateReq.Position
-		(*UpdateReq_Settings)(nil),                            // 30: event_store.client.persistent_subscriptions.UpdateReq.Settings
-		(*DeleteReq_Options)(nil),                             // 31: event_store.client.persistent_subscriptions.DeleteReq.Options
-		(*shared.StreamIdentifier)(nil),                       // 32: event_store.client.shared.StreamIdentifier
-		(*shared.Empty)(nil),                                  // 33: event_store.client.shared.Empty
-		(*shared.UUID)(nil),                                   // 34: event_store.client.shared.UUID
-	}
-)
-
+var file_persistent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_persistent_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_persistent_proto_goTypes = []interface{}{
+	(ReadReq_Nack_Action)(0),                              // 0: event_store.client.persistent_subscriptions.ReadReq.Nack.Action
+	(CreateReq_ConsumerStrategy)(0),                       // 1: event_store.client.persistent_subscriptions.CreateReq.ConsumerStrategy
+	(UpdateReq_ConsumerStrategy)(0),                       // 2: event_store.client.persistent_subscriptions.UpdateReq.ConsumerStrategy
+	(*ReadReq)(nil),                                       // 3: event_store.client.persistent_subscriptions.ReadReq
+	(*ReadResp)(nil),                                      // 4: event_store.client.persistent_subscriptions.ReadResp
+	(*CreateReq)(nil),                                     // 5: event_store.client.persistent_subscriptions.CreateReq
+	(*CreateResp)(nil),                                    // 6: event_store.client.persistent_subscriptions.CreateResp
+	(*UpdateReq)(nil),                                     // 7: event_store.client.persistent_subscriptions.UpdateReq
+	(*UpdateResp)(nil),                                    // 8: event_store.client.persistent_subscriptions.UpdateResp
+	(*DeleteReq)(nil),                                     // 9: event_store.client.persistent_subscriptions.DeleteReq
+	(*DeleteResp)(nil),                                    // 10: event_store.client.persistent_subscriptions.DeleteResp
+	(*ReadReq_Options)(nil),                               // 11: event_store.client.persistent_subscriptions.ReadReq.Options
+	(*ReadReq_Ack)(nil),                                   // 12: event_store.client.persistent_subscriptions.ReadReq.Ack
+	(*ReadReq_Nack)(nil),                                  // 13: event_store.client.persistent_subscriptions.ReadReq.Nack
+	(*ReadReq_Options_UUIDOption)(nil),                    // 14: event_store.client.persistent_subscriptions.ReadReq.Options.UUIDOption
+	(*ReadResp_ReadEvent)(nil),                            // 15: event_store.client.persistent_subscriptions.ReadResp.ReadEvent
+	(*ReadResp_SubscriptionConfirmation)(nil),             // 16: event_store.client.persistent_subscriptions.ReadResp.SubscriptionConfirmation
+	(*ReadResp_ReadEvent_RecordedEvent)(nil),              // 17: event_store.client.persistent_subscriptions.ReadResp.ReadEvent.RecordedEvent
+	nil,                                                   // 18: event_store.client.persistent_subscriptions.ReadResp.ReadEvent.RecordedEvent.MetadataEntry
+	(*CreateReq_Options)(nil),                             // 19: event_store.client.persistent_subscriptions.CreateReq.Options
+	(*CreateReq_StreamOptions)(nil),                       // 20: event_store.client.persistent_subscriptions.CreateReq.StreamOptions
+	(*CreateReq_AllOptions)(nil),                          // 21: event_store.client.persistent_subscriptions.CreateReq.AllOptions
+	(*CreateReq_Position)(nil),                            // 22: event_store.client.persistent_subscriptions.CreateReq.Position
+	(*CreateReq_Settings)(nil),                            // 23: event_store.client.persistent_subscriptions.CreateReq.Settings
+	(*CreateReq_AllOptions_FilterOptions)(nil),            // 24: event_store.client.persistent_subscriptions.CreateReq.AllOptions.FilterOptions
+	(*CreateReq_AllOptions_FilterOptions_Expression)(nil), // 25: event_store.client.persistent_subscriptions.CreateReq.AllOptions.FilterOptions.Expression
+	(*UpdateReq_Options)(nil),                             // 26: event_store.client.persistent_subscriptions.UpdateReq.Options
+	(*UpdateReq_StreamOptions)(nil),                       // 27: event_store.client.persistent_subscriptions.UpdateReq.StreamOptions
+	(*UpdateReq_AllOptions)(nil),                          // 28: event_store.client.persistent_subscriptions.UpdateReq.AllOptions
+	(*UpdateReq_Position)(nil),                            // 29: event_store.client.persistent_subscriptions.UpdateReq.Position
+	(*UpdateReq_Settings)(nil),                            // 30: event_store.client.persistent_subscriptions.UpdateReq.Settings
+	(*DeleteReq_Options)(nil),                             // 31: event_store.client.persistent_subscriptions.DeleteReq.Options
+	(*shared.StreamIdentifier)(nil),                       // 32: event_store.client.shared.StreamIdentifier
+	(*shared.Empty)(nil),                                  // 33: event_store.client.shared.Empty
+	(*shared.UUID)(nil),                                   // 34: event_store.client.shared.UUID
+}
 var file_persistent_proto_depIdxs = []int32{
 	11, // 0: event_store.client.persistent_subscriptions.ReadReq.options:type_name -> event_store.client.persistent_subscriptions.ReadReq.Options
 	12, // 1: event_store.client.persistent_subscriptions.ReadReq.ack:type_name -> event_store.client.persistent_subscriptions.ReadReq.Ack

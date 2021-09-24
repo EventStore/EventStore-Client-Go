@@ -7,13 +7,12 @@
 package projections
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -2042,14 +2041,11 @@ var file_projections_proto_rawDesc = []byte{
 	0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2e, 0x73, 0x68, 0x61, 0x72, 0x65, 0x64, 0x2e, 0x45, 0x6d, 0x70,
 	0x74, 0x79, 0x1a, 0x20, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x5f, 0x73, 0x74, 0x6f, 0x72, 0x65,
 	0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2e, 0x73, 0x68, 0x61, 0x72, 0x65, 0x64, 0x2e, 0x45,
-	0x6d, 0x70, 0x74, 0x79, 0x42, 0x6a, 0x0a, 0x29, 0x63, 0x6f, 0x6d, 0x2e, 0x65, 0x76, 0x65, 0x6e,
-	0x74, 0x73, 0x74, 0x6f, 0x72, 0x65, 0x2e, 0x64, 0x62, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e,
-	0x73, 0x5a, 0x3d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x45, 0x76,
-	0x65, 0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2f, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x53, 0x74,
-	0x6f, 0x72, 0x65, 0x2d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d, 0x47, 0x6f, 0x2f, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6d, 0x70, 0x74, 0x79, 0x42, 0x3e, 0x5a, 0x3c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
+	0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x76, 0x6f, 0x6e, 0x72, 0x6f, 0x6c, 0x6c, 0x2f, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d, 0x47,
+	0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
+	0x69, 0x6f, 0x6e, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2064,44 +2060,41 @@ func file_projections_proto_rawDescGZIP() []byte {
 	return file_projections_proto_rawDescData
 }
 
-var (
-	file_projections_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
-	file_projections_proto_goTypes  = []interface{}{
-		(*CreateReq)(nil),                    // 0: event_store.client.projections.CreateReq
-		(*CreateResp)(nil),                   // 1: event_store.client.projections.CreateResp
-		(*UpdateReq)(nil),                    // 2: event_store.client.projections.UpdateReq
-		(*UpdateResp)(nil),                   // 3: event_store.client.projections.UpdateResp
-		(*DeleteReq)(nil),                    // 4: event_store.client.projections.DeleteReq
-		(*DeleteResp)(nil),                   // 5: event_store.client.projections.DeleteResp
-		(*StatisticsReq)(nil),                // 6: event_store.client.projections.StatisticsReq
-		(*StatisticsResp)(nil),               // 7: event_store.client.projections.StatisticsResp
-		(*StateReq)(nil),                     // 8: event_store.client.projections.StateReq
-		(*StateResp)(nil),                    // 9: event_store.client.projections.StateResp
-		(*ResultReq)(nil),                    // 10: event_store.client.projections.ResultReq
-		(*ResultResp)(nil),                   // 11: event_store.client.projections.ResultResp
-		(*ResetReq)(nil),                     // 12: event_store.client.projections.ResetReq
-		(*ResetResp)(nil),                    // 13: event_store.client.projections.ResetResp
-		(*EnableReq)(nil),                    // 14: event_store.client.projections.EnableReq
-		(*EnableResp)(nil),                   // 15: event_store.client.projections.EnableResp
-		(*DisableReq)(nil),                   // 16: event_store.client.projections.DisableReq
-		(*DisableResp)(nil),                  // 17: event_store.client.projections.DisableResp
-		(*CreateReq_Options)(nil),            // 18: event_store.client.projections.CreateReq.Options
-		(*CreateReq_Options_Transient)(nil),  // 19: event_store.client.projections.CreateReq.Options.Transient
-		(*CreateReq_Options_Continuous)(nil), // 20: event_store.client.projections.CreateReq.Options.Continuous
-		(*UpdateReq_Options)(nil),            // 21: event_store.client.projections.UpdateReq.Options
-		(*DeleteReq_Options)(nil),            // 22: event_store.client.projections.DeleteReq.Options
-		(*StatisticsReq_Options)(nil),        // 23: event_store.client.projections.StatisticsReq.Options
-		(*StatisticsResp_Details)(nil),       // 24: event_store.client.projections.StatisticsResp.Details
-		(*StateReq_Options)(nil),             // 25: event_store.client.projections.StateReq.Options
-		(*ResultReq_Options)(nil),            // 26: event_store.client.projections.ResultReq.Options
-		(*ResetReq_Options)(nil),             // 27: event_store.client.projections.ResetReq.Options
-		(*EnableReq_Options)(nil),            // 28: event_store.client.projections.EnableReq.Options
-		(*DisableReq_Options)(nil),           // 29: event_store.client.projections.DisableReq.Options
-		(*structpb.Value)(nil),               // 30: google.protobuf.Value
-		(*shared.Empty)(nil),                 // 31: event_store.client.shared.Empty
-	}
-)
-
+var file_projections_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_projections_proto_goTypes = []interface{}{
+	(*CreateReq)(nil),                    // 0: event_store.client.projections.CreateReq
+	(*CreateResp)(nil),                   // 1: event_store.client.projections.CreateResp
+	(*UpdateReq)(nil),                    // 2: event_store.client.projections.UpdateReq
+	(*UpdateResp)(nil),                   // 3: event_store.client.projections.UpdateResp
+	(*DeleteReq)(nil),                    // 4: event_store.client.projections.DeleteReq
+	(*DeleteResp)(nil),                   // 5: event_store.client.projections.DeleteResp
+	(*StatisticsReq)(nil),                // 6: event_store.client.projections.StatisticsReq
+	(*StatisticsResp)(nil),               // 7: event_store.client.projections.StatisticsResp
+	(*StateReq)(nil),                     // 8: event_store.client.projections.StateReq
+	(*StateResp)(nil),                    // 9: event_store.client.projections.StateResp
+	(*ResultReq)(nil),                    // 10: event_store.client.projections.ResultReq
+	(*ResultResp)(nil),                   // 11: event_store.client.projections.ResultResp
+	(*ResetReq)(nil),                     // 12: event_store.client.projections.ResetReq
+	(*ResetResp)(nil),                    // 13: event_store.client.projections.ResetResp
+	(*EnableReq)(nil),                    // 14: event_store.client.projections.EnableReq
+	(*EnableResp)(nil),                   // 15: event_store.client.projections.EnableResp
+	(*DisableReq)(nil),                   // 16: event_store.client.projections.DisableReq
+	(*DisableResp)(nil),                  // 17: event_store.client.projections.DisableResp
+	(*CreateReq_Options)(nil),            // 18: event_store.client.projections.CreateReq.Options
+	(*CreateReq_Options_Transient)(nil),  // 19: event_store.client.projections.CreateReq.Options.Transient
+	(*CreateReq_Options_Continuous)(nil), // 20: event_store.client.projections.CreateReq.Options.Continuous
+	(*UpdateReq_Options)(nil),            // 21: event_store.client.projections.UpdateReq.Options
+	(*DeleteReq_Options)(nil),            // 22: event_store.client.projections.DeleteReq.Options
+	(*StatisticsReq_Options)(nil),        // 23: event_store.client.projections.StatisticsReq.Options
+	(*StatisticsResp_Details)(nil),       // 24: event_store.client.projections.StatisticsResp.Details
+	(*StateReq_Options)(nil),             // 25: event_store.client.projections.StateReq.Options
+	(*ResultReq_Options)(nil),            // 26: event_store.client.projections.ResultReq.Options
+	(*ResetReq_Options)(nil),             // 27: event_store.client.projections.ResetReq.Options
+	(*EnableReq_Options)(nil),            // 28: event_store.client.projections.EnableReq.Options
+	(*DisableReq_Options)(nil),           // 29: event_store.client.projections.DisableReq.Options
+	(*structpb.Value)(nil),               // 30: google.protobuf.Value
+	(*shared.Empty)(nil),                 // 31: event_store.client.shared.Empty
+}
 var file_projections_proto_depIdxs = []int32{
 	18, // 0: event_store.client.projections.CreateReq.options:type_name -> event_store.client.projections.CreateReq.Options
 	21, // 1: event_store.client.projections.UpdateReq.options:type_name -> event_store.client.projections.UpdateReq.Options

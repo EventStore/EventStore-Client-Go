@@ -7,15 +7,14 @@
 package streams2
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	shared "github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -3856,11 +3855,11 @@ var file_streams2_proto_rawDesc = []byte{
 	0x52, 0x65, 0x71, 0x1a, 0x2b, 0x2e, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x5f, 0x73, 0x74, 0x6f, 0x72,
 	0x65, 0x2e, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2e, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x73,
 	0x2e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x52, 0x65, 0x73, 0x70,
-	0x28, 0x01, 0x30, 0x01, 0x42, 0x3c, 0x5a, 0x3a, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2f, 0x45, 0x76,
-	0x65, 0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d,
-	0x47, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d,
-	0x73, 0x32, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x28, 0x01, 0x30, 0x01, 0x42, 0x3b, 0x5a, 0x39, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
+	0x6f, 0x6d, 0x2f, 0x70, 0x69, 0x76, 0x6f, 0x6e, 0x72, 0x6f, 0x6c, 0x6c, 0x2f, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x53, 0x74, 0x6f, 0x72, 0x65, 0x2d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d, 0x47,
+	0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x73,
+	0x32, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3875,59 +3874,56 @@ func file_streams2_proto_rawDescGZIP() []byte {
 	return file_streams2_proto_rawDescData
 }
 
-var (
-	file_streams2_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_streams2_proto_msgTypes  = make([]protoimpl.MessageInfo, 38)
-	file_streams2_proto_goTypes   = []interface{}{
-		(ReadReq_Options_ReadDirection)(0),               // 0: event_store.client.streams.ReadReq.Options.ReadDirection
-		(*ReadReq)(nil),                                  // 1: event_store.client.streams.ReadReq
-		(*ReadResp)(nil),                                 // 2: event_store.client.streams.ReadResp
-		(*AppendReq)(nil),                                // 3: event_store.client.streams.AppendReq
-		(*AppendResp)(nil),                               // 4: event_store.client.streams.AppendResp
-		(*BatchAppendReq)(nil),                           // 5: event_store.client.streams.BatchAppendReq
-		(*BatchAppendResp)(nil),                          // 6: event_store.client.streams.BatchAppendResp
-		(*DeleteReq)(nil),                                // 7: event_store.client.streams.DeleteReq
-		(*DeleteResp)(nil),                               // 8: event_store.client.streams.DeleteResp
-		(*TombstoneReq)(nil),                             // 9: event_store.client.streams.TombstoneReq
-		(*TombstoneResp)(nil),                            // 10: event_store.client.streams.TombstoneResp
-		(*ReadReq_Options)(nil),                          // 11: event_store.client.streams.ReadReq.Options
-		(*ReadReq_Options_StreamOptions)(nil),            // 12: event_store.client.streams.ReadReq.Options.StreamOptions
-		(*ReadReq_Options_AllOptions)(nil),               // 13: event_store.client.streams.ReadReq.Options.AllOptions
-		(*ReadReq_Options_SubscriptionOptions)(nil),      // 14: event_store.client.streams.ReadReq.Options.SubscriptionOptions
-		(*ReadReq_Options_Position)(nil),                 // 15: event_store.client.streams.ReadReq.Options.Position
-		(*ReadReq_Options_FilterOptions)(nil),            // 16: event_store.client.streams.ReadReq.Options.FilterOptions
-		(*ReadReq_Options_UUIDOption)(nil),               // 17: event_store.client.streams.ReadReq.Options.UUIDOption
-		(*ReadReq_Options_FilterOptions_Expression)(nil), // 18: event_store.client.streams.ReadReq.Options.FilterOptions.Expression
-		(*ReadResp_ReadEvent)(nil),                       // 19: event_store.client.streams.ReadResp.ReadEvent
-		(*ReadResp_SubscriptionConfirmation)(nil),        // 20: event_store.client.streams.ReadResp.SubscriptionConfirmation
-		(*ReadResp_Checkpoint)(nil),                      // 21: event_store.client.streams.ReadResp.Checkpoint
-		(*ReadResp_StreamNotFound)(nil),                  // 22: event_store.client.streams.ReadResp.StreamNotFound
-		(*ReadResp_ReadEvent_RecordedEvent)(nil),         // 23: event_store.client.streams.ReadResp.ReadEvent.RecordedEvent
-		nil,                                              // 24: event_store.client.streams.ReadResp.ReadEvent.RecordedEvent.MetadataEntry
-		(*AppendReq_Options)(nil),                        // 25: event_store.client.streams.AppendReq.Options
-		(*AppendReq_ProposedMessage)(nil),                // 26: event_store.client.streams.AppendReq.ProposedMessage
-		nil,                                              // 27: event_store.client.streams.AppendReq.ProposedMessage.MetadataEntry
-		(*AppendResp_Position)(nil),                      // 28: event_store.client.streams.AppendResp.Position
-		(*AppendResp_Success)(nil),                       // 29: event_store.client.streams.AppendResp.Success
-		(*AppendResp_WrongExpectedVersion)(nil),          // 30: event_store.client.streams.AppendResp.WrongExpectedVersion
-		(*BatchAppendReq_Options)(nil),                   // 31: event_store.client.streams.BatchAppendReq.Options
-		(*BatchAppendReq_ProposedMessage)(nil),           // 32: event_store.client.streams.BatchAppendReq.ProposedMessage
-		nil,                                              // 33: event_store.client.streams.BatchAppendReq.ProposedMessage.MetadataEntry
-		(*BatchAppendResp_Success)(nil),                  // 34: event_store.client.streams.BatchAppendResp.Success
-		(*DeleteReq_Options)(nil),                        // 35: event_store.client.streams.DeleteReq.Options
-		(*DeleteResp_Position)(nil),                      // 36: event_store.client.streams.DeleteResp.Position
-		(*TombstoneReq_Options)(nil),                     // 37: event_store.client.streams.TombstoneReq.Options
-		(*TombstoneResp_Position)(nil),                   // 38: event_store.client.streams.TombstoneResp.Position
-		(*shared.UUID)(nil),                              // 39: event_store.client.shared.UUID
-		(*status.Status)(nil),                            // 40: google.rpc.Status
-		(*shared.StreamIdentifier)(nil),                  // 41: event_store.client.shared.StreamIdentifier
-		(*emptypb.Empty)(nil),                            // 42: google.protobuf.Empty
-		(*shared.Empty)(nil),                             // 43: event_store.client.shared.Empty
-		(*timestamppb.Timestamp)(nil),                    // 44: google.protobuf.Timestamp
-		(*shared.AllStreamPosition)(nil),                 // 45: event_store.client.shared.AllStreamPosition
-	}
-)
-
+var file_streams2_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_streams2_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_streams2_proto_goTypes = []interface{}{
+	(ReadReq_Options_ReadDirection)(0),               // 0: event_store.client.streams.ReadReq.Options.ReadDirection
+	(*ReadReq)(nil),                                  // 1: event_store.client.streams.ReadReq
+	(*ReadResp)(nil),                                 // 2: event_store.client.streams.ReadResp
+	(*AppendReq)(nil),                                // 3: event_store.client.streams.AppendReq
+	(*AppendResp)(nil),                               // 4: event_store.client.streams.AppendResp
+	(*BatchAppendReq)(nil),                           // 5: event_store.client.streams.BatchAppendReq
+	(*BatchAppendResp)(nil),                          // 6: event_store.client.streams.BatchAppendResp
+	(*DeleteReq)(nil),                                // 7: event_store.client.streams.DeleteReq
+	(*DeleteResp)(nil),                               // 8: event_store.client.streams.DeleteResp
+	(*TombstoneReq)(nil),                             // 9: event_store.client.streams.TombstoneReq
+	(*TombstoneResp)(nil),                            // 10: event_store.client.streams.TombstoneResp
+	(*ReadReq_Options)(nil),                          // 11: event_store.client.streams.ReadReq.Options
+	(*ReadReq_Options_StreamOptions)(nil),            // 12: event_store.client.streams.ReadReq.Options.StreamOptions
+	(*ReadReq_Options_AllOptions)(nil),               // 13: event_store.client.streams.ReadReq.Options.AllOptions
+	(*ReadReq_Options_SubscriptionOptions)(nil),      // 14: event_store.client.streams.ReadReq.Options.SubscriptionOptions
+	(*ReadReq_Options_Position)(nil),                 // 15: event_store.client.streams.ReadReq.Options.Position
+	(*ReadReq_Options_FilterOptions)(nil),            // 16: event_store.client.streams.ReadReq.Options.FilterOptions
+	(*ReadReq_Options_UUIDOption)(nil),               // 17: event_store.client.streams.ReadReq.Options.UUIDOption
+	(*ReadReq_Options_FilterOptions_Expression)(nil), // 18: event_store.client.streams.ReadReq.Options.FilterOptions.Expression
+	(*ReadResp_ReadEvent)(nil),                       // 19: event_store.client.streams.ReadResp.ReadEvent
+	(*ReadResp_SubscriptionConfirmation)(nil),        // 20: event_store.client.streams.ReadResp.SubscriptionConfirmation
+	(*ReadResp_Checkpoint)(nil),                      // 21: event_store.client.streams.ReadResp.Checkpoint
+	(*ReadResp_StreamNotFound)(nil),                  // 22: event_store.client.streams.ReadResp.StreamNotFound
+	(*ReadResp_ReadEvent_RecordedEvent)(nil),         // 23: event_store.client.streams.ReadResp.ReadEvent.RecordedEvent
+	nil,                                              // 24: event_store.client.streams.ReadResp.ReadEvent.RecordedEvent.MetadataEntry
+	(*AppendReq_Options)(nil),                        // 25: event_store.client.streams.AppendReq.Options
+	(*AppendReq_ProposedMessage)(nil),                // 26: event_store.client.streams.AppendReq.ProposedMessage
+	nil,                                              // 27: event_store.client.streams.AppendReq.ProposedMessage.MetadataEntry
+	(*AppendResp_Position)(nil),                      // 28: event_store.client.streams.AppendResp.Position
+	(*AppendResp_Success)(nil),                       // 29: event_store.client.streams.AppendResp.Success
+	(*AppendResp_WrongExpectedVersion)(nil),          // 30: event_store.client.streams.AppendResp.WrongExpectedVersion
+	(*BatchAppendReq_Options)(nil),                   // 31: event_store.client.streams.BatchAppendReq.Options
+	(*BatchAppendReq_ProposedMessage)(nil),           // 32: event_store.client.streams.BatchAppendReq.ProposedMessage
+	nil,                                              // 33: event_store.client.streams.BatchAppendReq.ProposedMessage.MetadataEntry
+	(*BatchAppendResp_Success)(nil),                  // 34: event_store.client.streams.BatchAppendResp.Success
+	(*DeleteReq_Options)(nil),                        // 35: event_store.client.streams.DeleteReq.Options
+	(*DeleteResp_Position)(nil),                      // 36: event_store.client.streams.DeleteResp.Position
+	(*TombstoneReq_Options)(nil),                     // 37: event_store.client.streams.TombstoneReq.Options
+	(*TombstoneResp_Position)(nil),                   // 38: event_store.client.streams.TombstoneResp.Position
+	(*shared.UUID)(nil),                              // 39: event_store.client.shared.UUID
+	(*status.Status)(nil),                            // 40: google.rpc.Status
+	(*shared.StreamIdentifier)(nil),                  // 41: event_store.client.shared.StreamIdentifier
+	(*emptypb.Empty)(nil),                            // 42: google.protobuf.Empty
+	(*shared.Empty)(nil),                             // 43: event_store.client.shared.Empty
+	(*timestamppb.Timestamp)(nil),                    // 44: google.protobuf.Timestamp
+	(*shared.AllStreamPosition)(nil),                 // 45: event_store.client.shared.AllStreamPosition
+}
 var file_streams2_proto_depIdxs = []int32{
 	11, // 0: event_store.client.streams.ReadReq.options:type_name -> event_store.client.streams.ReadReq.Options
 	19, // 1: event_store.client.streams.ReadResp.event:type_name -> event_store.client.streams.ReadResp.ReadEvent
