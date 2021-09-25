@@ -3,6 +3,8 @@ package buffered_async
 import (
 	"sync"
 	"time"
+
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
 type ReaderImpl struct {
@@ -15,7 +17,7 @@ type ReaderImpl struct {
 	fetchedItems            []FetchResult
 }
 
-type ReaderFunc func() (interface{}, error)
+type ReaderFunc func() (interface{}, errors.Error)
 
 func (reader *ReaderImpl) Start(readerFunc ReaderFunc) <-chan FetchResult {
 	reader.startOnce.Do(func() {
@@ -41,7 +43,7 @@ func (reader *ReaderImpl) Stop() {
 
 type FetchResult struct {
 	FetchedMessage interface{}
-	Err            error
+	Err            errors.Error
 }
 
 func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {

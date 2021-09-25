@@ -1,11 +1,11 @@
 package buffered_async
 
 import (
-	"errors"
 	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 
 	"github.com/stretchr/testify/require"
 )
@@ -98,7 +98,7 @@ func TestReaderImpl_Start_ReadingError(t *testing.T) {
 	wg.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 
 	gomock.InOrder(
 		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
@@ -125,7 +125,7 @@ func TestReaderImpl_StartAndStop_ReadingError(t *testing.T) {
 	readerWait.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
-	errorResult := errors.New("some error")
+	errorResult := errors.NewErrorCode("some error")
 
 	gomock.InOrder(
 		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
