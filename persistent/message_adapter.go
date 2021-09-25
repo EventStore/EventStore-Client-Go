@@ -7,13 +7,12 @@ import (
 )
 
 type messageAdapter interface {
-	FromProtoResponse(resp *persistent.ReadResp) *messages.ResolvedEvent
+	FromProtoResponse(resp *persistent.ReadResp_ReadEvent) *messages.ResolvedEvent
 }
 
 type messageAdapterImpl struct{}
 
-func (adapter messageAdapterImpl) FromProtoResponse(resp *persistent.ReadResp) *messages.ResolvedEvent {
-	readEvent := resp.GetEvent()
+func (adapter messageAdapterImpl) FromProtoResponse(readEvent *persistent.ReadResp_ReadEvent) *messages.ResolvedEvent {
 	positionWire := readEvent.GetPosition()
 	eventWire := readEvent.GetEvent()
 	linkWire := readEvent.GetLink()

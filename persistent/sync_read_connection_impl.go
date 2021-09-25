@@ -162,13 +162,10 @@ func newSyncReadConnection(
 				continue
 			}
 
-			switch result.Content.(type) {
-			case *persistent.ReadResp_Event:
-				{
-					resolvedEvent := messageAdapter.FromProtoResponse(result)
-					req.channel <- &subscription.SubscriptionEvent{
-						EventAppeared: resolvedEvent,
-					}
+			if result.GetEvent() != nil {
+				resolvedEvent := messageAdapter.FromProtoResponse(result.GetEvent())
+				req.channel <- &subscription.SubscriptionEvent{
+					EventAppeared: resolvedEvent,
 				}
 			}
 		}
