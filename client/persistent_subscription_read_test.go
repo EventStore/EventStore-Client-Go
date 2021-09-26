@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
 	"github.com/stretchr/testify/require"
@@ -40,21 +41,22 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent)
+		require.NotNil(t, firstReadEvent.Event)
 
-		secondReadEvent := readConnectionClient.Recv()
+		secondReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, secondReadEvent)
+		require.NotNil(t, secondReadEvent.Event)
 
 		// since buffer size is two, after reading two outstanding messages
 		// we must acknowledge a message in order to receive third one
-		protoErr := readConnectionClient.Ack(firstReadEvent)
-		require.NoError(t, protoErr)
+		err = readConnectionClient.Ack(firstReadEvent)
+		require.NoError(t, err)
 
-		thirdReadEvent := readConnectionClient.Recv()
-		require.NotNil(t, thirdReadEvent)
+		thirdReadEvent, err := readConnectionClient.ReadOne()
+		require.NoError(t, err)
+		require.NotNil(t, thirdReadEvent.Event)
 	})
 
 	t.Run("AckToReceiveNewEvents With Reconnect", func(t *testing.T) {
@@ -82,27 +84,27 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent)
+		require.NotNil(t, firstReadEvent.Event)
 
-		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		secondReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, secondReadEvent)
+		require.NotNil(t, secondReadEvent.Event)
 
 		// ack second message
-		protoErr := readConnectionClient.Ack(secondReadEvent)
-		require.NoError(t, protoErr)
+		err = readConnectionClient.Ack(secondReadEvent)
+		require.NoError(t, err)
 
 		// subscribe to stream again (continue to receive events)
 		readConnectionClient, err = clientInstance.PersistentSubscriptions().
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		otherEventAppeared := readConnectionClient.Recv().EventAppeared
+		thirdReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, otherEventAppeared)
-		require.Equal(t, thirdEvent.EventID, otherEventAppeared.Event.EventID)
+		require.NotNil(t, thirdReadEvent.Event)
+		require.Equal(t, thirdEvent.EventID, thirdReadEvent.Event.EventID)
 	})
 
 	t.Run("AckToReceiveNewEvents Start From Same Position With Reconnect", func(t *testing.T) {
@@ -130,36 +132,36 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent)
+		require.NotNil(t, firstReadEvent.Event)
 
-		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		secondReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
 		require.NotNil(t, secondReadEvent)
 
 		// ack second message
-		protoErr := readConnectionClient.Ack(secondReadEvent)
-		require.NoError(t, protoErr)
+		err = readConnectionClient.Ack(secondReadEvent)
+		require.NoError(t, err)
 
 		err = clientInstance.PersistentSubscriptions().UpdateStreamSubscription(context.Background(),
 			request)
-		require.NoError(t, protoErr)
+		require.NoError(t, err)
 
 		// subscribe to stream again (continue to receive events)
 		readConnectionClient, err = clientInstance.PersistentSubscriptions().
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		otherEventAppeared := readConnectionClient.Recv().EventAppeared
+		firstReadEvent, err = readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, otherEventAppeared)
-		require.Equal(t, firstEvent.EventID, otherEventAppeared.Event.EventID)
+		require.NotNil(t, firstReadEvent.Event)
+		require.Equal(t, firstEvent.EventID, firstReadEvent.Event.EventID)
 
-		otherEventAppeared = readConnectionClient.Recv().EventAppeared
+		secondReadEvent, err = readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, otherEventAppeared)
-		require.Equal(t, secondEvent.EventID, otherEventAppeared.Event.EventID)
+		require.NotNil(t, secondReadEvent)
+		require.Equal(t, secondEvent.EventID, secondReadEvent.Event.EventID)
 	})
 
 	t.Run("NackToReceiveNewEvents", func(t *testing.T) {
@@ -186,21 +188,22 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent)
+		require.NotNil(t, firstReadEvent.Event)
 
-		secondReadEvent := readConnectionClient.Recv()
+		secondReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, secondReadEvent)
+		require.NotNil(t, secondReadEvent.Event)
 
 		// since buffer size is two, after reading two outstanding messages
 		// we must acknowledge a message in order to receive third one
 		protoErr := readConnectionClient.Nack("test reason", persistent.Nack_Park, firstReadEvent)
 		require.NoError(t, protoErr)
 
-		thirdReadEvent := readConnectionClient.Recv()
-		require.NotNil(t, thirdReadEvent)
+		thirdReadEvent, err := readConnectionClient.ReadOne()
+		require.NoError(t, err)
+		require.NotNil(t, thirdReadEvent.Event)
 	})
 
 	t.Run("NackToReceiveNewEvents Cancelled", func(t *testing.T) {
@@ -226,16 +229,16 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent)
+		require.NotNil(t, firstReadEvent.Event)
 
 		stdErr := readConnectionClient.Close()
 		require.NoError(t, stdErr)
 
-		droppedConnectionEvent := readConnectionClient.Recv().Dropped
-		require.NotNil(t, droppedConnectionEvent)
-		require.Error(t, droppedConnectionEvent.Error)
+		droppedConnectionEvent, err := readConnectionClient.ReadOne()
+		require.Equal(t, errors.CanceledErr, err.Code())
+		require.Empty(t, droppedConnectionEvent)
 	})
 }
 
@@ -274,9 +277,9 @@ func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
 
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, readEvent)
+		require.NotNil(t, readEvent.Event)
 		// assert Event Number == stream Start
 		// assert Event.ID == first event ID (readEvent.EventID == events[0].EventID)
 		require.EqualValues(t, 0, readEvent.GetOriginalEvent().EventNumber)
@@ -310,9 +313,9 @@ func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
 		readConnectionClient, err := clientInstance.PersistentSubscriptions().
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, readEvent)
+		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 2
 		// assert readEvent.ID == events[2].EventID
@@ -355,9 +358,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
 
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, readEvent)
+		require.NotNil(t, readEvent.Event)
 
 		// assert Event Number == stream Start
 		// assert Event.ID == first event ID (readEvent.EventID == events[0].EventID)
@@ -402,7 +405,7 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
 
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 		// assert readEvent.EventNumber == stream position 10
@@ -444,9 +447,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 
 		doneChannel := make(chan struct{})
 		go func() {
-			event := readConnectionClient.Recv().EventAppeared
+			event, _ := readConnectionClient.ReadOne()
 
-			if event != nil && err == nil {
+			if event.Event != nil && err == nil {
 				doneChannel <- struct{}{}
 			}
 		}()
@@ -507,9 +510,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		readConnectionClient, err := clientInstance.PersistentSubscriptions().
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, readEvent)
+		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 10
 		// assert readEvent.ID == events[10].EventID
@@ -556,9 +559,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		readConnectionClient, err := clientInstance.PersistentSubscriptions().
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, readEvent)
+		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 4
 		// assert readEvent.ID == events[4].EventID
@@ -606,9 +609,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		readConnectionClient, err := clientInstance.PersistentSubscriptions().
 			SubscribeToStreamSync(context.Background(), 10, groupName, streamID)
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent, err := readConnectionClient.ReadOne()
 		require.NoError(t, err)
-		require.NotNil(t, readEvent)
+		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 11
 		// assert readEvent.ID == events[11].EventID

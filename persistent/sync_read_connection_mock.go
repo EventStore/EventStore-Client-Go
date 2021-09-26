@@ -8,8 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	messages "github.com/pivonroll/EventStore-Client-Go/messages"
-	subscription "github.com/pivonroll/EventStore-Client-Go/subscription"
+	errors "github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
 // MockSyncReadConnection is a mock of SyncReadConnection interface.
@@ -36,14 +35,14 @@ func (m *MockSyncReadConnection) EXPECT() *MockSyncReadConnectionMockRecorder {
 }
 
 // Ack mocks base method.
-func (m *MockSyncReadConnection) Ack(msgs ...*messages.ResolvedEvent) error {
+func (m *MockSyncReadConnection) Ack(msgs ...ReadResponseEvent) errors.Error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range msgs {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Ack", varargs...)
-	ret0, _ := ret[0].(error)
+	ret0, _ := ret[0].(errors.Error)
 	return ret0
 }
 
@@ -68,7 +67,7 @@ func (mr *MockSyncReadConnectionMockRecorder) Close() *gomock.Call {
 }
 
 // Nack mocks base method.
-func (m *MockSyncReadConnection) Nack(reason string, action Nack_Action, msgs ...*messages.ResolvedEvent) error {
+func (m *MockSyncReadConnection) Nack(reason string, action Nack_Action, msgs ...ReadResponseEvent) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{reason, action}
 	for _, a := range msgs {
@@ -86,16 +85,17 @@ func (mr *MockSyncReadConnectionMockRecorder) Nack(reason, action interface{}, m
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Nack", reflect.TypeOf((*MockSyncReadConnection)(nil).Nack), varargs...)
 }
 
-// Recv mocks base method.
-func (m *MockSyncReadConnection) Recv() *subscription.SubscriptionEvent {
+// ReadOne mocks base method.
+func (m *MockSyncReadConnection) ReadOne() (ReadResponseEvent, errors.Error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Recv")
-	ret0, _ := ret[0].(*subscription.SubscriptionEvent)
-	return ret0
+	ret := m.ctrl.Call(m, "ReadOne")
+	ret0, _ := ret[0].(ReadResponseEvent)
+	ret1, _ := ret[1].(errors.Error)
+	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv.
-func (mr *MockSyncReadConnectionMockRecorder) Recv() *gomock.Call {
+// ReadOne indicates an expected call of ReadOne.
+func (mr *MockSyncReadConnectionMockRecorder) ReadOne() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockSyncReadConnection)(nil).Recv))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadOne", reflect.TypeOf((*MockSyncReadConnection)(nil).ReadOne))
 }

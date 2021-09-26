@@ -2,54 +2,68 @@ package persistent
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"io"
 	"sync"
 
 	"github.com/gofrs/uuid"
-	"github.com/pivonroll/EventStore-Client-Go/messages"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
-	"github.com/pivonroll/EventStore-Client-Go/subscription"
 )
 
 const MAX_ACK_COUNT = 2000
 
 type syncReadConnectionImpl struct {
-	protoClient        protoClient
+	protoClient        persistent.PersistentSubscriptions_ReadClient
 	subscriptionId     string
 	messageAdapter     messageAdapter
-	readRequestChannel chan readRequest
+	readRequestChannel chan chan readResponse
 	cancel             context.CancelFunc
 	once               sync.Once
 }
 
-func (connection *syncReadConnectionImpl) Recv() *subscription.SubscriptionEvent {
-	channel := make(chan *subscription.SubscriptionEvent)
-	req := readRequest{
-		channel: channel,
-	}
+func (reader *syncReadConnectionImpl) ReadOne() (ReadResponseEvent, errors.Error) {
+	channel := make(chan readResponse)
 
-	connection.readRequestChannel <- req
+	reader.readRequestChannel <- channel
 	resp := <-channel
 
-	return resp
+	return resp.ReadResponseEvent, resp.Error
 }
 
-func (connection *syncReadConnectionImpl) Close() error {
-	connection.once.Do(connection.cancel)
+func (reader *syncReadConnectionImpl) readOne() (ReadResponseEvent, errors.Error) {
+	protoResponse, protoErr := reader.protoClient.Recv()
+	if protoErr != nil {
+		if protoErr == io.EOF {
+			return ReadResponseEvent{}, errors.NewError(errors.EndOfStream, protoErr)
+		}
+		trailer := reader.protoClient.Trailer()
+		err := connection.GetErrorFromProtoException(trailer, protoErr)
+		if err != nil {
+			return ReadResponseEvent{}, err
+		}
+		return ReadResponseEvent{}, errors.NewError(errors.FatalError, protoErr)
+	}
+
+	result := reader.messageAdapter.fromProtoResponse(protoResponse.GetEvent())
+	return result, nil
+}
+
+func (reader *syncReadConnectionImpl) Close() error {
+	reader.once.Do(reader.cancel)
 	return nil
 }
 
-var Exceeds_Max_Message_Count_Err ErrorCode = "Exceeds_Max_Message_Count_Err"
+const Exceeds_Max_Message_Count_Err errors.ErrorCode = "Exceeds_Max_Message_Count_Err"
 
-func (connection *syncReadConnectionImpl) Ack(messages ...*messages.ResolvedEvent) error {
+func (reader *syncReadConnectionImpl) Ack(messages ...ReadResponseEvent) errors.Error {
 	if len(messages) == 0 {
 		return nil
 	}
 
 	if len(messages) > MAX_ACK_COUNT {
-		return NewErrorCode(Exceeds_Max_Message_Count_Err)
+		return errors.NewErrorCode(Exceeds_Max_Message_Count_Err)
 	}
 
 	ids := []uuid.UUID{}
@@ -57,23 +71,25 @@ func (connection *syncReadConnectionImpl) Ack(messages ...*messages.ResolvedEven
 		ids = append(ids, event.GetOriginalEvent().EventID)
 	}
 
-	err := connection.protoClient.Send(&persistent.ReadReq{
+	protoErr := reader.protoClient.Send(&persistent.ReadReq{
 		Content: &persistent.ReadReq_Ack_{
 			Ack: &persistent.ReadReq_Ack{
-				Id:  []byte(connection.subscriptionId),
+				Id:  []byte(reader.subscriptionId),
 				Ids: messageIdSliceToProto(ids...),
 			},
 		},
 	})
-	if err != nil {
-		return err
+
+	trailers := reader.protoClient.Trailer()
+	if protoErr != nil {
+		return connection.GetErrorFromProtoException(trailers, protoErr)
 	}
 
 	return nil
 }
 
-func (connection *syncReadConnectionImpl) Nack(reason string,
-	action Nack_Action, messages ...*messages.ResolvedEvent) error {
+func (reader *syncReadConnectionImpl) Nack(reason string,
+	action Nack_Action, messages ...ReadResponseEvent) error {
 	if len(messages) == 0 {
 		return nil
 	}
@@ -83,10 +99,10 @@ func (connection *syncReadConnectionImpl) Nack(reason string,
 		ids = append(ids, event.GetOriginalEvent().EventID)
 	}
 
-	err := connection.protoClient.Send(&persistent.ReadReq{
+	err := reader.protoClient.Send(&persistent.ReadReq{
 		Content: &persistent.ReadReq_Nack_{
 			Nack: &persistent.ReadReq_Nack{
-				Id:     []byte(connection.subscriptionId),
+				Id:     []byte(reader.subscriptionId),
 				Ids:    messageIdSliceToProto(ids...),
 				Action: persistent.ReadReq_Nack_Action(action),
 				Reason: reason,
@@ -100,44 +116,14 @@ func (connection *syncReadConnectionImpl) Nack(reason string,
 	return nil
 }
 
-func (connection *syncReadConnectionImpl) readLoopWithRequest() {
-	closed := false
-
+func (reader *syncReadConnectionImpl) readLoopWithRequest() {
 	for {
-		req := <-connection.readRequestChannel
+		responseChannel := <-reader.readRequestChannel
+		result, err := reader.readOne()
 
-		if closed {
-			req.channel <- &subscription.SubscriptionEvent{
-				Dropped: &subscription.SubscriptionDropped{
-					Error: fmt.Errorf("subscription has been dropped"),
-				},
-			}
-
-			continue
-		}
-
-		result, err := connection.protoClient.Recv()
-		if err != nil {
-			log.Printf("[error] subscription has dropped. Reason: %v", err)
-
-			dropped := subscription.SubscriptionDropped{
-				Error: err,
-			}
-
-			req.channel <- &subscription.SubscriptionEvent{
-				Dropped: &dropped,
-			}
-
-			closed = true
-
-			continue
-		}
-
-		if result.GetEvent() != nil {
-			resolvedEvent := connection.messageAdapter.FromProtoResponse(result.GetEvent())
-			req.channel <- &subscription.SubscriptionEvent{
-				EventAppeared: resolvedEvent,
-			}
+		responseChannel <- readResponse{
+			ReadResponseEvent: result,
+			Error:             err,
 		}
 	}
 }
@@ -152,17 +138,18 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 	return result
 }
 
-type readRequest struct {
-	channel chan *subscription.SubscriptionEvent
+type readResponse struct {
+	ReadResponseEvent ReadResponseEvent
+	Error             errors.Error
 }
 
 func newSyncReadConnection(
-	client protoClient,
+	client persistent.PersistentSubscriptions_ReadClient,
 	subscriptionId string,
 	messageAdapter messageAdapter,
 	cancel context.CancelFunc,
 ) SyncReadConnection {
-	channel := make(chan readRequest)
+	channel := make(chan chan readResponse)
 
 	connection := &syncReadConnectionImpl{
 		protoClient:        client,

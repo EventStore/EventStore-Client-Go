@@ -4,10 +4,12 @@ package persistent
 
 import (
 	"context"
+
+	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 )
 
 type SyncReadConnectionFactory interface {
-	NewSyncReadConnection(client protoClient,
+	NewSyncReadConnection(client persistent.PersistentSubscriptions_ReadClient,
 		subscriptionId string,
 		messageAdapter messageAdapter,
 		cancel context.CancelFunc,
@@ -17,7 +19,7 @@ type SyncReadConnectionFactory interface {
 type SyncReadConnectionFactoryImpl struct{}
 
 func (factory SyncReadConnectionFactoryImpl) NewSyncReadConnection(
-	client protoClient,
+	client persistent.PersistentSubscriptions_ReadClient,
 	subscriptionId string,
 	messageAdapter messageAdapter,
 	cancel context.CancelFunc) SyncReadConnection {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
 	"github.com/stretchr/testify/require"
 )
@@ -262,23 +263,22 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 		current := 1
 
 		for {
-			subEvent := subscription.Recv()
+			result, err := subscription.ReadOne()
 
-			if subEvent.EventAppeared != nil {
-				if current <= 10 {
-					receivedEvents.Done()
-					current++
-				}
-
-				subscription.Ack(subEvent.EventAppeared)
-
-				continue
-			}
-
-			if subEvent.Dropped != nil {
+			if err != nil && err.Code() == errors.CanceledErr {
 				droppedEvent.Done()
 				break
 			}
+
+			if current <= 10 {
+				receivedEvents.Done()
+				current++
+			}
+
+			err = subscription.Ack(result)
+			require.NoError(t, err)
+
+			continue
 		}
 	}()
 

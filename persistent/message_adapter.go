@@ -1,60 +1,56 @@
 package persistent
 
 import (
-	"github.com/pivonroll/EventStore-Client-Go/messages"
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/ptr"
 	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 )
 
 type messageAdapter interface {
-	FromProtoResponse(resp *persistent.ReadResp_ReadEvent) *messages.ResolvedEvent
+	fromProtoResponse(resp *persistent.ReadResp_ReadEvent) ReadResponseEvent
 }
 
 type messageAdapterImpl struct{}
 
-func (adapter messageAdapterImpl) FromProtoResponse(readEvent *persistent.ReadResp_ReadEvent) *messages.ResolvedEvent {
+func (adapter messageAdapterImpl) fromProtoResponse(readEvent *persistent.ReadResp_ReadEvent) ReadResponseEvent {
 	positionWire := readEvent.GetPosition()
 	eventWire := readEvent.GetEvent()
 	linkWire := readEvent.GetLink()
+	retryCount := readEvent.GetCount()
 
-	var event *messages.RecordedEvent = nil
-	var link *messages.RecordedEvent = nil
-	var commit *uint64
-
-	if positionWire != nil {
-		switch value := positionWire.(type) {
-		case *persistent.ReadResp_ReadEvent_CommitPosition:
-			{
-				commit = &value.CommitPosition
-			}
-		case *persistent.ReadResp_ReadEvent_NoPosition:
-			{
-				commit = nil
-			}
-		}
+	result := ReadResponseEvent{
+		Event:          nil,
+		Link:           nil,
+		CommitPosition: nil,
+		RetryCount:     nil,
 	}
 
 	if eventWire != nil {
-		recordedEvent := newMessageFromProto(eventWire)
-		event = &recordedEvent
+		event := newRecordedEventFromProto(eventWire)
+		result.Event = &event
 	}
 
 	if linkWire != nil {
-		recordedEvent := newMessageFromProto(linkWire)
-		link = &recordedEvent
+		link := newRecordedEventFromProto(linkWire)
+		result.Link = &link
 	}
 
-	return &messages.ResolvedEvent{
-		Event:  event,
-		Link:   link,
-		Commit: commit,
+	if retryCount != nil {
+		result.RetryCount = ptr.Int32(readEvent.GetRetryCount())
 	}
+
+	if positionWire != nil {
+		result.CommitPosition = ptr.UInt64(readEvent.GetCommitPosition())
+	}
+
+	return result
 }
 
-func newMessageFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) messages.RecordedEvent {
+func newRecordedEventFromProto(
+	recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) RecordedEvent {
 	streamIdentifier := recordedEvent.GetStreamIdentifier()
 
-	return messages.RecordedEvent{
+	return RecordedEvent{
 		EventID:        eventIDFromProto(recordedEvent),
 		EventType:      recordedEvent.Metadata[system_metadata.SystemMetadataKeysType],
 		ContentType:    getContentTypeFromProto(recordedEvent),

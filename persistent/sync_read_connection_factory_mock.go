@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	persistent "github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 )
 
 // MockSyncReadConnectionFactory is a mock of SyncReadConnectionFactory interface.
@@ -35,7 +36,7 @@ func (m *MockSyncReadConnectionFactory) EXPECT() *MockSyncReadConnectionFactoryM
 }
 
 // NewSyncReadConnection mocks base method.
-func (m *MockSyncReadConnectionFactory) NewSyncReadConnection(client protoClient, subscriptionId string, messageAdapter messageAdapter, cancel context.CancelFunc) SyncReadConnection {
+func (m *MockSyncReadConnectionFactory) NewSyncReadConnection(client persistent.PersistentSubscriptions_ReadClient, subscriptionId string, messageAdapter messageAdapter, cancel context.CancelFunc) SyncReadConnection {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewSyncReadConnection", client, subscriptionId, messageAdapter, cancel)
 	ret0, _ := ret[0].(SyncReadConnection)

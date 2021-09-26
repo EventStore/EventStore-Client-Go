@@ -3,8 +3,7 @@ package persistent
 //go:generate mockgen -source=sync_read_connection.go -destination=sync_read_connection_mock.go -package=persistent
 
 import (
-	"github.com/pivonroll/EventStore-Client-Go/messages"
-	"github.com/pivonroll/EventStore-Client-Go/subscription"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
 type Nack_Action int32
@@ -18,8 +17,8 @@ const (
 )
 
 type SyncReadConnection interface {
-	Recv() *subscription.SubscriptionEvent     // this call must block
-	Ack(msgs ...*messages.ResolvedEvent) error // max 2000 messages can be acknowledged
-	Nack(reason string, action Nack_Action, msgs ...*messages.ResolvedEvent) error
+	ReadOne() (ReadResponseEvent, errors.Error) // this call must block
+	Ack(msgs ...ReadResponseEvent) errors.Error // max 2000 messages can be acknowledged
+	Nack(reason string, action Nack_Action, msgs ...ReadResponseEvent) error
 	Close() error
 }

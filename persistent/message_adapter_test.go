@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/pivonroll/EventStore-Client-Go/messages"
 	"github.com/pivonroll/EventStore-Client-Go/position"
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
@@ -50,7 +49,7 @@ func Test_MessageAdapter(t *testing.T) {
 		},
 	}
 
-	expectedMessage := &messages.RecordedEvent{
+	expectedMessage := &RecordedEvent{
 		EventID:     id,
 		EventType:   "some event type",
 		ContentType: "some content type",
@@ -72,7 +71,7 @@ func Test_MessageAdapter(t *testing.T) {
 	}
 
 	messageAdapterInstance := messageAdapterImpl{}
-	message := messageAdapterInstance.FromProtoResponse(protoResponse.GetEvent())
+	message := messageAdapterInstance.fromProtoResponse(protoResponse.GetEvent())
 
 	// compare string representations of time
 	require.Equal(t, expectedMessage.CreatedDate.String(), message.GetOriginalEvent().CreatedDate.String())
