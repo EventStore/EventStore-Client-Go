@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	errors "github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
 // MockreaderHelper is a mock of readerHelper interface.
@@ -34,11 +35,11 @@ func (m *MockreaderHelper) EXPECT() *MockreaderHelperMockRecorder {
 }
 
 // Read mocks base method.
-func (m *MockreaderHelper) Read() (interface{}, error) {
+func (m *MockreaderHelper) Read() (interface{}, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read")
 	ret0, _ := ret[0].(interface{})
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 

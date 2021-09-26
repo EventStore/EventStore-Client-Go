@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -30,7 +29,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg.Add(1)
 
 		ctx := context.Background()
-		ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
 		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
@@ -42,7 +41,9 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
-			fmt.Println(err)
+			require.Equal(t, errors.DeadlineExceededErr, err.Code())
+
+			_, err = streamReader.ReadOne()
 			require.Equal(t, errors.DeadlineExceededErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -68,7 +69,9 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
-			fmt.Println(err)
+			require.Equal(t, errors.CanceledErr, err.Code())
+
+			_, err = streamReader.ReadOne()
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -245,7 +248,6 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			fmt.Println("Reading a stream")
 			_, err := streamReader.ReadOne()
 			require.Equal(t, errors.StreamDeletedErr, err.Code())
 			// release lock when timeout expires
@@ -424,7 +426,6 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
-			fmt.Println(err)
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -453,7 +454,6 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			fmt.Println("Reading a stream")
 			_, err := streamReader.ReadOne()
 			require.Equal(t, errors.StreamDeletedErr, err.Code())
 			// release lock when timeout expires
@@ -486,7 +486,6 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
-			fmt.Println(err)
 			require.Equal(t, errors.DeadlineExceededErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -616,7 +615,6 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
-			fmt.Println(err)
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -650,7 +648,6 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 
 	var receivedEvents sync.WaitGroup
 	var appendedEvents sync.WaitGroup
-	fmt.Println("Subscribing...")
 	subscription, err := client.EventStreams().SubscribeToStream(
 		context.Background(),
 		"dataset20M-0",
@@ -658,7 +655,6 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 		false)
 	require.NoError(t, err)
 
-	fmt.Println("Subscribed")
 	go func() {
 		current := 0
 		for {
@@ -685,7 +681,6 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 
 	receivedEvents.Add(6_000)
 	appendedEvents.Add(1)
-	fmt.Println("Waiting 1...")
 	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 
@@ -699,7 +694,6 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	require.Equal(t, uint64(6_000), success.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription
-	fmt.Println("Waiting 2...")
 	timedOut = waitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for the appended events")
 	defer subscription.Close()

@@ -57,6 +57,111 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 		require.NotNil(t, thirdReadEvent)
 	})
 
+	t.Run("AckToReceiveNewEvents With Reconnect", func(t *testing.T) {
+		streamID := "AckToReceiveNewEvents"
+		firstEvent := testCreateEvent()
+		secondEvent := testCreateEvent()
+		thirdEvent := testCreateEvent()
+		pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
+
+		groupName := "Group AckToReceiveNewEvents"
+		request := persistent.CreateOrUpdateStreamRequest{
+			StreamName: streamID,
+			GroupName:  groupName,
+			Revision:   persistent.StreamRevisionStart{},
+			Settings:   persistent.DefaultRequestSettings,
+		}
+		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
+			context.Background(),
+			request,
+		)
+		require.NoError(t, err)
+
+		var bufferSize int32 = 2
+		readConnectionClient, err := clientInstance.PersistentSubscriptions().
+			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+		require.NoError(t, err)
+
+		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, firstReadEvent)
+
+		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, secondReadEvent)
+
+		// ack second message
+		protoErr := readConnectionClient.Ack(secondReadEvent)
+		require.NoError(t, protoErr)
+
+		// subscribe to stream again (continue to receive events)
+		readConnectionClient, err = clientInstance.PersistentSubscriptions().
+			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+		require.NoError(t, err)
+
+		otherEventAppeared := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, otherEventAppeared)
+		require.Equal(t, thirdEvent.EventID, otherEventAppeared.Event.EventID)
+	})
+
+	t.Run("AckToReceiveNewEvents Start From Same Position With Reconnect", func(t *testing.T) {
+		streamID := "AckToReceiveNewEvents"
+		firstEvent := testCreateEvent()
+		secondEvent := testCreateEvent()
+		thirdEvent := testCreateEvent()
+		pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
+
+		groupName := "Group AckToReceiveNewEvents"
+		request := persistent.CreateOrUpdateStreamRequest{
+			StreamName: streamID,
+			GroupName:  groupName,
+			Revision:   persistent.StreamRevisionStart{},
+			Settings:   persistent.DefaultRequestSettings,
+		}
+		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
+			context.Background(),
+			request,
+		)
+		require.NoError(t, err)
+
+		var bufferSize int32 = 2
+		readConnectionClient, err := clientInstance.PersistentSubscriptions().
+			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+		require.NoError(t, err)
+
+		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, firstReadEvent)
+
+		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, secondReadEvent)
+
+		// ack second message
+		protoErr := readConnectionClient.Ack(secondReadEvent)
+		require.NoError(t, protoErr)
+
+		err = clientInstance.PersistentSubscriptions().UpdateStreamSubscription(context.Background(),
+			request)
+		require.NoError(t, protoErr)
+
+		// subscribe to stream again (continue to receive events)
+		readConnectionClient, err = clientInstance.PersistentSubscriptions().
+			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+		require.NoError(t, err)
+
+		otherEventAppeared := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, otherEventAppeared)
+		require.Equal(t, firstEvent.EventID, otherEventAppeared.Event.EventID)
+
+		otherEventAppeared = readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, otherEventAppeared)
+		require.Equal(t, secondEvent.EventID, otherEventAppeared.Event.EventID)
+	})
+
 	t.Run("NackToReceiveNewEvents", func(t *testing.T) {
 		streamID := "NackToReceiveNewEvents"
 		firstEvent := testCreateEvent()

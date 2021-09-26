@@ -1,16 +1,13 @@
 package buffered_async
 
 import (
-	"errors"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/cenkalti/backoff/v3"
 )
 
 func TestReaderImpl_Start_Reading(t *testing.T) {
@@ -27,10 +24,10 @@ func TestReaderImpl_Start_Reading(t *testing.T) {
 		return "bbb", nil
 	})
 
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	reader := NewReaderImpl(1)
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
-	require.Equal(t, "aaaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaaa", Err: nil}, value)
 	readerStartWait.Done()
 }
 
@@ -44,24 +41,27 @@ func TestReaderImpl_Start_Reading_WaitsForAvailableSpotInBuffer(t *testing.T) {
 	thirdReaderWait.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
-	firstRead := readerHelper.EXPECT().Read().Return("aaaa", nil)
-	secondRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		secondReaderWait.Wait()
-		return "bbb", nil
-	}).After(firstRead)
-	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		thirdReaderWait.Wait()
-		return "bbb", nil
-	}).After(secondRead)
 
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	gomock.InOrder(
+		readerHelper.EXPECT().Read().Return("aaaa", nil),
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			secondReaderWait.Wait()
+			return "bbb", nil
+		}),
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			thirdReaderWait.Wait()
+			return "bbb", nil
+		}).MaxTimes(1),
+	)
+
+	reader := NewReaderImpl(1)
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
-	require.Equal(t, "aaaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaaa", Err: nil}, value)
 	require.Len(t, messageChannel, 0)
 	secondReaderWait.Done()
 	value = <-messageChannel
-	require.Equal(t, "bbb", value)
+	require.Equal(t, FetchResult{FetchedMessage: "bbb", Err: nil}, value)
 	thirdReaderWait.Done()
 }
 
@@ -73,54 +73,22 @@ func TestReaderImpl_Start_Reading_IsIdempotent(t *testing.T) {
 	wg.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
-	readerHelper.EXPECT().Read().Return("aaaa", nil)
-	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		wg.Wait()
-		return "bbb", nil
-	})
-
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	gomock.InOrder(
+		readerHelper.EXPECT().Read().Return("aaaa", nil),
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			wg.Wait()
+			return "bbb", nil
+		}).MaxTimes(1),
+	)
+	reader := NewReaderImpl(1)
 	reader.Start(readerHelper.Read)
 	messageChannel := reader.Start(readerHelper.Read)
 	value := <-messageChannel
-	require.Equal(t, "aaaa", value)
+	require.Equal(t, FetchResult{FetchedMessage: "aaaa", Err: nil}, value)
 	wg.Done()
 }
 
-func TestReaderImpl_Start_ReadingError_BackoffIsNotStop(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	readerWait := sync.WaitGroup{}
-	readerWait.Add(2)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	readerHelper := NewMockreaderHelper(ctrl)
-	errorResult := errors.New("some error")
-	firstRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		readerWait.Done()
-		return "", errorResult
-	})
-	secondRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		readerWait.Done()
-		return "aaa", nil
-	}).After(firstRead)
-
-	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		wg.Wait()
-		return "", nil
-	}).After(secondRead).Times(0)
-
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 1 * time.Microsecond})
-	messageChannel := reader.Start(readerHelper.Read)
-	readerWait.Wait()
-	value := <-messageChannel
-	require.Equal(t, "aaa", value)
-	wg.Done()
-}
-
-func TestReaderImpl_Start_ReadingError_BackoffIsStop(t *testing.T) {
+func TestReaderImpl_Start_ReadingError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -130,23 +98,26 @@ func TestReaderImpl_Start_ReadingError_BackoffIsStop(t *testing.T) {
 	wg.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
-	errorResult := errors.New("some error")
-	firstRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		readerWait.Done()
-		return "", errorResult
-	})
-	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		return "aaa", nil
-	}).After(firstRead).Times(0)
+	errorResult := errors.NewErrorCode("some error")
 
-	reader := NewReaderImpl(1, &backoff.StopBackOff{})
+	gomock.InOrder(
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			readerWait.Done()
+			return "", errorResult
+		}),
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			return "aaa", nil
+		}).Times(0),
+	)
+
+	reader := NewReaderImpl(1)
 	messageChannel := reader.Start(readerHelper.Read)
 	readerWait.Wait()
 	value := <-messageChannel
-	require.Equal(t, nil, value)
+	require.Equal(t, FetchResult{FetchedMessage: "", Err: errorResult}, value)
 }
 
-func TestReaderImpl_StartAndStop_ReadingError_BackoffIsStop(t *testing.T) {
+func TestReaderImpl_StartAndStop_ReadingError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -154,48 +125,33 @@ func TestReaderImpl_StartAndStop_ReadingError_BackoffIsStop(t *testing.T) {
 	readerWait.Add(1)
 
 	readerHelper := NewMockreaderHelper(ctrl)
-	errorResult := errors.New("some error")
-	firstRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		readerWait.Done()
-		return "", errorResult
-	})
-	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		return "aaa", nil
-	}).After(firstRead).Times(0)
+	errorResult := errors.NewErrorCode("some error")
 
-	reader := NewReaderImpl(1, &backoff.StopBackOff{})
-	reader.Start(readerHelper.Read)
+	gomock.InOrder(
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			readerWait.Done()
+			return "", errorResult
+		}),
+		readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
+			return "aaa", nil
+		}).Times(0),
+	)
+
+	reader := NewReaderImpl(1)
+	readChannel := reader.Start(readerHelper.Read)
 	readerWait.Wait()
-	err := reader.Stop()
-	require.NoError(t, err)
-}
+	reader.Stop()
 
-func TestReaderImpl_StartAndStop_ReadingError_BackoffIsNotStop(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	value, ok := <-readChannel
+	require.Equal(t, FetchResult{
+		FetchedMessage: "",
+		Err:            errorResult,
+	}, value)
+	require.True(t, ok)
 
-	readerWait := sync.WaitGroup{}
-	readerWait.Add(1)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	readerHelper := NewMockreaderHelper(ctrl)
-	errorResult := errors.New("some error")
-	firstRead := readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		readerWait.Done()
-		return "", errorResult
-	})
-	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
-		wg.Wait()
-		return "aaa", nil
-	}).After(firstRead).Times(0)
-
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Microsecond})
-	reader.Start(readerHelper.Read)
-	readerWait.Wait()
-	err := reader.Stop()
-	require.EqualError(t, err, errorResult.Error())
-	wg.Done()
+	value, ok = <-readChannel
+	require.Equal(t, FetchResult{}, value)
+	require.False(t, ok)
 }
 
 func TestReaderImpl_StartAndStop_WithReadingOneMessage(t *testing.T) {
@@ -211,11 +167,10 @@ func TestReaderImpl_StartAndStop_WithReadingOneMessage(t *testing.T) {
 		return "aaa", nil
 	})
 
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	reader := NewReaderImpl(1)
 	reader.Start(readerHelper.Read)
 	readWait.Wait()
-	err := reader.Stop()
-	require.NoError(t, err)
+	reader.Stop()
 }
 
 func TestReaderImpl_StartAndStop_WithoutReadingAnyMessage(t *testing.T) {
@@ -229,12 +184,11 @@ func TestReaderImpl_StartAndStop_WithoutReadingAnyMessage(t *testing.T) {
 	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
 		readWait.Wait()
 		return "aaa", nil
-	}).Times(0)
+	}).MaxTimes(1)
 
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	reader := NewReaderImpl(1)
 	reader.Start(readerHelper.Read)
-	err := reader.Stop()
-	require.NoError(t, err)
+	reader.Stop()
 	readWait.Done()
 }
 
@@ -249,27 +203,22 @@ func TestReaderImpl_Stop_After_Start_WithoutReadingAnyMessage_IsIdempotent(t *te
 	readerHelper.EXPECT().Read().DoAndReturn(func() (interface{}, error) {
 		readWait.Wait()
 		return "aaa", nil
-	}).Times(0)
+	}).MaxTimes(1)
 
-	reader := NewReaderImpl(1, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
+	reader := NewReaderImpl(1)
 	reader.Start(readerHelper.Read)
-	err := reader.Stop()
-	require.NoError(t, err)
-	err = reader.Stop()
-	require.NoError(t, err)
+	reader.Stop()
+	reader.Stop()
 	readWait.Done()
 }
 
 func TestReaderImpl_Stop_BeforeStarting(t *testing.T) {
-	reader := NewReaderImpl(10, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
-	err := reader.Stop()
-	require.NoError(t, err)
+	reader := NewReaderImpl(10)
+	reader.Stop()
 }
 
 func TestReaderImpl_Stop_BeforeStarting_IsIdempotent(t *testing.T) {
-	reader := NewReaderImpl(10, &backoff.ConstantBackOff{Interval: 2 * time.Minute})
-	err := reader.Stop()
-	require.NoError(t, err)
-	err = reader.Stop()
-	require.NoError(t, err)
+	reader := NewReaderImpl(10)
+	reader.Stop()
+	reader.Stop()
 }

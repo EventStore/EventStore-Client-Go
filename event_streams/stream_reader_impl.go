@@ -15,9 +15,38 @@ type StreamReaderImpl struct {
 	readResponseAdapter readResponseAdapter
 	cancelFunc          context.CancelFunc
 	once                sync.Once
+	readRequestChannel  chan chan readResult
+}
+
+type readResult struct {
+	ReadResponse
+	errors.Error
 }
 
 func (this *StreamReaderImpl) ReadOne() (ReadResponse, errors.Error) {
+	channel := make(chan readResult)
+
+	this.readRequestChannel <- channel
+	resp := <-channel
+
+	return resp.ReadResponse, resp.Error
+}
+
+func (this *StreamReaderImpl) readLoop() {
+	for {
+		responseChannel := <-this.readRequestChannel
+		result, err := this.readOne()
+
+		response := readResult{
+			ReadResponse: result,
+			Error:        err,
+		}
+
+		responseChannel <- response
+	}
+}
+
+func (this *StreamReaderImpl) readOne() (ReadResponse, errors.Error) {
 	protoResponse, protoErr := this.protoClient.Recv()
 	if protoErr != nil {
 		if protoErr == io.EOF {
@@ -43,9 +72,13 @@ func newReadClientImpl(
 	protoClient streams2.Streams_ReadClient,
 	cancelFunc context.CancelFunc,
 	readResponseAdapter readResponseAdapter) *StreamReaderImpl {
-	return &StreamReaderImpl{
+	reader := &StreamReaderImpl{
 		protoClient:         protoClient,
 		readResponseAdapter: readResponseAdapter,
 		cancelFunc:          cancelFunc,
+		readRequestChannel:  make(chan chan readResult),
 	}
+
+	go reader.readLoop()
+	return reader
 }

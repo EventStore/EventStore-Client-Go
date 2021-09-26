@@ -72,7 +72,7 @@ func Test_MessageAdapter(t *testing.T) {
 	}
 
 	messageAdapterInstance := messageAdapterImpl{}
-	message := messageAdapterInstance.FromProtoResponse(protoResponse)
+	message := messageAdapterInstance.FromProtoResponse(protoResponse.GetEvent())
 
 	// compare string representations of time
 	require.Equal(t, expectedMessage.CreatedDate.String(), message.GetOriginalEvent().CreatedDate.String())
