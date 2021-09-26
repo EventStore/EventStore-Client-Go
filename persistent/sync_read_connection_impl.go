@@ -16,21 +16,21 @@ import (
 const MAX_ACK_COUNT = 2000
 
 type syncReadConnectionImpl struct {
-	client         protoClient
-	subscriptionId string
-	messageAdapter messageAdapter
-	channel        chan request
-	cancel         context.CancelFunc
-	once           *sync.Once
+	protoClient        protoClient
+	subscriptionId     string
+	messageAdapter     messageAdapter
+	readRequestChannel chan readRequest
+	cancel             context.CancelFunc
+	once               sync.Once
 }
 
 func (connection *syncReadConnectionImpl) Recv() *subscription.SubscriptionEvent {
 	channel := make(chan *subscription.SubscriptionEvent)
-	req := request{
+	req := readRequest{
 		channel: channel,
 	}
 
-	connection.channel <- req
+	connection.readRequestChannel <- req
 	resp := <-channel
 
 	return resp
@@ -57,7 +57,7 @@ func (connection *syncReadConnectionImpl) Ack(messages ...*messages.ResolvedEven
 		ids = append(ids, event.GetOriginalEvent().EventID)
 	}
 
-	err := connection.client.Send(&persistent.ReadReq{
+	err := connection.protoClient.Send(&persistent.ReadReq{
 		Content: &persistent.ReadReq_Ack_{
 			Ack: &persistent.ReadReq_Ack{
 				Id:  []byte(connection.subscriptionId),
@@ -72,7 +72,8 @@ func (connection *syncReadConnectionImpl) Ack(messages ...*messages.ResolvedEven
 	return nil
 }
 
-func (connection *syncReadConnectionImpl) Nack(reason string, action Nack_Action, messages ...*messages.ResolvedEvent) error {
+func (connection *syncReadConnectionImpl) Nack(reason string,
+	action Nack_Action, messages ...*messages.ResolvedEvent) error {
 	if len(messages) == 0 {
 		return nil
 	}
@@ -82,7 +83,7 @@ func (connection *syncReadConnectionImpl) Nack(reason string, action Nack_Action
 		ids = append(ids, event.GetOriginalEvent().EventID)
 	}
 
-	err := connection.client.Send(&persistent.ReadReq{
+	err := connection.protoClient.Send(&persistent.ReadReq{
 		Content: &persistent.ReadReq_Nack_{
 			Nack: &persistent.ReadReq_Nack{
 				Id:     []byte(connection.subscriptionId),
@@ -99,6 +100,48 @@ func (connection *syncReadConnectionImpl) Nack(reason string, action Nack_Action
 	return nil
 }
 
+func (connection *syncReadConnectionImpl) readLoopWithRequest() {
+	closed := false
+
+	for {
+		req := <-connection.readRequestChannel
+
+		if closed {
+			req.channel <- &subscription.SubscriptionEvent{
+				Dropped: &subscription.SubscriptionDropped{
+					Error: fmt.Errorf("subscription has been dropped"),
+				},
+			}
+
+			continue
+		}
+
+		result, err := connection.protoClient.Recv()
+		if err != nil {
+			log.Printf("[error] subscription has dropped. Reason: %v", err)
+
+			dropped := subscription.SubscriptionDropped{
+				Error: err,
+			}
+
+			req.channel <- &subscription.SubscriptionEvent{
+				Dropped: &dropped,
+			}
+
+			closed = true
+
+			continue
+		}
+
+		if result.GetEvent() != nil {
+			resolvedEvent := connection.messageAdapter.FromProtoResponse(result.GetEvent())
+			req.channel <- &subscription.SubscriptionEvent{
+				EventAppeared: resolvedEvent,
+			}
+		}
+	}
+}
+
 func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 	result := make([]*shared.UUID, len(messageIds))
 
@@ -109,7 +152,7 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 	return result
 }
 
-type request struct {
+type readRequest struct {
 	channel chan *subscription.SubscriptionEvent
 }
 
@@ -119,8 +162,15 @@ func newSyncReadConnection(
 	messageAdapter messageAdapter,
 	cancel context.CancelFunc,
 ) SyncReadConnection {
-	channel := make(chan request)
-	once := new(sync.Once)
+	channel := make(chan readRequest)
+
+	connection := &syncReadConnectionImpl{
+		protoClient:        client,
+		subscriptionId:     subscriptionId,
+		messageAdapter:     messageAdapter,
+		readRequestChannel: channel,
+		cancel:             cancel,
+	}
 
 	// It is not safe to consume a stream in different goroutines. This is why we only consume
 	// the stream in a dedicated goroutine.
@@ -129,54 +179,7 @@ func newSyncReadConnection(
 	// we keep user requests coming but will always send back a subscription dropped event.
 	// This implementation is simple to maintain while letting the user sharing their subscription
 	// among as many goroutines as they want.
-	go func() {
-		closed := false
+	go connection.readLoopWithRequest()
 
-		for {
-			req := <-channel
-
-			if closed {
-				req.channel <- &subscription.SubscriptionEvent{
-					Dropped: &subscription.SubscriptionDropped{
-						Error: fmt.Errorf("subscription has been dropped"),
-					},
-				}
-
-				continue
-			}
-
-			result, err := client.Recv()
-			if err != nil {
-				log.Printf("[error] subscription has dropped. Reason: %v", err)
-
-				dropped := subscription.SubscriptionDropped{
-					Error: err,
-				}
-
-				req.channel <- &subscription.SubscriptionEvent{
-					Dropped: &dropped,
-				}
-
-				closed = true
-
-				continue
-			}
-
-			if result.GetEvent() != nil {
-				resolvedEvent := messageAdapter.FromProtoResponse(result.GetEvent())
-				req.channel <- &subscription.SubscriptionEvent{
-					EventAppeared: resolvedEvent,
-				}
-			}
-		}
-	}()
-
-	return &syncReadConnectionImpl{
-		client:         client,
-		subscriptionId: subscriptionId,
-		messageAdapter: messageAdapter,
-		channel:        channel,
-		once:           once,
-		cancel:         cancel,
-	}
+	return connection
 }
