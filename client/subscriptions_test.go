@@ -29,7 +29,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg.Add(1)
 
 		ctx := context.Background()
-		ctx, cancelFunc := context.WithTimeout(ctx, 30*time.Second)
+		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 		defer cancelFunc()
 
 		streamReader, err := client.EventStreams().SubscribeToStream(ctx,
@@ -41,6 +41,9 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
+			require.Equal(t, errors.DeadlineExceededErr, err.Code())
+
+			_, err = streamReader.ReadOne()
 			require.Equal(t, errors.DeadlineExceededErr, err.Code())
 			// release lock when timeout expires
 		}()
@@ -66,6 +69,9 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
+			require.Equal(t, errors.CanceledErr, err.Code())
+
+			_, err = streamReader.ReadOne()
 			require.Equal(t, errors.CanceledErr, err.Code())
 			// release lock when timeout expires
 		}()
