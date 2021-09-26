@@ -61,20 +61,24 @@ func (reader *ReaderImpl) loop(readerFunc ReaderFunc) {
 		select {
 		case <-doFetch: // we are ready to read one message
 			fetchOne = make(chan FetchResult, 1)
-			go func() {
+			go func() { // we do not want to block while we are waiting to fetch new message
 				fetched, err := readerFunc()
 				fetchOne <- FetchResult{FetchedMessage: fetched, Err: err}
 			}()
 		case result := <-fetchOne: // reading of one message is done
 			reader.messageChannel <- result
 
-			// if error was received stop reading
+			// if error was received stop reading by letting fetchOne be non-nil
 			if result.Err != nil {
 				reader.closeMessageChannel()
 			} else {
 				fetchOne = nil // when fetch is done, without error received, allow to fetch a new one
 			}
 		case stopResponseChannel := <-reader.stopRequestChannel: // if Stop is initiated
+			// if there is a message read but not sent to message channel send it
+			if fetchOne != nil && reader.messageChannel != nil {
+				reader.messageChannel <- <-fetchOne
+			}
 			reader.closeMessageChannel()
 			stopResponseChannel <- nil
 			return
