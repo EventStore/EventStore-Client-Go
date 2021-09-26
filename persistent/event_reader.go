@@ -1,6 +1,6 @@
 package persistent
 
-//go:generate mockgen -source=sync_read_connection.go -destination=sync_read_connection_mock.go -package=persistent
+//go:generate mockgen -source=event_reader.go -destination=event_reader_mock.go -package=persistent
 
 import (
 	"github.com/pivonroll/EventStore-Client-Go/errors"
@@ -16,7 +16,7 @@ const (
 	Nack_Stop    Nack_Action = 4
 )
 
-type SyncReadConnection interface {
+type EventReader interface {
 	ReadOne() (ReadResponseEvent, errors.Error) // this call must block
 	Ack(msgs ...ReadResponseEvent) errors.Error // max 2000 messages can be acknowledged
 	Nack(reason string, action Nack_Action, msgs ...ReadResponseEvent) error

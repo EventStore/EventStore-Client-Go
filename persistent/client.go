@@ -13,7 +13,7 @@ type Client interface {
 		bufferSize int32,
 		groupName string,
 		streamName string,
-	) (SyncReadConnection, errors.Error)
+	) (EventReader, errors.Error)
 	CreateStreamSubscription(ctx context.Context, request CreateOrUpdateStreamRequest) errors.Error
 	CreateAllSubscription(ctx context.Context, request CreateAllRequest) errors.Error
 	UpdateStreamSubscription(ctx context.Context, request CreateOrUpdateStreamRequest) errors.Error

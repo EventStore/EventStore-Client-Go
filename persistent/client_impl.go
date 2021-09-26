@@ -12,7 +12,7 @@ import (
 
 type clientImpl struct {
 	grpcClient                    connection.GrpcClient
-	syncReadConnectionFactory     SyncReadConnectionFactory
+	syncReadConnectionFactory     eventReaderFactory
 	messageAdapterProvider        messageAdapterProvider
 	grpcSubscriptionClientFactory grpcSubscriptionClientFactory
 }
@@ -29,7 +29,7 @@ func (client clientImpl) SubscribeToStreamSync(
 	bufferSize int32,
 	groupName string,
 	streamName string,
-) (SyncReadConnection, errors.Error) {
+) (EventReader, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (client clientImpl) SubscribeToStreamSync(
 	switch readResult.Content.(type) {
 	case *persistentProto.ReadResp_SubscriptionConfirmation_:
 		{
-			asyncConnection := client.syncReadConnectionFactory.NewSyncReadConnection(
+			asyncConnection := client.syncReadConnectionFactory.Create(
 				readClient,
 				readResult.GetSubscriptionConfirmation().SubscriptionId,
 				client.messageAdapterProvider.GetMessageAdapter(),
@@ -229,7 +229,7 @@ func (client clientImpl) DeleteAllSubscription(
 func newClientImpl(grpcClient connection.GrpcClient) clientImpl {
 	return clientImpl{
 		grpcClient:                    grpcClient,
-		syncReadConnectionFactory:     SyncReadConnectionFactoryImpl{},
+		syncReadConnectionFactory:     eventReaderFactoryImpl{},
 		messageAdapterProvider:        messageAdapterProviderImpl{},
 		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryImpl{},
 	}

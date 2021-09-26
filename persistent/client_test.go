@@ -32,8 +32,8 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 	grpcSubscriptionClientFactoryInstance := NewMockgrpcSubscriptionClientFactory(ctrl)
 	persistentSubscriptionClient := persistent.NewMockPersistentSubscriptionsClient(ctrl)
 	persistentReadClient := persistent.NewMockPersistentSubscriptions_ReadClient(ctrl)
-	expectedSyncReadConnection := NewMockSyncReadConnection(ctrl)
-	syncReadConnectionFactory := NewMockSyncReadConnectionFactory(ctrl)
+	eventReaderInstance := NewMockEventReader(ctrl)
+	eventReaderFactoryInstance := NewMockeventReaderFactory(ctrl)
 	messageAdapterProviderInstance := NewMockmessageAdapterProvider(ctrl)
 
 	subscriptionId := "subscription ID"
@@ -61,21 +61,21 @@ func Test_Client_CreateSyncConnection_Success(t *testing.T) {
 		persistentReadClient.EXPECT().Send(protoSendRequest).Return(nil),
 		persistentReadClient.EXPECT().Recv().Return(protoReadResponse, nil),
 		messageAdapterProviderInstance.EXPECT().GetMessageAdapter().Return(messageAdapterInstance),
-		syncReadConnectionFactory.EXPECT().
-			NewSyncReadConnection(persistentReadClient, subscriptionId, messageAdapterInstance, gomock.Any()).
-			Return(expectedSyncReadConnection),
+		eventReaderFactoryInstance.EXPECT().
+			Create(persistentReadClient, subscriptionId, messageAdapterInstance, gomock.Any()).
+			Return(eventReaderInstance),
 	)
 
 	client := clientImpl{
 		grpcClient:                    grpcClient,
-		syncReadConnectionFactory:     syncReadConnectionFactory,
+		syncReadConnectionFactory:     eventReaderFactoryInstance,
 		messageAdapterProvider:        messageAdapterProviderInstance,
 		grpcSubscriptionClientFactory: grpcSubscriptionClientFactoryInstance,
 	}
 
 	resultSyncReadConnection, err := client.SubscribeToStreamSync(ctx, bufferSize, groupName, streamName)
 	require.NoError(t, err)
-	require.Equal(t, expectedSyncReadConnection, resultSyncReadConnection)
+	require.Equal(t, eventReaderInstance, resultSyncReadConnection)
 }
 
 func Test_Client_CreateSyncConnection_GetHandleConnectionError(t *testing.T) {

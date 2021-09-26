@@ -14,7 +14,7 @@ import (
 
 const MAX_ACK_COUNT = 2000
 
-type syncReadConnectionImpl struct {
+type eventReaderImpl struct {
 	protoClient        persistent.PersistentSubscriptions_ReadClient
 	subscriptionId     string
 	messageAdapter     messageAdapter
@@ -23,7 +23,7 @@ type syncReadConnectionImpl struct {
 	once               sync.Once
 }
 
-func (reader *syncReadConnectionImpl) ReadOne() (ReadResponseEvent, errors.Error) {
+func (reader *eventReaderImpl) ReadOne() (ReadResponseEvent, errors.Error) {
 	channel := make(chan readResponse)
 
 	reader.readRequestChannel <- channel
@@ -32,7 +32,7 @@ func (reader *syncReadConnectionImpl) ReadOne() (ReadResponseEvent, errors.Error
 	return resp.ReadResponseEvent, resp.Error
 }
 
-func (reader *syncReadConnectionImpl) readOne() (ReadResponseEvent, errors.Error) {
+func (reader *eventReaderImpl) readOne() (ReadResponseEvent, errors.Error) {
 	protoResponse, protoErr := reader.protoClient.Recv()
 	if protoErr != nil {
 		if protoErr == io.EOF {
@@ -50,14 +50,14 @@ func (reader *syncReadConnectionImpl) readOne() (ReadResponseEvent, errors.Error
 	return result, nil
 }
 
-func (reader *syncReadConnectionImpl) Close() error {
+func (reader *eventReaderImpl) Close() error {
 	reader.once.Do(reader.cancel)
 	return nil
 }
 
 const Exceeds_Max_Message_Count_Err errors.ErrorCode = "Exceeds_Max_Message_Count_Err"
 
-func (reader *syncReadConnectionImpl) Ack(messages ...ReadResponseEvent) errors.Error {
+func (reader *eventReaderImpl) Ack(messages ...ReadResponseEvent) errors.Error {
 	if len(messages) == 0 {
 		return nil
 	}
@@ -88,7 +88,7 @@ func (reader *syncReadConnectionImpl) Ack(messages ...ReadResponseEvent) errors.
 	return nil
 }
 
-func (reader *syncReadConnectionImpl) Nack(reason string,
+func (reader *eventReaderImpl) Nack(reason string,
 	action Nack_Action, messages ...ReadResponseEvent) error {
 	if len(messages) == 0 {
 		return nil
@@ -116,7 +116,7 @@ func (reader *syncReadConnectionImpl) Nack(reason string,
 	return nil
 }
 
-func (reader *syncReadConnectionImpl) readLoopWithRequest() {
+func (reader *eventReaderImpl) readLoopWithRequest() {
 	for {
 		responseChannel := <-reader.readRequestChannel
 		result, err := reader.readOne()
@@ -143,15 +143,15 @@ type readResponse struct {
 	Error             errors.Error
 }
 
-func newSyncReadConnection(
+func newEventReader(
 	client persistent.PersistentSubscriptions_ReadClient,
 	subscriptionId string,
 	messageAdapter messageAdapter,
 	cancel context.CancelFunc,
-) SyncReadConnection {
+) EventReader {
 	channel := make(chan chan readResponse)
 
-	connection := &syncReadConnectionImpl{
+	reader := &eventReaderImpl{
 		protoClient:        client,
 		subscriptionId:     subscriptionId,
 		messageAdapter:     messageAdapter,
@@ -166,7 +166,7 @@ func newSyncReadConnection(
 	// we keep user requests coming but will always send back a subscription dropped event.
 	// This implementation is simple to maintain while letting the user sharing their subscription
 	// among as many goroutines as they want.
-	go connection.readLoopWithRequest()
+	go reader.readLoopWithRequest()
 
-	return connection
+	return reader
 }

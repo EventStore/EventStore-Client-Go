@@ -92,10 +92,10 @@ func (mr *MockClientMockRecorder) DeleteStreamSubscription(ctx, deleteOptions in
 }
 
 // SubscribeToStreamSync mocks base method.
-func (m *MockClient) SubscribeToStreamSync(ctx context.Context, bufferSize int32, groupName, streamName string) (SyncReadConnection, errors.Error) {
+func (m *MockClient) SubscribeToStreamSync(ctx context.Context, bufferSize int32, groupName, streamName string) (EventReader, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubscribeToStreamSync", ctx, bufferSize, groupName, streamName)
-	ret0, _ := ret[0].(SyncReadConnection)
+	ret0, _ := ret[0].(EventReader)
 	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
