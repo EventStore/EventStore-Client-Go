@@ -445,6 +445,8 @@ func Test_DeleteStream(t *testing.T) {
 		require.True(t, isCurrentRevision)
 		require.EqualValues(t, 1, streamMetaCurrentRevision)
 
+		time.Sleep(200 * time.Millisecond)
+
 		_, err = client.EventStreams().ReadStreamEvents(context.Background(),
 			streamId,
 			event_streams.ReadRequestDirectionForward,
