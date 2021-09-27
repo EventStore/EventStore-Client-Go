@@ -200,7 +200,7 @@ func connectionStateMachine(config Configuration, channel chan msg) {
 	}
 }
 
-func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
+func createGrpcConnection(conf Configuration, address string) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 
 	if conf.DisableTLS {
@@ -251,91 +251,106 @@ const (
 )
 
 func discoverNode(conf Configuration) (*grpc.ClientConn, errors.Error) {
+	if conf.DnsDiscover || len(conf.GossipSeeds) > 0 {
+		return connectOverDnsOrGossipSeeds(conf)
+	}
+
+	return connectToSingleNode(conf)
+}
+
+func connectOverDnsOrGossipSeeds(conf Configuration) (*grpc.ClientConn, errors.Error) {
+	candidates := conf.getCandidates()
+
+	shuffleCandidates(candidates)
+
+	attempt := 1
+	for attempt <= conf.MaxDiscoverAttempts {
+		log.Printf("[info] discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
+		for _, candidate := range candidates {
+			connection, err := connectToOneCandidate(candidate, conf)
+			if err != nil {
+				continue
+			}
+
+			return connection, nil
+		}
+
+		attempt += 1
+		time.Sleep(time.Duration(conf.DiscoveryInterval))
+	}
+
+	return nil, errors.NewErrorCode(MaximumDiscoveryAttemptCountReached)
+}
+
+const (
+	failedToCreateGrpcConectionToBestCandidate errors.ErrorCode = "failedToCreateGrpcConectionToBestCandidate"
+	failedToPickCandidate                      errors.ErrorCode = "failedToPickCandidate"
+	failedToReadGossipFromCandidate            errors.ErrorCode = "failedToReadGossipFromCandidate"
+	failedToCreateGrpcConnectionForCandidate   errors.ErrorCode = "failedToCreateGrpcConnectionForCandidate"
+)
+
+func connectToOneCandidate(candidate string, conf Configuration) (*grpc.ClientConn, errors.Error) {
+	log.Printf("[info] Attempting to gossip via %s", candidate)
+	connection, err := createGrpcConnection(conf, candidate)
+	if err != nil {
+		log.Printf("[warn] Error when creating a grpc connection for candidate %s", candidate)
+		return nil, errors.NewErrorCode(failedToCreateGrpcConnectionForCandidate)
+	}
+
+	client := gossipApi.NewGossipClient(connection)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.GossipTimeout)*time.Second)
+	defer cancel()
+	info, err := client.Read(ctx, &shared.Empty{})
+	if err != nil {
+		log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
+		return nil, errors.NewErrorCode(failedToReadGossipFromCandidate)
+	}
+
+	info.Members = shuffleMembers(info.Members)
+	selected, err := pickBestCandidate(info, conf.NodePreference)
+	if err != nil {
+		log.Printf("[warn] Eror when picking best candidate out of %s gossip response: %v", candidate, err)
+		return nil, errors.NewErrorCode(failedToPickCandidate)
+	}
+
+	selectedAddress := fmt.Sprintf("%s:%d",
+		selected.GetHttpEndPoint().GetAddress(), selected.GetHttpEndPoint().GetPort())
+	log.Printf("[info] Best candidate found. %s (%s)", selectedAddress, selected.State.String())
+
+	if candidate != selectedAddress {
+		connection, err = createGrpcConnection(conf, selectedAddress)
+
+		if err != nil {
+			log.Printf("[warn] Error when creating gRPC connection for best candidate %v", err)
+			return nil, errors.NewErrorCode(failedToCreateGrpcConectionToBestCandidate)
+		}
+	}
+
+	log.Printf("[info] Successfully connected to best candidate %s (%s)", selectedAddress, selected.State.String())
+
+	return connection, nil
+}
+
+func connectToSingleNode(conf Configuration) (*grpc.ClientConn, errors.Error) {
 	var connection *grpc.ClientConn = nil
 	attempt := 1
+	for attempt <= conf.MaxDiscoverAttempts {
+		grpcConn, err := createGrpcConnection(conf, conf.Address)
 
-	if conf.DnsDiscover || len(conf.GossipSeeds) > 0 {
-		var candidates []string
-
-		if conf.DnsDiscover {
-			candidates = append(candidates, conf.Address)
-		} else {
-			for _, seed := range conf.GossipSeeds {
-				candidates = append(candidates, seed.String())
-			}
+		if err == nil {
+			connection = grpcConn
+			break
 		}
 
-		shuffleCandidates(candidates)
+		log.Printf("[warn] error when creating a single node connection to %s", conf.Address)
 
-		for attempt <= conf.MaxDiscoverAttempts {
-			log.Printf("[info] discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
-			for _, candidate := range candidates {
-				log.Printf("[info] Attempting to gossip via %s", candidate)
-				connection, err := createGrpcConnection(&conf, candidate)
-				if err != nil {
-					log.Printf("[warn] Error when creating a grpc connection for candidate %s", candidate)
+		attempt += 1
+		time.Sleep(time.Duration(conf.DiscoveryInterval))
+	}
 
-					continue
-				}
-
-				client := gossipApi.NewGossipClient(connection)
-				context, cancel := context.WithTimeout(context.Background(), time.Duration(conf.GossipTimeout)*time.Second)
-				defer cancel()
-				info, err := client.Read(context, &shared.Empty{})
-				if err != nil {
-					log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
-					continue
-				}
-
-				info.Members = shuffleMembers(info.Members)
-				selected, err := pickBestCandidate(info, conf.NodePreference)
-				if err != nil {
-					log.Printf("[warn] Eror when picking best candidate out of %s gossip response: %v", candidate, err)
-					continue
-				}
-
-				selectedAddress := fmt.Sprintf("%s:%d", selected.GetHttpEndPoint().GetAddress(), selected.GetHttpEndPoint().GetPort())
-				log.Printf("[info] Best candidate found. %s (%s)", selectedAddress, selected.State.String())
-
-				if candidate != selectedAddress {
-					connection, err = createGrpcConnection(&conf, selectedAddress)
-
-					if err != nil {
-						log.Printf("[warn] Error when creating gRPC connection for best candidate %v", err)
-						continue
-					}
-				}
-
-				log.Printf("[info] Successfully connected to best candidate %s (%s)", selectedAddress, selected.State.String())
-
-				return connection, nil
-			}
-
-			attempt += 1
-			time.Sleep(time.Duration(conf.DiscoveryInterval))
-		}
-
-		return nil, errors.NewErrorCode(MaximumDiscoveryAttemptCountReached)
-
-	} else {
-		for attempt <= conf.MaxDiscoverAttempts {
-			grpcConn, err := createGrpcConnection(&conf, conf.Address)
-
-			if err == nil {
-				connection = grpcConn
-				break
-			}
-
-			log.Printf("[warn] error when creating a single node connection to %s", conf.Address)
-
-			attempt += 1
-			time.Sleep(time.Duration(conf.DiscoveryInterval))
-		}
-
-		if connection == nil {
-			return nil, errors.NewErrorCodeMsg(UnableToConnectToSingleNode,
-				fmt.Sprintf("unable to connect to single node %s", conf.Address))
-		}
+	if connection == nil {
+		return nil, errors.NewErrorCodeMsg(UnableToConnectToSingleNode,
+			fmt.Sprintf("unable to connect to single node %s", conf.Address))
 	}
 
 	return connection, nil

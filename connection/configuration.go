@@ -25,7 +25,8 @@ const (
 
 // Configuration describes how to connect to an instance of EventStoreDB.
 type Configuration struct {
-	// The URI of the EventStoreDB. Use this when connecting to a single node.
+	// The URI of the EventStoreDB.
+	// Use this when connecting to a single node or when DNS Discovery is set to true.
 	// Example: localhost:2113
 	Address string
 
@@ -56,12 +57,13 @@ type Configuration struct {
 	MaxDiscoverAttempts int // Defaults to 10.
 
 	// The polling interval (in milliseconds) used to discover the end point.
-	DiscoveryInterval int // Defaults to 100 milliseconds.
+	DiscoveryInterval uint64 // Defaults to 100 milliseconds.
 
 	// The amount of time (in seconds) after which an attempt to discover gossip will fail.
 	GossipTimeout int // Defaults to 5 seconds.
 
 	// Specifies if DNS discovery should be used.
+	// If set to true use Address field as DNS address.
 	DnsDiscover bool // Defaults to false.
 
 	// The amount of time (in milliseconds) to wait after which a keepalive ping is sent on the transport.
@@ -70,6 +72,19 @@ type Configuration struct {
 
 	// The amount of time (in milliseconds) the sender of the keep alive ping waits for an acknowledgement.
 	KeepAliveTimeout time.Duration // Defaults to 10 seconds.
+}
+
+func (conf Configuration) getCandidates() []string {
+	var candidates []string
+	if conf.DnsDiscover {
+		candidates = append(candidates, conf.Address)
+	} else {
+		for _, seed := range conf.GossipSeeds {
+			candidates = append(candidates, seed.String())
+		}
+	}
+
+	return candidates
 }
 
 // ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
@@ -212,7 +227,7 @@ func parseSetting(k, v string, config *Configuration) error {
 	normalizedKey := strings.ToLower(k)
 	switch normalizedKey {
 	case "discoveryinterval":
-		err := parseIntSetting(k, v, &config.DiscoveryInterval)
+		err := parseUintSetting(k, v, &config.DiscoveryInterval)
 		if err != nil {
 			return err
 		}
@@ -305,6 +320,16 @@ func parseIntSetting(k, v string, i *int) error {
 	return nil
 }
 
+func parseUintSetting(k, v string, i *uint64) error {
+	var err error
+	*i, err = strconv.ParseUint(v, 10, 64)
+	if err != nil {
+		return fmt.Errorf("Setting '%s' must be an integer value", k)
+	}
+
+	return nil
+}
+
 func parseNodePreference(v string, config *Configuration) error {
 	switch strings.ToLower(v) {
 	case "follower":
@@ -327,7 +352,6 @@ func parseHost(host string, config *Configuration) error {
 	hosts := strings.Split(host, SchemaHostsSeparator)
 	for _, host := range hosts {
 		endpoint, err := ParseEndPoint(host)
-
 		if err != nil {
 			return err
 		}
