@@ -26,12 +26,14 @@ type grpcClientImpl struct {
 }
 
 const (
-	protoStreamDeleted             = "stream-deleted"
-	protoStreamNotFound            = "stream-not-found"
-	protoMaximumAppendSizeExceeded = "maximum-append-size-exceeded"
-	protoWrongExpectedVersion      = "wrong-expected-version"
-	protoNotLeader                 = "not-leader"
-	protoUserNotFound              = "user-not-found"
+	protoStreamDeleted                 = "stream-deleted"
+	protoStreamNotFound                = "stream-not-found"
+	protoMaximumAppendSizeExceeded     = "maximum-append-size-exceeded"
+	protoWrongExpectedVersion          = "wrong-expected-version"
+	protoNotLeader                     = "not-leader"
+	protoUserNotFound                  = "user-not-found"
+	protoMaximumSubscriberCountReached = "maximum-subscribers-reached"
+	protoPersistentSubscriptionDropped = "persistent-subscription-dropped"
 )
 
 func isProtoException(trailers metadata.MD, protoException string) bool {
@@ -66,6 +68,10 @@ func GetErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error
 		return errors.NewError(errors.NotLeaderErr, stdErr)
 	} else if isProtoException(trailers, protoUserNotFound) {
 		return errors.NewError(errors.UserNotFoundErr, stdErr)
+	} else if isProtoException(trailers, protoMaximumSubscriberCountReached) {
+		return errors.NewError(errors.MaximumSubscriberCountReached, stdErr)
+	} else if isProtoException(trailers, protoPersistentSubscriptionDropped) {
+		return errors.NewError(errors.PersistentSubscriptionDroppedErr, stdErr)
 	}
 
 	err := ErrorFromStdErrorByStatus(stdErr)

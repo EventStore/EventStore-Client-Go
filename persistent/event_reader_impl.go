@@ -50,9 +50,8 @@ func (reader *eventReaderImpl) readOne() (ReadResponseEvent, errors.Error) {
 	return result, nil
 }
 
-func (reader *eventReaderImpl) Close() error {
+func (reader *eventReaderImpl) Close() {
 	reader.once.Do(reader.cancel)
-	return nil
 }
 
 const Exceeds_Max_Message_Count_Err errors.ErrorCode = "Exceeds_Max_Message_Count_Err"
@@ -82,7 +81,12 @@ func (reader *eventReaderImpl) Ack(messages ...ReadResponseEvent) errors.Error {
 
 	trailers := reader.protoClient.Trailer()
 	if protoErr != nil {
-		return connection.GetErrorFromProtoException(trailers, protoErr)
+		err := connection.GetErrorFromProtoException(trailers, protoErr)
+		if err != nil {
+			return err
+		}
+
+		return errors.NewErrorCode(errors.FatalError)
 	}
 
 	return nil

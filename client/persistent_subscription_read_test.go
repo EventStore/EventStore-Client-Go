@@ -12,9 +12,9 @@ import (
 )
 
 func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	_, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
-	defer containerInstance.Close()
+	// defer containerInstance.Close()
 
 	t.Run("AckToReceiveNewEvents", func(t *testing.T) {
 		streamID := "AckToReceiveNewEvents"
@@ -23,7 +23,7 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 		thirdEvent := testCreateEvent()
 		pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
-		groupName := "Group AckToReceiveNewEvents"
+		groupName := "GroupAckToReceiveNewEvents"
 		request := persistent.CreateOrUpdateStreamRequest{
 			StreamName: streamID,
 			GroupName:  groupName,
@@ -60,108 +60,6 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 	})
 
 	t.Run("AckToReceiveNewEvents With Reconnect", func(t *testing.T) {
-		streamID := "AckToReceiveNewEvents"
-		firstEvent := testCreateEvent()
-		secondEvent := testCreateEvent()
-		thirdEvent := testCreateEvent()
-		pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
-
-		groupName := "Group AckToReceiveNewEvents"
-		request := persistent.CreateOrUpdateStreamRequest{
-			StreamName: streamID,
-			GroupName:  groupName,
-			Revision:   persistent.StreamRevisionStart{},
-			Settings:   persistent.DefaultRequestSettings,
-		}
-		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
-			context.Background(),
-			request,
-		)
-		require.NoError(t, err)
-
-		var bufferSize int32 = 2
-		readConnectionClient, err := clientInstance.PersistentSubscriptions().
-			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
-		require.NoError(t, err)
-
-		firstReadEvent, err := readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent.Event)
-
-		secondReadEvent, err := readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, secondReadEvent.Event)
-
-		// ack second message
-		err = readConnectionClient.Ack(secondReadEvent)
-		require.NoError(t, err)
-
-		// subscribe to stream again (continue to receive events)
-		readConnectionClient, err = clientInstance.PersistentSubscriptions().
-			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
-		require.NoError(t, err)
-
-		thirdReadEvent, err := readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, thirdReadEvent.Event)
-		require.Equal(t, thirdEvent.EventID, thirdReadEvent.Event.EventID)
-	})
-
-	t.Run("AckToReceiveNewEvents Start From Same Position With Reconnect", func(t *testing.T) {
-		streamID := "AckToReceiveNewEvents"
-		firstEvent := testCreateEvent()
-		secondEvent := testCreateEvent()
-		thirdEvent := testCreateEvent()
-		pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
-
-		groupName := "Group AckToReceiveNewEvents"
-		request := persistent.CreateOrUpdateStreamRequest{
-			StreamName: streamID,
-			GroupName:  groupName,
-			Revision:   persistent.StreamRevisionStart{},
-			Settings:   persistent.DefaultRequestSettings,
-		}
-		err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
-			context.Background(),
-			request,
-		)
-		require.NoError(t, err)
-
-		var bufferSize int32 = 2
-		readConnectionClient, err := clientInstance.PersistentSubscriptions().
-			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
-		require.NoError(t, err)
-
-		firstReadEvent, err := readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent.Event)
-
-		secondReadEvent, err := readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, secondReadEvent)
-
-		// ack second message
-		err = readConnectionClient.Ack(secondReadEvent)
-		require.NoError(t, err)
-
-		err = clientInstance.PersistentSubscriptions().UpdateStreamSubscription(context.Background(),
-			request)
-		require.NoError(t, err)
-
-		// subscribe to stream again (continue to receive events)
-		readConnectionClient, err = clientInstance.PersistentSubscriptions().
-			SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
-		require.NoError(t, err)
-
-		firstReadEvent, err = readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, firstReadEvent.Event)
-		require.Equal(t, firstEvent.EventID, firstReadEvent.Event.EventID)
-
-		secondReadEvent, err = readConnectionClient.ReadOne()
-		require.NoError(t, err)
-		require.NotNil(t, secondReadEvent)
-		require.Equal(t, secondEvent.EventID, secondReadEvent.Event.EventID)
 	})
 
 	t.Run("NackToReceiveNewEvents", func(t *testing.T) {
@@ -171,7 +69,7 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 		thirdEvent := testCreateEvent()
 		pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
-		groupName := "Group NackToReceiveNewEvents"
+		groupName := "GroupNackToReceiveNewEvents"
 		request := persistent.CreateOrUpdateStreamRequest{
 			StreamName: streamID,
 			GroupName:  groupName,
@@ -207,11 +105,12 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 	})
 
 	t.Run("NackToReceiveNewEvents Cancelled", func(t *testing.T) {
+		t.Skip()
 		streamID := "NackToReceiveNewEvents_Cancelled"
 		firstEvent := testCreateEvent()
 		pushEventsToStream(t, clientInstance, streamID, firstEvent)
 
-		groupName := "Group NackToReceiveNewEvents_Cancelled"
+		groupName := "GroupNackToReceiveNewEvents_Cancelled"
 		request := persistent.CreateOrUpdateStreamRequest{
 			StreamName: streamID,
 			GroupName:  groupName,
@@ -233,13 +132,184 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, firstReadEvent.Event)
 
-		stdErr := readConnectionClient.Close()
-		require.NoError(t, stdErr)
+		readConnectionClient.Close()
 
 		droppedConnectionEvent, err := readConnectionClient.ReadOne()
 		require.Equal(t, errors.CanceledErr, err.Code())
 		require.Empty(t, droppedConnectionEvent)
 	})
+}
+
+func Test_PersistentSubscription_OldConnectionsAreDroppedAfterUpdate(t *testing.T) {
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
+
+	streamID := "AckToReceiveNewEventsStartFromSamePositionWithReconnect"
+	firstEvent := testCreateEvent()
+	secondEvent := testCreateEvent()
+	thirdEvent := testCreateEvent()
+	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
+
+	groupName := "GroupAckToReceiveNewEventsWithReconnectFromStart"
+	request := persistent.CreateOrUpdateStreamRequest{
+		StreamName: streamID,
+		GroupName:  groupName,
+		Revision:   persistent.StreamRevisionStart{},
+		Settings:   persistent.DefaultRequestSettings,
+	}
+	err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
+		context.Background(),
+		request,
+	)
+	require.NoError(t, err)
+
+	var bufferSize int32 = 2
+	readConnectionClient, err := clientInstance.PersistentSubscriptions().
+		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+	require.NoError(t, err)
+
+	firstReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, firstReadEvent.Event)
+
+	secondReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, secondReadEvent)
+
+	// ack second message
+	err = readConnectionClient.Ack(secondReadEvent)
+	require.NoError(t, err)
+
+	oldReadConnection := readConnectionClient
+
+	err = clientInstance.PersistentSubscriptions().UpdateStreamSubscription(context.Background(),
+		request)
+	require.NoError(t, err)
+
+	// subscribe to stream again (continue to receive events)
+	_, err = clientInstance.PersistentSubscriptions().
+		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+	require.NoError(t, err)
+
+	_, err = oldReadConnection.ReadOne()
+	require.Equal(t, errors.PersistentSubscriptionDroppedErr, err.Code())
+}
+
+func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithReconnect(t *testing.T) {
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
+
+	streamID := "AckToReceiveNewEventsStartFromSamePositionWithReconnect"
+	firstEvent := testCreateEvent()
+	secondEvent := testCreateEvent()
+	thirdEvent := testCreateEvent()
+	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
+
+	groupName := "GroupAckToReceiveNewEventsWithReconnectFromStart"
+	request := persistent.CreateOrUpdateStreamRequest{
+		StreamName: streamID,
+		GroupName:  groupName,
+		Revision:   persistent.StreamRevisionStart{},
+		Settings:   persistent.DefaultRequestSettings,
+	}
+	err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
+		context.Background(),
+		request,
+	)
+	require.NoError(t, err)
+
+	var bufferSize int32 = 2
+	readConnectionClient, err := clientInstance.PersistentSubscriptions().
+		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+	require.NoError(t, err)
+
+	firstReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, firstReadEvent.Event)
+
+	secondReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, secondReadEvent)
+
+	// ack second message
+	err = readConnectionClient.Ack(secondReadEvent)
+	require.NoError(t, err)
+
+	request.Revision = persistent.StreamRevision{Revision: 1}
+	err = clientInstance.PersistentSubscriptions().UpdateStreamSubscription(context.Background(),
+		request)
+	require.NoError(t, err)
+
+	// subscribe to stream again start from beginning
+	readConnectionClient, err = clientInstance.PersistentSubscriptions().
+		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+	require.NoError(t, err)
+
+	firstReadEvent, err = readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, firstReadEvent.Event)
+	require.Equal(t, secondEvent.EventID, firstReadEvent.Event.EventID)
+
+	secondReadEvent, err = readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, secondReadEvent)
+	require.Equal(t, thirdEvent.EventID, secondReadEvent.Event.EventID)
+}
+
+func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T) {
+	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	defer closeClientInstance()
+	defer containerInstance.Close()
+
+	streamID := "AckToReceiveNewEventsWithReconnect"
+	firstEvent := testCreateEvent()
+	secondEvent := testCreateEvent()
+	thirdEvent := testCreateEvent()
+	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
+
+	groupName := "GroupAckToReceiveNewEventsWithReconnect"
+	request := persistent.CreateOrUpdateStreamRequest{
+		StreamName: streamID,
+		GroupName:  groupName,
+		Revision:   persistent.StreamRevisionStart{},
+		Settings:   persistent.DefaultRequestSettings,
+	}
+	err := clientInstance.PersistentSubscriptions().CreateStreamSubscription(
+		context.Background(),
+		request,
+	)
+	require.NoError(t, err)
+
+	var bufferSize int32 = 2
+	readConnectionClient, err := clientInstance.PersistentSubscriptions().
+		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+	require.NoError(t, err)
+
+	firstReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, firstReadEvent.Event)
+
+	secondReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, secondReadEvent.Event)
+
+	// ack second message
+	err = readConnectionClient.Ack(secondReadEvent)
+	require.NoError(t, err)
+
+	readConnectionClient.Close()
+
+	// subscribe to stream again (continue to receive events)
+	readConnectionClient, err = clientInstance.PersistentSubscriptions().
+		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
+	require.NoError(t, err)
+
+	thirdReadEvent, err := readConnectionClient.ReadOne()
+	require.NoError(t, err)
+	require.NotNil(t, thirdReadEvent.Event)
+	require.Equal(t, thirdEvent.EventID, thirdReadEvent.Event.EventID)
 }
 
 func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {

@@ -20,5 +20,5 @@ type EventReader interface {
 	ReadOne() (ReadResponseEvent, errors.Error) // this call must block
 	Ack(msgs ...ReadResponseEvent) errors.Error // max 2000 messages can be acknowledged
 	Nack(reason string, action Nack_Action, msgs ...ReadResponseEvent) error
-	Close() error
+	Close()
 }

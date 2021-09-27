@@ -39,7 +39,8 @@ func (client clientImpl) SubscribeToStreamSync(
 
 	var headers, trailers metadata.MD
 	ctx, cancel := context.WithCancel(ctx)
-	readClient, protoErr := persistentSubscriptionClient.Read(ctx, grpc.Header(&headers), grpc.Trailer(&trailers))
+	readClient, protoErr := persistentSubscriptionClient.Read(ctx,
+		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
 		defer cancel()
 		err := client.grpcClient.HandleError(handle, headers, trailers, protoErr,

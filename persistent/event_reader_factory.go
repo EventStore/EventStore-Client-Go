@@ -4,6 +4,7 @@ package persistent
 
 import (
 	"context"
+	"log"
 
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 )
@@ -24,5 +25,6 @@ func (factory eventReaderFactoryImpl) Create(
 	messageAdapter messageAdapter,
 	cancel context.CancelFunc) EventReader {
 
+	log.Printf("Created persistent subscription for client. Subscription Id: %s", subscriptionId)
 	return newEventReader(client, subscriptionId, messageAdapter, cancel)
 }
