@@ -192,8 +192,20 @@ func Test_PersistentSubscription_OldConnectionsAreDroppedAfterUpdate(t *testing.
 		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 	require.NoError(t, err)
 
-	_, err = oldReadConnection.ReadOne()
-	require.Equal(t, errors.PersistentSubscriptionDroppedErr, err.Code())
+	attempts := 10
+	counter := 0
+	for ; counter < attempts; counter++ {
+		_, err = oldReadConnection.ReadOne()
+
+		if err != nil {
+			require.Equal(t, errors.PersistentSubscriptionDroppedErr, err.Code())
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	require.NotEqual(t, 10, counter)
 }
 
 func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithReconnect(t *testing.T) {
