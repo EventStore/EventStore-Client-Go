@@ -21,7 +21,7 @@ func (msg reconnect) handle(state *connectionState) {
 		}
 
 		log.Printf("[info] Connecting to leader node %s ...", msg.endpoint.String())
-		conn, err := createGrpcConnection(&state.config, msg.endpoint.String())
+		conn, err := createGrpcConnection(state.config, msg.endpoint.String())
 		if err != nil {
 			log.Printf("[error] exception when connecting to suggested node %s", msg.endpoint.String())
 			state.correlation = uuid.Nil
