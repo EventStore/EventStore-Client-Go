@@ -145,13 +145,13 @@ func Test_PersistentSubscription_OldConnectionsAreDroppedAfterUpdate(t *testing.
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
-	streamID := "AckToReceiveNewEventsStartFromSamePositionWithReconnect"
+	streamID := "PersistentSubscriptionsOldConnectionsAreDropped"
 	firstEvent := testCreateEvent()
 	secondEvent := testCreateEvent()
 	thirdEvent := testCreateEvent()
 	pushEventsToStream(t, clientInstance, streamID, firstEvent, secondEvent, thirdEvent)
 
-	groupName := "GroupAckToReceiveNewEventsWithReconnectFromStart"
+	groupName := "GroupOldConnectionsAreDropped"
 	request := persistent.CreateOrUpdateStreamRequest{
 		StreamName: streamID,
 		GroupName:  groupName,
