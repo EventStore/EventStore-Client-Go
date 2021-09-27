@@ -3,7 +3,6 @@ package connection
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"math/rand"
@@ -149,48 +148,6 @@ type getConnection struct {
 	channel chan connectionHandle
 }
 
-func newGetConnectionMsg() getConnection {
-	return getConnection{
-		channel: make(chan connectionHandle),
-	}
-}
-
-const UUIDGeneratingError errors.ErrorCode = "UUIDGeneratingError"
-
-func (msg getConnection) handle(state *connectionState) {
-	// Means we need to create a grpc connection.
-	if state.correlation == uuid.Nil {
-		conn, err := discoverNode(state.config)
-		if err != nil {
-			state.lastError = err
-			resp := newErroredConnectionHandle(err)
-			msg.channel <- resp
-			return
-		}
-
-		id, stdErr := uuid.NewV4()
-		if stdErr != nil {
-			state.lastError = errors.NewErrorCodeMsg(UUIDGeneratingError,
-				fmt.Sprintf("error when trying to generate a random UUID: %v", err))
-			return
-		}
-
-		state.correlation = id
-		state.connection = conn
-
-		resp := newConnectionHandle(id, conn)
-		msg.channel <- resp
-	} else {
-		handle := connectionHandle{
-			id:         state.correlation,
-			connection: state.connection,
-			err:        nil,
-		}
-
-		msg.channel <- handle
-	}
-}
-
 type connectionState struct {
 	correlation uuid.UUID
 	connection  *grpc.ClientConn
@@ -211,36 +168,6 @@ func newConnectionState(config Configuration) connectionState {
 
 type msg interface {
 	handle(*connectionState)
-}
-
-type connectionHandle struct {
-	id         uuid.UUID
-	connection *grpc.ClientConn
-	err        errors.Error
-}
-
-func (handle connectionHandle) Id() uuid.UUID {
-	return handle.id
-}
-
-func (handle connectionHandle) Connection() *grpc.ClientConn {
-	return handle.connection
-}
-
-func newErroredConnectionHandle(err errors.Error) connectionHandle {
-	return connectionHandle{
-		id:         uuid.Nil,
-		connection: nil,
-		err:        err,
-	}
-}
-
-func newConnectionHandle(id uuid.UUID, connection *grpc.ClientConn) connectionHandle {
-	return connectionHandle{
-		id:         id,
-		connection: connection,
-		err:        nil,
-	}
 }
 
 const EsdbConnectionIsClosed errors.ErrorCode = "EsdbConnectionIsClosed"
@@ -271,58 +198,6 @@ func connectionStateMachine(config Configuration, channel chan msg) {
 
 		msg.handle(&state)
 	}
-}
-
-type reconnect struct {
-	correlation uuid.UUID
-	endpoint    *EndPoint
-}
-
-func (msg reconnect) handle(state *connectionState) {
-	if msg.correlation == state.correlation {
-		if msg.endpoint == nil {
-			// Means that in the next iteration cycle, the discovery process will start.
-			state.correlation = uuid.Nil
-			log.Printf("[info] Starting a new discovery process")
-			return
-		}
-
-		log.Printf("[info] Connecting to leader node %s ...", msg.endpoint.String())
-		conn, err := createGrpcConnection(&state.config, msg.endpoint.String())
-		if err != nil {
-			log.Printf("[error] exception when connecting to suggested node %s", msg.endpoint.String())
-			state.correlation = uuid.Nil
-			return
-		}
-
-		id, err := uuid.NewV4()
-		if err != nil {
-			log.Printf("[error] exception when generating a correlation id after reconnected to %s : %v", msg.endpoint.String(), err)
-			state.correlation = uuid.Nil
-			return
-		}
-
-		state.correlation = id
-		state.connection = conn
-
-		log.Printf("[info] Successfully connected to leader node %s", msg.endpoint.String())
-	}
-}
-
-type close struct {
-	channel chan bool
-}
-
-func (msg close) handle(state *connectionState) {
-	state.closed = true
-	if state.connection != nil {
-		defer func() {
-			state.connection.Close()
-			state.connection = nil
-		}()
-	}
-
-	msg.channel <- true
 }
 
 func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
@@ -358,23 +233,6 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 	}
 
 	return conn, nil
-}
-
-type basicAuth struct {
-	username string
-	password string
-}
-
-func (b basicAuth) GetRequestMetadata(tx context.Context, in ...string) (map[string]string, error) {
-	auth := b.username + ":" + b.password
-	enc := base64.StdEncoding.EncodeToString([]byte(auth))
-	return map[string]string{
-		"Authorization": "Basic " + enc,
-	}, nil
-}
-
-func (basicAuth) RequireTransportSecurity() bool {
-	return false
 }
 
 func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
