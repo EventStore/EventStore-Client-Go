@@ -383,7 +383,7 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, "pass", config.Password)
 	assert.Empty(t, config.Address)
 	assert.Equal(t, 13, config.MaxDiscoverAttempts)
-	assert.Equal(t, 37, config.DiscoveryInterval)
+	assert.EqualValues(t, 37, config.DiscoveryInterval)
 	assert.Equal(t, connection.NodePreference_Follower, config.NodePreference)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
