@@ -209,6 +209,7 @@ func Test_PersistentSubscription_OldConnectionsAreDroppedAfterUpdate(t *testing.
 }
 
 func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithReconnect(t *testing.T) {
+	t.Skip("Skipping cause updating persistent subscription can block on awaiting grpc headers")
 	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
 	defer closeClientInstance()
 	defer containerInstance.Close()
