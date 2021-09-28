@@ -31,7 +31,7 @@ func initializeClientAndEventStreamsClient(t *testing.T) (projections.Client,
 		})
 
 	client := projections.ClientFactoryImpl{}.Create(grpcClient)
-	eventStreamsClient := event_streams.ClientFactoryImpl{}.CreateClient(grpcClient)
+	eventStreamsClient := event_streams.ClientFactoryImpl{}.Create(grpcClient)
 
 	return client, eventStreamsClient, closeFunc
 }
