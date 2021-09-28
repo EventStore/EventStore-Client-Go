@@ -1,4 +1,4 @@
-package test_container
+package test_utils
 
 import (
 	"crypto/tls"

@@ -6,7 +6,7 @@ import (
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
+	"github.com/pivonroll/EventStore-Client-Go/test_utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -580,7 +580,7 @@ func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
 func Test_AppendToStream_WithAppendLimit(t *testing.T) {
 	client, closeFunc := initializeContainerAndClient(t,
 		map[string]string{
-			string(test_container.EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES): "1024",
+			string(test_utils.EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES): "1024",
 		})
 	defer closeFunc()
 

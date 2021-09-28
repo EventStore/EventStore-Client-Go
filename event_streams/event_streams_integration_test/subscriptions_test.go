@@ -9,7 +9,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
+	"github.com/pivonroll/EventStore-Client-Go/test_utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -668,7 +668,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 
 	receivedEvents.Add(6_000)
 	appendedEvents.Add(1)
-	timedOut := test_container.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+	timedOut := test_utils.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 
 	// Write a new event
@@ -681,7 +681,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	require.Equal(t, uint64(6_000), success.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription
-	timedOut = test_container.WaitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
+	timedOut = test_utils.WaitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for the appended events")
 	defer subscription.Close()
 }

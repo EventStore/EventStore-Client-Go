@@ -8,7 +8,7 @@ import (
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
+	"github.com/pivonroll/EventStore-Client-Go/test_utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -271,9 +271,9 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 	require.NoError(t, err)
 	receivedEvents.Add(10)
 	droppedEvent.Add(1)
-	timedOut := test_container.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+	timedOut := test_utils.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 	subscription.Close()
-	timedOut = test_container.WaitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
+	timedOut = test_utils.WaitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for dropped event")
 }

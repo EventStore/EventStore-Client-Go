@@ -5,12 +5,12 @@ import (
 
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/pivonroll/EventStore-Client-Go/projections"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
+	"github.com/pivonroll/EventStore-Client-Go/test_utils"
 )
 
 func initializeContainerAndClient(t *testing.T) (projections.Client,
-	test_container.CloseFunc) {
-	grpcClient, closeFunc := test_container.InitializeContainerAndGrpcClient(t,
+	test_utils.CloseFunc) {
+	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t,
 		map[string]string{
 			"EVENTSTORE_RUN_PROJECTIONS":            "All",
 			"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
@@ -23,8 +23,8 @@ func initializeContainerAndClient(t *testing.T) (projections.Client,
 
 func initializeClientAndEventStreamsClient(t *testing.T) (projections.Client,
 	event_streams.Client,
-	test_container.CloseFunc) {
-	grpcClient, closeFunc := test_container.InitializeContainerAndGrpcClient(t,
+	test_utils.CloseFunc) {
+	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t,
 		map[string]string{
 			"EVENTSTORE_RUN_PROJECTIONS":            "All",
 			"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",

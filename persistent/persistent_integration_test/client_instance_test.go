@@ -5,14 +5,14 @@ import (
 
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
+	"github.com/pivonroll/EventStore-Client-Go/test_utils"
 )
 
 func initializeContainerAndClient(t *testing.T,
 	envVariableOverrides map[string]string) (persistent.Client,
 	event_streams.Client,
-	test_container.CloseFunc) {
-	grpcClient, closeFunc := test_container.InitializeContainerAndGrpcClient(t, envVariableOverrides)
+	test_utils.CloseFunc) {
+	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t, envVariableOverrides)
 
 	client := persistent.ClientFactoryImpl{}.CreateClient(grpcClient)
 
@@ -21,8 +21,8 @@ func initializeContainerAndClient(t *testing.T,
 	return client, eventStreamsClient, closeFunc
 }
 
-func initializeWithPrePopulatedDatabase(t *testing.T) (persistent.Client, test_container.CloseFunc) {
-	grpcClient, closeFunc := test_container.InitializeGrpcClientWithPrePopulatedDatabase(t)
+func initializeWithPrePopulatedDatabase(t *testing.T) (persistent.Client, test_utils.CloseFunc) {
+	grpcClient, closeFunc := test_utils.InitializeGrpcClientWithPrePopulatedDatabase(t)
 	client := persistent.ClientFactoryImpl{}.CreateClient(grpcClient)
 	return client, closeFunc
 }
