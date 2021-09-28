@@ -7,7 +7,8 @@
 
 ## Supported Features
 * Event Streams
-  * Append
+  * Append Events One by One
+  * Batch Append Events
   * Tombstone (hard delete)
   * Delete (soft delete)
   * Get/Set Stream Metadata
@@ -33,14 +34,13 @@
   * Reset Users Password
 
 ## Roadmap
-* Add support for async read of events from event streams
-* Add support for async read of events from persistent subscriptions
 * Add support for Operations
+* Add API documentation
 
 ## Developing
 
 Integration tests run against a server using Docker, with the [EventStoreDB gRPC Client Test Container][container]. 
-New releases are published on github.com/pivonroll/EventStore-Client-Go
+New releases are published on github.com/pivonroll/EventStore-Client-Go.
 To run integration tests you need to have [Docker] installed and running.
 
 Starting docker in most Linux distros is done through systemctl.
