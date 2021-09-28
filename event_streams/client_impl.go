@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
@@ -20,6 +21,7 @@ type ClientImpl struct {
 	readClientFactory        StreamReaderFactory
 	appendResponseAdapter    appendResponseAdapter
 	readResponseAdapter      readResponseAdapter
+	batchResponseAdapter     batchResponseAdapter
 }
 
 const (
@@ -92,6 +94,62 @@ func (client *ClientImpl) AppendToStream(
 		StreamIdentifier:       streamID,
 		ExpectedStreamRevision: expectedStreamRevision,
 	}, events)
+}
+
+const (
+	BatchAppendToStream_FailedToObtainAppenderErr errors.ErrorCode = "BatchAppendToStream_FailedToObtainAppenderErr"
+	BatchAppendToStream_FailedSendMessageErr      errors.ErrorCode = "BatchAppendToStream_FailedSendMessageErr"
+	BatchAppendToStream_FailedToCloseStreamErr    errors.ErrorCode = "BatchAppendToStream_FailedToCloseStreamErr"
+)
+
+func (client *ClientImpl) BatchAppendToStream(ctx context.Context,
+	batchRequestOptions BatchAppendRequestOptions,
+	events ProposedEventList,
+	chunkSize uint64,
+) (BatchAppendResponse, errors.Error) {
+	handle, err := client.grpcClient.GetConnectionHandle()
+	if err != nil {
+		return BatchAppendResponse{}, err
+	}
+
+	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
+
+	var headers, trailers metadata.MD
+	appendClient, protoErr := grpcStreamsClient.BatchAppend(ctx,
+		grpc.Header(&headers), grpc.Trailer(&trailers))
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			BatchAppendToStream_FailedToObtainAppenderErr)
+		return BatchAppendResponse{}, err
+	}
+
+	chunks := events.toBatchAppendRequestChunks(chunkSize)
+	correlationId, _ := uuid.NewV4()
+
+	for index, chunk := range chunks {
+		request := BatchAppendRequest{
+			CorrelationId:    correlationId.String(),
+			Options:          batchRequestOptions,
+			ProposedMessages: chunk,
+			IsFinal:          index == len(chunks)-1,
+		}
+
+		protoErr = appendClient.Send(request.Build())
+		if protoErr != nil {
+			err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+				BatchAppendToStream_FailedSendMessageErr)
+			return BatchAppendResponse{}, err
+		}
+	}
+
+	response, protoErr := appendClient.Recv()
+	if protoErr != nil {
+		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
+			BatchAppendToStream_FailedToCloseStreamErr)
+		return BatchAppendResponse{}, err
+	}
+
+	return client.batchResponseAdapter.CreateResponse(response), nil
 }
 
 func (client *ClientImpl) SetStreamMetadata(

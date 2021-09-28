@@ -14,6 +14,12 @@ type Client interface {
 		events []ProposedEvent,
 	) (AppendResponse, errors.Error)
 
+	BatchAppendToStream(ctx context.Context,
+		batchRequestOptions BatchAppendRequestOptions,
+		events ProposedEventList,
+		chunkSize uint64,
+	) (BatchAppendResponse, errors.Error)
+
 	SetStreamMetadata(
 		ctx context.Context,
 		streamID string,
