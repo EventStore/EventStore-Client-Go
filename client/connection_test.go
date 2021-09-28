@@ -9,7 +9,6 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_CloseConnection(t *testing.T) {
@@ -40,8 +39,7 @@ func Test_CloseConnection(t *testing.T) {
 		t.Fatalf("Unexpected failure %+v", err)
 	}
 
-	stdErr := client.Close()
-	require.NoError(t, stdErr)
+	client.Close()
 	_, err = client.EventStreams().AppendToStream(ctx,
 		streamID.String(),
 		event_streams.AppendRequestExpectedStreamRevisionAny{},
