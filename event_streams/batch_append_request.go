@@ -11,7 +11,7 @@ import (
 )
 
 type BatchAppendRequest struct {
-	CorrelationId    uuid.UUID
+	CorrelationId    string
 	Options          BatchAppendRequestOptions
 	ProposedMessages []BatchAppendRequestProposedMessage
 	IsFinal          bool
@@ -21,12 +21,12 @@ func (this BatchAppendRequest) Build() *streams2.BatchAppendReq {
 	result := &streams2.BatchAppendReq{
 		CorrelationId: &shared.UUID{
 			Value: &shared.UUID_String_{
-				String_: this.CorrelationId.String(),
+				String_: this.CorrelationId,
 			},
 		},
 		Options: &streams2.BatchAppendReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: this.Options.StreamIdentifier,
+				StreamName: []byte(this.Options.StreamIdentifier),
 			},
 			Deadline: timestamppb.New(this.Options.Deadline),
 		},
@@ -43,25 +43,25 @@ func (this BatchAppendRequest) Build() *streams2.BatchAppendReq {
 
 func (this BatchAppendRequest) buildExpectedStreamPosition(
 	protoResult *streams2.BatchAppendReq,
-	position isBatchAppendRequestOptionsExpectedStreamPosition) {
+	position isBatchAppendExpectedStreamPosition) {
 
 	switch position.(type) {
-	case BatchAppendRequestOptionsExpectedStreamPosition:
-		streamPosition := position.(BatchAppendRequestOptionsExpectedStreamPosition)
+	case BatchAppendExpectedStreamPosition:
+		streamPosition := position.(BatchAppendExpectedStreamPosition)
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_StreamPosition{
 			StreamPosition: streamPosition.StreamPosition,
 		}
-	case BatchAppendRequestOptionsExpectedStreamPositionNoStream:
+	case BatchAppendExpectedStreamPositionNoStream:
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_NoStream{
 			NoStream: &emptypb.Empty{},
 		}
 
-	case BatchAppendRequestOptionsExpectedStreamPositionAny:
+	case BatchAppendExpectedStreamPositionAny:
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_Any{
 			Any: &emptypb.Empty{},
 		}
 
-	case BatchAppendRequestOptionsExpectedStreamPositionStreamExists:
+	case BatchAppendExpectedStreamPositionStreamExists:
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_StreamExists{
 			StreamExists: &emptypb.Empty{},
 		}
@@ -95,37 +95,37 @@ type BatchAppendRequestProposedMessage struct {
 }
 
 type BatchAppendRequestOptions struct {
-	StreamIdentifier []byte
-	//	BatchAppendRequestOptionsExpectedStreamPosition
-	//	BatchAppendRequestOptionsExpectedStreamPositionNoStream
-	//	BatchAppendRequestOptionsExpectedStreamPositionAny
-	//	BatchAppendRequestOptionsExpectedStreamPositionStreamExists
-	ExpectedStreamPosition isBatchAppendRequestOptionsExpectedStreamPosition
+	StreamIdentifier string
+	//	BatchAppendExpectedStreamPosition
+	//	BatchAppendExpectedStreamPositionNoStream
+	//	BatchAppendExpectedStreamPositionAny
+	//	BatchAppendExpectedStreamPositionStreamExists
+	ExpectedStreamPosition isBatchAppendExpectedStreamPosition
 	Deadline               time.Time
 }
 
-type isBatchAppendRequestOptionsExpectedStreamPosition interface {
-	isBatchAppendRequestOptionsExpectedStreamPosition()
+type isBatchAppendExpectedStreamPosition interface {
+	isBatchAppendExpectedStreamPosition()
 }
 
-type BatchAppendRequestOptionsExpectedStreamPosition struct {
+type BatchAppendExpectedStreamPosition struct {
 	StreamPosition uint64
 }
 
-func (this BatchAppendRequestOptionsExpectedStreamPosition) isBatchAppendRequestOptionsExpectedStreamPosition() {
+func (this BatchAppendExpectedStreamPosition) isBatchAppendExpectedStreamPosition() {
 }
 
-type BatchAppendRequestOptionsExpectedStreamPositionNoStream struct{}
+type BatchAppendExpectedStreamPositionNoStream struct{}
 
-func (this BatchAppendRequestOptionsExpectedStreamPositionNoStream) isBatchAppendRequestOptionsExpectedStreamPosition() {
+func (this BatchAppendExpectedStreamPositionNoStream) isBatchAppendExpectedStreamPosition() {
 }
 
-type BatchAppendRequestOptionsExpectedStreamPositionAny struct{}
+type BatchAppendExpectedStreamPositionAny struct{}
 
-func (this BatchAppendRequestOptionsExpectedStreamPositionAny) isBatchAppendRequestOptionsExpectedStreamPosition() {
+func (this BatchAppendExpectedStreamPositionAny) isBatchAppendExpectedStreamPosition() {
 }
 
-type BatchAppendRequestOptionsExpectedStreamPositionStreamExists struct{}
+type BatchAppendExpectedStreamPositionStreamExists struct{}
 
-func (this BatchAppendRequestOptionsExpectedStreamPositionStreamExists) isBatchAppendRequestOptionsExpectedStreamPosition() {
+func (this BatchAppendExpectedStreamPositionStreamExists) isBatchAppendExpectedStreamPosition() {
 }

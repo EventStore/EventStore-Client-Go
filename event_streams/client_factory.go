@@ -23,5 +23,6 @@ func newClientImpl(grpcClient connection.GrpcClient) *ClientImpl {
 		deleteResponseAdapter:    deleteResponseAdapterImpl{},
 		appendResponseAdapter:    appendResponseAdapterImpl{},
 		readResponseAdapter:      readResponseAdapterImpl{},
+		batchResponseAdapter:     batchResponseAdapterImpl{},
 	}
 }
