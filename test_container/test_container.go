@@ -251,13 +251,6 @@ func createClientConnectedToURI(connStr string, t *testing.T) *client.Client {
 
 type CloseFunc func()
 
-func InitializeWithPrePopulatedDatabase(t *testing.T) (*client.Client, CloseFunc) {
-	return InitializeContainerAndClient(t, map[string]string{
-		"EVENTSTORE_DB":     "/data/integration-tests",
-		"EVENTSTORE_MEM_DB": "false",
-	})
-}
-
 func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.GrpcClient, CloseFunc) {
 	return InitializeContainerAndGrpcClient(t, map[string]string{
 		"EVENTSTORE_DB":     "/data/integration-tests",
