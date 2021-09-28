@@ -24,23 +24,84 @@ const (
 	EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES EventStoreEnvironmentVariable = "EVENTSTORE_MAX_APPEND_SIZE"
 )
 
-// Container ...
-type Container struct {
-	Endpoint string
-	Resource *dockertest.Resource
-}
-
-type EventStoreDockerConfig struct {
-	Repository string
-	Tag        string
-	Port       string
-}
-
 const (
 	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata"
 	DEFAULT_EVENTSTORE_DOCKER_TAG        = "21.6.0-buster-slim"
 	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2114"
 )
+
+type CloseFunc func()
+
+func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.GrpcClient, CloseFunc) {
+	return InitializeGrpcClient(t, map[string]string{
+		"EVENTSTORE_DB":     "/data/integration-tests",
+		"EVENTSTORE_MEM_DB": "false",
+	})
+}
+
+func InitializeGrpcClient(t *testing.T,
+	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container, doNotUseTLS)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
+	}
+	return clientInstance, closeFunc
+}
+
+func InitializeGrpcClientWithTLS(t *testing.T,
+	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container, useTLS)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
+	}
+	return clientInstance, closeFunc
+}
+
+func InitializeContainerAndGrpcClient(t *testing.T,
+	environmentVariableOverrides map[string]string) (*Container, connection.GrpcClient) {
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container, doNotUseTLS)
+
+	return container, clientInstance
+}
+
+func StartEventStoreInDockerContainer(environmentVariableOverrides map[string]string) *Container {
+	envVariables := readOsEnvironmentVariables(environmentVariableOverrides)
+	dockerRunOptions := &dockertest.RunOptions{
+		Repository:   envVariables[string(EVENTSTORE_DOCKER_REPOSITORY_ENV)],
+		Tag:          envVariables[string(EVENTSTORE_DOCKER_TAG_ENV)],
+		ExposedPorts: []string{envVariables[string(EVENTSTORE_DOCKER_PORT_ENV)]},
+	}
+
+	otherVariables := envVariables
+	delete(otherVariables, string(EVENTSTORE_DOCKER_REPOSITORY_ENV))
+	delete(otherVariables, string(EVENTSTORE_DOCKER_TAG_ENV))
+	delete(otherVariables, string(EVENTSTORE_DOCKER_PORT_ENV))
+
+	var env []string
+
+	for key, value := range otherVariables {
+		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	dockerRunOptions.Env = env
+
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		log.Fatalf("Could not connect to docker. Reason: %v", err)
+	}
+	return getEventStoreDockerContainer(pool, dockerRunOptions)
+}
+
+// Container ...
+type Container struct {
+	Endpoint string
+	Resource *dockertest.Resource
+}
 
 func (container *Container) Close() {
 	err := container.Resource.Close()
@@ -49,13 +110,8 @@ func (container *Container) Close() {
 	}
 }
 
-func getDatabase(options *dockertest.RunOptions) *Container {
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		log.Fatalf("Could not connect to docker. Reason: %v", err)
-	}
-
-	err = setTLSContext(options)
+func getEventStoreDockerContainer(pool *dockertest.Pool, options *dockertest.RunOptions) *Container {
+	err := setTLSContext(options)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -179,8 +235,26 @@ func getRootDir() (string, error) {
 	return finalPath, nil
 }
 
-func createGrpcClientConnectedToContainer(t *testing.T, container *Container) connection.GrpcClient {
-	clientURI := fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint)
+type useTLSType bool
+
+const (
+	useTLS      useTLSType = true
+	doNotUseTLS useTLSType = false
+)
+
+func createClientURI(containerEndpoint string, shouldUseTLS useTLSType) string {
+	clientURI := fmt.Sprintf("esdb://admin:changeit@%s", containerEndpoint)
+
+	if shouldUseTLS == doNotUseTLS {
+		clientURI += "?tlsverifycert=false"
+	}
+
+	return clientURI
+}
+
+func createGrpcClientConnectedToContainer(t *testing.T,
+	container *Container, shouldUseTLS useTLSType) connection.GrpcClient {
+	clientURI := createClientURI(container.Endpoint, shouldUseTLS)
 	fmt.Println("Starting grpc client at:", clientURI)
 	config, err := connection.ParseConnectionString(clientURI)
 	require.NoError(t, err)
@@ -188,49 +262,6 @@ func createGrpcClientConnectedToContainer(t *testing.T, container *Container) co
 	grpcClient := connection.NewGrpcClient(*config)
 
 	return grpcClient
-}
-
-type CloseFunc func()
-
-func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.GrpcClient, CloseFunc) {
-	return InitializeContainerAndGrpcClient(t, map[string]string{
-		"EVENTSTORE_DB":     "/data/integration-tests",
-		"EVENTSTORE_MEM_DB": "false",
-	})
-}
-
-func InitializeContainerAndGrpcClient(t *testing.T,
-	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
-	container := CreateDockerContainer(environmentVariableOverrides)
-	clientInstance := createGrpcClientConnectedToContainer(t, container)
-	closeFunc := func() {
-		container.Close()
-		clientInstance.Close()
-	}
-	return clientInstance, closeFunc
-}
-
-func CreateDockerContainer(environmentVariableOverrides map[string]string) *Container {
-	envVariables := readOsEnvironmentVariables(environmentVariableOverrides)
-	dockerRunOptions := &dockertest.RunOptions{
-		Repository:   envVariables[string(EVENTSTORE_DOCKER_REPOSITORY_ENV)],
-		Tag:          envVariables[string(EVENTSTORE_DOCKER_TAG_ENV)],
-		ExposedPorts: []string{envVariables[string(EVENTSTORE_DOCKER_PORT_ENV)]},
-	}
-
-	otherVariables := envVariables
-	delete(otherVariables, string(EVENTSTORE_DOCKER_REPOSITORY_ENV))
-	delete(otherVariables, string(EVENTSTORE_DOCKER_TAG_ENV))
-	delete(otherVariables, string(EVENTSTORE_DOCKER_PORT_ENV))
-
-	var env []string
-
-	for key, value := range otherVariables {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	dockerRunOptions.Env = env
-	return getDatabase(dockerRunOptions)
 }
 
 func readOsEnvironmentVariables(override map[string]string) map[string]string {

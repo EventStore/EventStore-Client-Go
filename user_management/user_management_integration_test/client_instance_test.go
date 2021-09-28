@@ -10,7 +10,7 @@ import (
 func initializeContainerAndClient(t *testing.T,
 	envVariableOverrides map[string]string) (user_management.Client,
 	test_utils.CloseFunc) {
-	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t, envVariableOverrides)
+	grpcClient, closeFunc := test_utils.InitializeGrpcClient(t, envVariableOverrides)
 
 	client := user_management.ClientFactoryImpl{}.Create(grpcClient)
 

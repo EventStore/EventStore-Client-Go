@@ -12,7 +12,7 @@ func initializeContainerAndClient(t *testing.T,
 	envVariableOverrides map[string]string) (persistent.Client,
 	event_streams.Client,
 	test_utils.CloseFunc) {
-	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t, envVariableOverrides)
+	grpcClient, closeFunc := test_utils.InitializeGrpcClient(t, envVariableOverrides)
 
 	client := persistent.ClientFactoryImpl{}.Create(grpcClient)
 
