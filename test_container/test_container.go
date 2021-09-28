@@ -287,14 +287,6 @@ func InitializeContainerAndGrpcClient(t *testing.T,
 	return clientInstance, closeFunc
 }
 
-func GetPrePopulatedDatabase() *Container {
-	overrideVariables := map[string]string{
-		"EVENTSTORE_DB":     "/data/integration-tests",
-		"EVENTSTORE_MEM_DB": "false",
-	}
-	return CreateDockerContainer(overrideVariables)
-}
-
 func CreateDockerContainer(environmentVariableOverrides map[string]string) *Container {
 	envVariables := readOsEnvironmentVariables(environmentVariableOverrides)
 	dockerRunOptions := &dockertest.RunOptions{
