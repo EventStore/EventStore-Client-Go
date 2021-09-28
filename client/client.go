@@ -38,13 +38,12 @@ func NewClient(configuration *connection.Configuration) (*Client, error) {
 }
 
 // Close ...
-func (client *Client) Close() error {
+func (client *Client) Close() {
 	client.grpcClient.Close()
-	return nil
 }
 
 func (client *Client) Projections() projections.Client {
-	return client.projectionClientFactory.CreateClient(client.grpcClient)
+	return client.projectionClientFactory.Create(client.grpcClient)
 }
 
 func (client *Client) UserManagement() user_management.Client {
@@ -52,9 +51,9 @@ func (client *Client) UserManagement() user_management.Client {
 }
 
 func (client *Client) EventStreams() event_streams.Client {
-	return client.eventStreamsClientFactory.CreateClient(client.grpcClient)
+	return client.eventStreamsClientFactory.Create(client.grpcClient)
 }
 
 func (client *Client) PersistentSubscriptions() persistent.Client {
-	return client.persistentClientFactory.CreateClient(client.grpcClient)
+	return client.persistentClientFactory.Create(client.grpcClient)
 }

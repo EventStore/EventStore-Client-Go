@@ -1,5 +1,6 @@
-package client_test
+package connection_integration_test
 
+//
 //func TestTLSDefaults(t *testing.T) {
 //	container := GetEmptyDatabase()
 //	defer container.Close()

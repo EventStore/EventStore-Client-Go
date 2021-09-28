@@ -1,4 +1,4 @@
-package client_test
+package test_utils
 
 import (
 	"crypto/tls"
@@ -10,9 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ory/dockertest/v3"
-	"github.com/pivonroll/EventStore-Client-Go/client"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,10 +23,6 @@ const (
 	EVENTSTORE_DOCKER_PORT_ENV          EventStoreEnvironmentVariable = "EVENTSTORE_DOCKER_PORT"
 	EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES EventStoreEnvironmentVariable = "EVENTSTORE_MAX_APPEND_SIZE"
 )
-
-func createEventStoreEnvironmentVar(variableName EventStoreEnvironmentVariable, value string) string {
-	return fmt.Sprintf("%s=%s", variableName, value)
-}
 
 // Container ...
 type Container struct {
@@ -44,61 +39,14 @@ type EventStoreDockerConfig struct {
 const (
 	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata"
 	DEFAULT_EVENTSTORE_DOCKER_TAG        = "21.6.0-buster-slim"
-	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2113"
+	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2114"
 )
-
-var defaultEventStoreDockerConfig = EventStoreDockerConfig{
-	Repository: DEFAULT_EVENTSTORE_DOCKER_REPOSITORY,
-	Tag:        DEFAULT_EVENTSTORE_DOCKER_TAG,
-	Port:       DEFAULT_EVENTSTORE_DOCKER_PORT,
-}
-
-func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_REPOSITORY_ENV)); exists {
-		config.Repository = value
-	}
-
-	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_TAG_ENV)); exists {
-		config.Tag = value
-	}
-
-	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_PORT_ENV)); exists {
-		config.Port = value
-	}
-
-	fmt.Println(spew.Sdump(config))
-	return config
-}
-
-func getDockerOptions() *dockertest.RunOptions {
-	config := readEnvironmentVariables(defaultEventStoreDockerConfig)
-	return &dockertest.RunOptions{
-		Repository:   config.Repository,
-		Tag:          config.Tag,
-		ExposedPorts: []string{config.Port},
-	}
-}
 
 func (container *Container) Close() {
 	err := container.Resource.Close()
 	if err != nil {
 		panic(err)
 	}
-}
-
-func getEmptyDatabase(environmentVariables ...string) *Container {
-	options := getDockerOptions()
-	options.Env = append(options.Env, environmentVariables...)
-	return getDatabase(options)
-}
-
-func getPrePopulatedDatabase() *Container {
-	options := getDockerOptions()
-	options.Env = []string{
-		"EVENTSTORE_DB=/data/integration-tests",
-		"EVENTSTORE_MEM_DB=false",
-	}
-	return getDatabase(options)
 }
 
 func getDatabase(options *dockertest.RunOptions) *Container {
@@ -112,7 +60,6 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Environment Variables:\n", strings.Join(options.Env, "\n"))
 	fmt.Println("\nStarting docker container...")
 
 	resource, err := pool.RunWithOptions(options)
@@ -215,38 +162,105 @@ func getRootDir() (string, error) {
 		return "", err
 	}
 	currentDir = strings.Replace(currentDir, "\\", "/", -1)
-	return path.Clean(path.Join(currentDir, "../")), nil
-}
+	finalPath := path.Clean(path.Join(currentDir, "../"))
 
-func createClientConnectedToContainer(container *Container, t *testing.T) *client.Client {
-	clientInstance := createClientConnectedToURI(
-		fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint), t)
-	return clientInstance
-}
-
-func createClientConnectedToURI(connStr string, t *testing.T) *client.Client {
-	config, err := client.ParseConnectionString(connStr)
-	if err != nil {
-		t.Fatalf("Error when parsin connection string: %v", err)
+	for {
+		if finalPath == "/" {
+			break
+		}
+		_, stdErr := os.Stat(path.Join(finalPath, "go.mod"))
+		if os.IsNotExist(stdErr) {
+			finalPath = path.Clean(path.Join(finalPath, "../"))
+		} else {
+			break
+		}
 	}
 
-	clientInstance, err := client.NewClient(config)
-	if err != nil {
-		t.Fatalf("Error when creating an ESDB client: %v", err)
-	}
-
-	return clientInstance
+	return finalPath, nil
 }
 
-type closeClientInstanceFunc func()
+func createGrpcClientConnectedToContainer(t *testing.T, container *Container) connection.GrpcClient {
+	clientURI := fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint)
+	fmt.Println("Starting grpc client at:", clientURI)
+	config, err := connection.ParseConnectionString(clientURI)
+	require.NoError(t, err)
 
-func initializeContainerAndClient(t *testing.T,
-	environmentVariables ...string) (*Container, *client.Client, closeClientInstanceFunc) {
-	container := getEmptyDatabase(environmentVariables...)
-	clientInstance := createClientConnectedToContainer(container, t)
-	closeClientInstance := func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
+	grpcClient := connection.NewGrpcClient(*config)
+
+	return grpcClient
+}
+
+type CloseFunc func()
+
+func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.GrpcClient, CloseFunc) {
+	return InitializeContainerAndGrpcClient(t, map[string]string{
+		"EVENTSTORE_DB":     "/data/integration-tests",
+		"EVENTSTORE_MEM_DB": "false",
+	})
+}
+
+func InitializeContainerAndGrpcClient(t *testing.T,
+	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
+	container := CreateDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
 	}
-	return container, clientInstance, closeClientInstance
+	return clientInstance, closeFunc
+}
+
+func CreateDockerContainer(environmentVariableOverrides map[string]string) *Container {
+	envVariables := readOsEnvironmentVariables(environmentVariableOverrides)
+	dockerRunOptions := &dockertest.RunOptions{
+		Repository:   envVariables[string(EVENTSTORE_DOCKER_REPOSITORY_ENV)],
+		Tag:          envVariables[string(EVENTSTORE_DOCKER_TAG_ENV)],
+		ExposedPorts: []string{envVariables[string(EVENTSTORE_DOCKER_PORT_ENV)]},
+	}
+
+	otherVariables := envVariables
+	delete(otherVariables, string(EVENTSTORE_DOCKER_REPOSITORY_ENV))
+	delete(otherVariables, string(EVENTSTORE_DOCKER_TAG_ENV))
+	delete(otherVariables, string(EVENTSTORE_DOCKER_PORT_ENV))
+
+	var env []string
+
+	for key, value := range otherVariables {
+		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	dockerRunOptions.Env = env
+	return getDatabase(dockerRunOptions)
+}
+
+func readOsEnvironmentVariables(override map[string]string) map[string]string {
+	variables := map[string]string{}
+	variables[string(EVENTSTORE_DOCKER_REPOSITORY_ENV)] = DEFAULT_EVENTSTORE_DOCKER_REPOSITORY
+	variables[string(EVENTSTORE_DOCKER_TAG_ENV)] = DEFAULT_EVENTSTORE_DOCKER_TAG
+	variables[string(EVENTSTORE_DOCKER_PORT_ENV)] = DEFAULT_EVENTSTORE_DOCKER_PORT
+
+	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_REPOSITORY_ENV)); exists {
+		variables[string(EVENTSTORE_DOCKER_REPOSITORY_ENV)] = value
+	}
+
+	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_TAG_ENV)); exists {
+		variables[string(EVENTSTORE_DOCKER_TAG_ENV)] = value
+	}
+
+	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_PORT_ENV)); exists {
+		variables[string(EVENTSTORE_DOCKER_PORT_ENV)] = value
+	}
+
+	for key, value := range override {
+		variables[key] = value
+	}
+
+	printAllEnvironmentVariables(variables)
+	return variables
+}
+
+func printAllEnvironmentVariables(variables map[string]string) {
+	for key, value := range variables {
+		fmt.Printf("%s=%s\n", key, value)
+	}
 }

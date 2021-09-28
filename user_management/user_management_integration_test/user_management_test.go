@@ -7,23 +7,18 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/pivonroll/EventStore-Client-Go/user_management"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_CreateNewUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	newUUID, _ := uuid.NewV4()
 	loginName := newUUID.String()
 
-	err := userManagement.CreateUser(context.Background(), user_management.CreateOrUpdateRequest{
+	err := client.CreateUser(context.Background(), user_management.CreateOrUpdateRequest{
 		LoginName: loginName,
 		Password:  "Password",
 		FullName:  "Full Name",
@@ -32,7 +27,7 @@ func Test_CreateNewUser(t *testing.T) {
 
 	require.NoError(t, err)
 
-	user, err := userManagement.GetUserDetails(context.Background(), loginName)
+	user, err := client.GetUserDetails(context.Background(), loginName)
 	require.NoError(t, err)
 	require.Equal(t, loginName, user.LoginName)
 	require.Equal(t, "Full Name", user.FullName)
@@ -41,11 +36,8 @@ func Test_CreateNewUser(t *testing.T) {
 }
 
 func Test_UpdateUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	t.Run("Existing user", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
@@ -56,17 +48,17 @@ func Test_UpdateUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
 		request.FullName = "Full name 2"
 		request.Groups = []string{"some", "other"}
 		request.Password = "other password"
 
-		err = userManagement.UpdateUser(context.Background(), request)
+		err = client.UpdateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		user, err := userManagement.GetUserDetails(context.Background(), loginName)
+		user, err := client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 		require.Equal(t, loginName, user.LoginName)
 		require.Equal(t, request.FullName, user.FullName)
@@ -84,17 +76,14 @@ func Test_UpdateUser(t *testing.T) {
 			Groups:    []string{"foo", "bar"},
 		}
 
-		err := userManagement.UpdateUser(context.Background(), request)
+		err := client.UpdateUser(context.Background(), request)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 }
 
 func Test_DeleteUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	t.Run("Delete Existing User", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
@@ -105,10 +94,10 @@ func Test_DeleteUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 	})
 
@@ -121,17 +110,17 @@ func Test_DeleteUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
 		request.FullName = "Full name 2"
 		request.Groups = []string{"some", "other"}
 		request.Password = "other password"
 
-		err = userManagement.UpdateUser(context.Background(), request)
+		err = client.UpdateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 	})
 
@@ -144,30 +133,27 @@ func Test_DeleteUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		_, err = userManagement.GetUserDetails(context.Background(), loginName)
+		_, err = client.GetUserDetails(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
 	t.Run("Deleting Non-Existing User Fails", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
 		loginName := newUUID.String()
-		err := userManagement.DeleteUser(context.Background(), loginName)
+		err := client.DeleteUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 }
 
 func Test_EnableAndDisableUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	t.Run("Disable Existing User", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
@@ -178,13 +164,13 @@ func Test_EnableAndDisableUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		user, err := userManagement.GetUserDetails(context.Background(), loginName)
+		user, err := client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 		require.Equal(t, true, user.Disabled)
 	})
@@ -192,7 +178,7 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	t.Run("Disable Non-Existing User Fails", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
 		loginName := newUUID.String()
-		err := userManagement.DisableUser(context.Background(), loginName)
+		err := client.DisableUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
@@ -205,13 +191,13 @@ func Test_EnableAndDisableUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
@@ -224,16 +210,16 @@ func Test_EnableAndDisableUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		user, err := userManagement.GetUserDetails(context.Background(), loginName)
+		user, err := client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 		require.Equal(t, true, user.Disabled)
 	})
@@ -247,23 +233,23 @@ func Test_EnableAndDisableUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.EnableUser(context.Background(), loginName)
+		err = client.EnableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		user, err := userManagement.GetUserDetails(context.Background(), loginName)
+		user, err := client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 		require.Equal(t, false, user.Disabled)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		user, err = userManagement.GetUserDetails(context.Background(), loginName)
+		user, err = client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 		require.Equal(t, true, user.Disabled)
 	})
@@ -271,7 +257,7 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	t.Run("Enable Non-Existing User Fails", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
 		loginName := newUUID.String()
-		err := userManagement.EnableUser(context.Background(), loginName)
+		err := client.EnableUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
@@ -284,13 +270,13 @@ func Test_EnableAndDisableUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.EnableUser(context.Background(), loginName)
+		err = client.EnableUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
@@ -303,30 +289,27 @@ func Test_EnableAndDisableUser(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.EnableUser(context.Background(), loginName)
+		err = client.EnableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.EnableUser(context.Background(), loginName)
+		err = client.EnableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		user, err := userManagement.GetUserDetails(context.Background(), loginName)
+		user, err := client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 		require.Equal(t, false, user.Disabled)
 	})
 }
 
 func Test_ChangeUserPassword(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	t.Run("Succeeds For Existing User", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
@@ -337,10 +320,10 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -358,10 +341,10 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Wrong Current Password",
@@ -374,7 +357,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
 		loginName := newUUID.String()
 
-		err := userManagement.ChangeUserPassword(context.Background(),
+		err := client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Wrong Current Password",
@@ -392,10 +375,10 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -413,10 +396,10 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -424,7 +407,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 			})
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "New Password",
@@ -442,13 +425,13 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -466,13 +449,13 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -490,16 +473,16 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.EnableUser(context.Background(), loginName)
+		err = client.EnableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -517,14 +500,14 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "New Password",
@@ -542,14 +525,14 @@ func Test_ChangeUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Wrong Current Password",
@@ -560,11 +543,8 @@ func Test_ChangeUserPassword(t *testing.T) {
 }
 
 func Test_ResetUserPassword(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	t.Run("Succeeds For Existing User", func(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
@@ -575,10 +555,10 @@ func Test_ResetUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.NoError(t, err)
 	})
@@ -587,7 +567,7 @@ func Test_ResetUserPassword(t *testing.T) {
 		newUUID, _ := uuid.NewV4()
 		loginName := newUUID.String()
 
-		err := userManagement.ResetUserPassword(context.Background(),
+		err := client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
@@ -601,13 +581,13 @@ func Test_ResetUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DeleteUser(context.Background(), loginName)
+		err = client.DeleteUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
@@ -621,13 +601,13 @@ func Test_ResetUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.NoError(t, err)
 	})
@@ -641,16 +621,16 @@ func Test_ResetUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.DisableUser(context.Background(), loginName)
+		err = client.DisableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.EnableUser(context.Background(), loginName)
+		err = client.EnableUser(context.Background(), loginName)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password")
 		require.NoError(t, err)
 	})
@@ -664,10 +644,10 @@ func Test_ResetUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -675,7 +655,7 @@ func Test_ResetUserPassword(t *testing.T) {
 			})
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password 2")
 		require.NoError(t, err)
 	})
@@ -689,25 +669,22 @@ func Test_ResetUserPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password 2")
 		require.NoError(t, err)
 
-		err = userManagement.ResetUserPassword(context.Background(),
+		err = client.ResetUserPassword(context.Background(),
 			loginName, "New Password 3")
 		require.NoError(t, err)
 	})
 }
 
 func Test_ListUsers_ListDefaultUsers(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -730,7 +707,7 @@ func Test_ListUsers_ListDefaultUsers(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse
@@ -744,11 +721,8 @@ func Test_ListUsers_ListDefaultUsers(t *testing.T) {
 }
 
 func Test_ListUsers_ListDefaultAndNewUsers(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -779,15 +753,15 @@ func Test_ListUsers_ListDefaultAndNewUsers(t *testing.T) {
 		FullName:  "Full Name",
 		Groups:    []string{"foo", "bar"},
 	}
-	err := userManagement.CreateUser(context.Background(), request)
+	err := client.CreateUser(context.Background(), request)
 	require.NoError(t, err)
 
-	createdUser, err := userManagement.GetUserDetails(context.Background(), loginName)
+	createdUser, err := client.GetUserDetails(context.Background(), loginName)
 	require.NoError(t, err)
 
 	createdUser.LastUpdated = timeNow
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse
@@ -802,11 +776,8 @@ func Test_ListUsers_ListDefaultAndNewUsers(t *testing.T) {
 }
 
 func Test_ListUsers_DoNotListDeletedUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -837,13 +808,13 @@ func Test_ListUsers_DoNotListDeletedUser(t *testing.T) {
 		FullName:  "Full Name",
 		Groups:    []string{"foo", "bar"},
 	}
-	err := userManagement.CreateUser(context.Background(), request)
+	err := client.CreateUser(context.Background(), request)
 	require.NoError(t, err)
 
-	err = userManagement.DeleteUser(context.Background(), loginName)
+	err = client.DeleteUser(context.Background(), loginName)
 	require.NoError(t, err)
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse
@@ -857,11 +828,8 @@ func Test_ListUsers_DoNotListDeletedUser(t *testing.T) {
 }
 
 func Test_ListUsers_ListDisabledUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -892,18 +860,18 @@ func Test_ListUsers_ListDisabledUser(t *testing.T) {
 		FullName:  "Full Name",
 		Groups:    []string{"foo", "bar"},
 	}
-	err := userManagement.CreateUser(context.Background(), request)
+	err := client.CreateUser(context.Background(), request)
 	require.NoError(t, err)
 
-	err = userManagement.DisableUser(context.Background(), loginName)
+	err = client.DisableUser(context.Background(), loginName)
 	require.NoError(t, err)
 
-	createdUser, err := userManagement.GetUserDetails(context.Background(), loginName)
+	createdUser, err := client.GetUserDetails(context.Background(), loginName)
 	require.NoError(t, err)
 
 	createdUser.LastUpdated = timeNow
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse
@@ -918,11 +886,8 @@ func Test_ListUsers_ListDisabledUser(t *testing.T) {
 }
 
 func Test_ListUsers_ListReEnabledUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -953,21 +918,21 @@ func Test_ListUsers_ListReEnabledUser(t *testing.T) {
 		FullName:  "Full Name",
 		Groups:    []string{"foo", "bar"},
 	}
-	err := userManagement.CreateUser(context.Background(), request)
+	err := client.CreateUser(context.Background(), request)
 	require.NoError(t, err)
 
-	err = userManagement.DisableUser(context.Background(), loginName)
+	err = client.DisableUser(context.Background(), loginName)
 	require.NoError(t, err)
 
-	err = userManagement.EnableUser(context.Background(), loginName)
+	err = client.EnableUser(context.Background(), loginName)
 	require.NoError(t, err)
 
-	createdUser, err := userManagement.GetUserDetails(context.Background(), loginName)
+	createdUser, err := client.GetUserDetails(context.Background(), loginName)
 	require.NoError(t, err)
 
 	createdUser.LastUpdated = timeNow
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse
@@ -982,11 +947,8 @@ func Test_ListUsers_ListReEnabledUser(t *testing.T) {
 }
 
 func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -1018,10 +980,10 @@ func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
 			FullName:  "Full Name",
 			Groups:    []string{"foo", "bar"},
 		}
-		err := userManagement.CreateUser(context.Background(), request)
+		err := client.CreateUser(context.Background(), request)
 		require.NoError(t, err)
 
-		err = userManagement.ChangeUserPassword(context.Background(),
+		err = client.ChangeUserPassword(context.Background(),
 			user_management.ChangePasswordRequest{
 				LoginName:       loginName,
 				CurrentPassword: "Password",
@@ -1029,12 +991,12 @@ func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
 			})
 		require.NoError(t, err)
 
-		createdUser, err := userManagement.GetUserDetails(context.Background(), loginName)
+		createdUser, err := client.GetUserDetails(context.Background(), loginName)
 		require.NoError(t, err)
 
 		createdUser.LastUpdated = timeNow
 
-		allUsers, err := userManagement.ListAllUsers(context.Background())
+		allUsers, err := client.ListAllUsers(context.Background())
 		require.NoError(t, err)
 
 		var result []user_management.DetailsResponse
@@ -1050,11 +1012,8 @@ func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
 }
 
 func Test_ListUsers_ListsUserWithResetPassword(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -1085,19 +1044,19 @@ func Test_ListUsers_ListsUserWithResetPassword(t *testing.T) {
 		FullName:  "Full Name",
 		Groups:    []string{"foo", "bar"},
 	}
-	err := userManagement.CreateUser(context.Background(), request)
+	err := client.CreateUser(context.Background(), request)
 	require.NoError(t, err)
 
-	err = userManagement.ResetUserPassword(context.Background(),
+	err = client.ResetUserPassword(context.Background(),
 		loginName, "New Password")
 	require.NoError(t, err)
 
-	createdUser, err := userManagement.GetUserDetails(context.Background(), loginName)
+	createdUser, err := client.GetUserDetails(context.Background(), loginName)
 	require.NoError(t, err)
 
 	createdUser.LastUpdated = timeNow
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse
@@ -1112,11 +1071,8 @@ func Test_ListUsers_ListsUserWithResetPassword(t *testing.T) {
 }
 
 func Test_ListUsers_ListsUpdatedUser(t *testing.T) {
-	containerInstance, clientInstance,
-		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
-	defer closeClientInstance()
-	defer containerInstance.Close()
-	userManagement := clientInstance.UserManagement()
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
 
 	timeNow := time.Now().UTC()
 	defaultAdminUser := user_management.DetailsResponse{
@@ -1147,22 +1103,22 @@ func Test_ListUsers_ListsUpdatedUser(t *testing.T) {
 		FullName:  "Full Name",
 		Groups:    []string{"foo", "bar"},
 	}
-	err := userManagement.CreateUser(context.Background(), request)
+	err := client.CreateUser(context.Background(), request)
 	require.NoError(t, err)
 
 	request.FullName = "New Full Name"
 	request.Groups = []string{"new group"}
 	request.Password = "New Password"
 
-	err = userManagement.UpdateUser(context.Background(), request)
+	err = client.UpdateUser(context.Background(), request)
 	require.NoError(t, err)
 
-	createdUser, err := userManagement.GetUserDetails(context.Background(), loginName)
+	createdUser, err := client.GetUserDetails(context.Background(), loginName)
 	require.NoError(t, err)
 
 	createdUser.LastUpdated = timeNow
 
-	allUsers, err := userManagement.ListAllUsers(context.Background())
+	allUsers, err := client.ListAllUsers(context.Background())
 	require.NoError(t, err)
 
 	var result []user_management.DetailsResponse

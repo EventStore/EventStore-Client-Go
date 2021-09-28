@@ -7,27 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pivonroll/EventStore-Client-Go/client"
-	"github.com/pivonroll/EventStore-Client-Go/test_container"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/pivonroll/EventStore-Client-Go/projections"
 )
 
-func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*test_container.Container,
-	*client.Client, test_container.CloseClientInstanceFunc) {
-	return test_container.InitializeContainerAndClient(t, map[string]string{
-		"EVENTSTORE_RUN_PROJECTIONS":            "All",
-		"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
-	})
-}
-
 func Test_CreateContinuousProjection_TrackEmittedStreamsFalse(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
@@ -35,15 +22,13 @@ func Test_CreateContinuousProjection_TrackEmittedStreamsFalse(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
 func Test_CreateContinuousProjection_TrackEmittedStreamsTrue(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
@@ -51,44 +36,38 @@ func Test_CreateContinuousProjection_TrackEmittedStreamsTrue(t *testing.T) {
 		TrackEmittedStreams: true,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
 func Test_CreateTransientProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeTransientOption{
 		Name: "Transient",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
 func Test_CreateOneTimeProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeOneTimeOption{}).
 		SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 }
 
 func Test_UpdateContinuousProjection_NoEmit(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
@@ -96,7 +75,7 @@ func Test_UpdateContinuousProjection_NoEmit(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -104,15 +83,13 @@ func Test_UpdateContinuousProjection_NoEmit(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
 
-	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
+	err = client.UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
 func Test_UpdateContinuousProjection_EmitFalse(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
@@ -120,7 +97,7 @@ func Test_UpdateContinuousProjection_EmitFalse(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -128,15 +105,13 @@ func Test_UpdateContinuousProjection_EmitFalse(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
 
-	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
+	err = client.UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
 func Test_UpdateContinuousProjection_EmitTrue(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
@@ -144,7 +119,7 @@ func Test_UpdateContinuousProjection_EmitTrue(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -152,22 +127,20 @@ func Test_UpdateContinuousProjection_EmitTrue(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
 
-	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
+	err = client.UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
 func Test_UpdateTransientProjection_NoEmit(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeTransientOption{
 		Name: "MyTransient_no_emit",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -175,22 +148,20 @@ func Test_UpdateTransientProjection_NoEmit(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
 
-	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
+	err = client.UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
 func Test_UpdateTransientProjection_EmitFalse(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeTransientOption{
 		Name: "MyTransient_emit_false",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -198,23 +169,21 @@ func Test_UpdateTransientProjection_EmitFalse(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: false})
 
-	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
+	err = client.UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
 func Test_UpdateTransientProjection_EmitTrue(t *testing.T) {
 	t.Skip("Only execute this test locally when only one node is running")
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeTransientOption{
 		Name: "MyTransient_emit_true",
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	updateOptions := projections.UpdateOptionsRequest{}
@@ -222,26 +191,24 @@ func Test_UpdateTransientProjection_EmitTrue(t *testing.T) {
 	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
 		SetEmitOption(projections.UpdateOptionsEmitOptionEnabled{EmitEnabled: true})
 
-	err = clientInstance.Projections().UpdateProjection(context.Background(), updateOptions)
+	err = client.UpdateProjection(context.Background(), updateOptions)
 	require.NoError(t, err)
 }
 
 func Test_AbortProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	abortOptions := projections.AbortOptionsRequest{}
 	abortOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.Projections().AbortProjection(context.Background(), abortOptions)
+	err := client.AbortProjection(context.Background(), abortOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := client.GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -251,21 +218,19 @@ func Test_AbortProjection(t *testing.T) {
 }
 
 func Test_DisableProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	disableOptions := projections.DisableOptionsRequest{}
 	disableOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.Projections().DisableProjection(context.Background(), disableOptions)
+	err := client.DisableProjection(context.Background(), disableOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := client.GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -275,21 +240,19 @@ func Test_DisableProjection(t *testing.T) {
 }
 
 func Test_EnableProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	enableOptions := projections.EnableOptionsRequest{}
 	enableOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.Projections().EnableProjection(context.Background(), enableOptions)
+	err := client.EnableProjection(context.Background(), enableOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := client.GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -299,10 +262,8 @@ func Test_EnableProjection(t *testing.T) {
 }
 
 func Test_GetResultOfProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, eventStreamsClient, closeFunc := initializeClientAndEventStreamsClient(t)
+	defer closeFunc()
 
 	streamName := "result_test_stream"
 
@@ -332,20 +293,20 @@ func Test_GetResultOfProjection(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery(fmt.Sprintf(resultProjectionQuery, streamName))
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	testEvent := testCreateEvent()
 	testEvent.EventType = "count_this"
 	testEvent.Data = []byte(fmt.Sprintf(eventData, 0))
 
-	pushEventsToStream(t, clientInstance, streamName, testEvent)
+	pushEventsToStream(t, eventStreamsClient, streamName, testEvent)
 
 	time.Sleep(time.Second * 2)
 
 	resultOptions := projections.ResultOptionsRequest{}
 	resultOptions.SetName("MyContinuousProjection")
-	projectionResult, err := clientInstance.Projections().
+	projectionResult, err := client.
 		GetProjectionResult(context.Background(), resultOptions)
 	require.NoError(t, err)
 	require.Equal(t, projections.ResultResponseStructType, projectionResult.GetType())
@@ -364,10 +325,8 @@ func Test_GetResultOfProjection(t *testing.T) {
 }
 
 func Test_GetStateOfProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, eventStreamsClient, closeFunc := initializeClientAndEventStreamsClient(t)
+	defer closeFunc()
 
 	streamName := "state_test_stream"
 
@@ -397,20 +356,20 @@ func Test_GetStateOfProjection(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery(fmt.Sprintf(resultProjectionQuery, streamName))
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	testEvent := testCreateEvent()
 	testEvent.EventType = "count_this"
 	testEvent.Data = []byte(fmt.Sprintf(eventData, 0))
 
-	pushEventsToStream(t, clientInstance, streamName, testEvent)
+	pushEventsToStream(t, eventStreamsClient, streamName, testEvent)
 
 	time.Sleep(time.Second * 2)
 
 	resultOptions := projections.StateOptionsRequest{}
 	resultOptions.SetName("MyContinuousProjection")
-	projectionResult, err := clientInstance.Projections().
+	projectionResult, err := client.
 		GetProjectionState(context.Background(), resultOptions)
 	require.NoError(t, err)
 	require.Equal(t, projections.StateResponseStructType, projectionResult.GetType())
@@ -429,16 +388,14 @@ func Test_GetStateOfProjection(t *testing.T) {
 }
 
 func Test_GetStatusOfProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.Projections().GetProjectionStatistics(context.Background(), stateOptions)
+	statisticsClient, err := client.GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
 
@@ -448,21 +405,19 @@ func Test_GetStatusOfProjection(t *testing.T) {
 }
 
 func Test_ResetProjection(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	resetOptions := projections.ResetOptionsRequest{}
 	resetOptions.SetName(StandardProjectionStreams)
-	err := clientInstance.Projections().ResetProjection(context.Background(), resetOptions)
+	err := client.ResetProjection(context.Background(), resetOptions)
 	require.NoError(t, err)
 
 	stateOptions := projections.StatisticsOptionsRequest{}
 	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
 		Name: StandardProjectionStreams,
 	})
-	statisticsClient, err := clientInstance.Projections().
+	statisticsClient, err := client.
 		GetProjectionStatistics(context.Background(), stateOptions)
 	require.NoError(t, err)
 	require.NotNil(t, statisticsClient)
@@ -473,20 +428,16 @@ func Test_ResetProjection(t *testing.T) {
 }
 
 func Test_RestartProjectionSubsystem(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
-	err := clientInstance.Projections().RestartProjectionsSubsystem(context.Background())
+	err := client.RestartProjectionsSubsystem(context.Background())
 	require.NoError(t, err)
 }
 
 func Test_ListAllProjections(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	expectedStreamNames := []string{
 		StandardProjectionStreams,
@@ -496,7 +447,7 @@ func Test_ListAllProjections(t *testing.T) {
 		StandardProjectionByCorrelationId,
 	}
 
-	result, err := clientInstance.Projections().ListAllProjections(context.Background())
+	result, err := client.ListAllProjections(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, len(expectedStreamNames))
@@ -510,10 +461,8 @@ func Test_ListAllProjections(t *testing.T) {
 }
 
 func Test_ListContinuousProjections(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeContinuousOption{
@@ -521,7 +470,7 @@ func Test_ListContinuousProjections(t *testing.T) {
 		TrackEmittedStreams: false,
 	}).SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
 	expectedStreamNames := []string{
@@ -533,7 +482,7 @@ func Test_ListContinuousProjections(t *testing.T) {
 		"MyContinuous_false",
 	}
 
-	result, err := clientInstance.Projections().ListContinuousProjections(context.Background())
+	result, err := client.ListContinuousProjections(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, len(expectedStreamNames))
@@ -547,19 +496,17 @@ func Test_ListContinuousProjections(t *testing.T) {
 }
 
 func Test_ListOneTimeProjections(t *testing.T) {
-	// instance EventStore container and client
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClientWithProjectionsEnabled(t)
-	defer closeClientInstance()
-	defer containerInstance.Close()
+	client, closeFunc := initializeContainerAndClient(t)
+	defer closeFunc()
 
 	createOptions := projections.CreateOptionsRequest{}
 	createOptions.SetMode(projections.CreateConfigModeOneTimeOption{}).
 		SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
 
-	err := clientInstance.Projections().CreateProjection(context.Background(), createOptions)
+	err := client.CreateProjection(context.Background(), createOptions)
 	require.NoError(t, err)
 
-	result, err := clientInstance.Projections().ListOneTimeProjections(context.Background())
+	result, err := client.ListOneTimeProjections(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)

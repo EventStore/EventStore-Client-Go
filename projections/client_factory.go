@@ -7,12 +7,12 @@ import (
 )
 
 type ClientFactory interface {
-	CreateClient(grpcClient connection.GrpcClient) Client
+	Create(grpcClient connection.GrpcClient) Client
 }
 
 type ClientFactoryImpl struct{}
 
-func (clientFactory ClientFactoryImpl) CreateClient(
+func (clientFactory ClientFactoryImpl) Create(
 	grpcClient connection.GrpcClient) Client {
 	return newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{})
 }
