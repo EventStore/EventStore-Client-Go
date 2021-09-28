@@ -217,13 +217,6 @@ func getRootDir() (string, error) {
 	return finalPath, nil
 }
 
-func createClientConnectedToContainer(container *Container, t *testing.T) *client.Client {
-	clientURI := fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint)
-	fmt.Println("Starting client at:", clientURI)
-	clientInstance := createClientConnectedToURI(clientURI, t)
-	return clientInstance
-}
-
 func createGrpcClientConnectedToContainer(t *testing.T, container *Container) connection.GrpcClient {
 	clientURI := fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint)
 	fmt.Println("Starting grpc client at:", clientURI)
