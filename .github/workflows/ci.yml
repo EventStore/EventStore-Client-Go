@@ -42,10 +42,8 @@ jobs:
       run: |
         touch vars.env
         docker-compose up
-#        docker-compose --file=cluster-docker-compose.yml up -d
         go test -v ./...
         docker-compose down
-#        docker-compose --file=cluster-docker-compose.yml down
 
   linting:
     needs: tests
