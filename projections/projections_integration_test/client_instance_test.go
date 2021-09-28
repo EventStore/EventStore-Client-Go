@@ -10,7 +10,7 @@ import (
 
 func initializeContainerAndClient(t *testing.T) (projections.Client,
 	test_utils.CloseFunc) {
-	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t,
+	grpcClient, closeFunc := test_utils.InitializeGrpcClient(t,
 		map[string]string{
 			"EVENTSTORE_RUN_PROJECTIONS":            "All",
 			"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
@@ -24,7 +24,7 @@ func initializeContainerAndClient(t *testing.T) (projections.Client,
 func initializeClientAndEventStreamsClient(t *testing.T) (projections.Client,
 	event_streams.Client,
 	test_utils.CloseFunc) {
-	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t,
+	grpcClient, closeFunc := test_utils.InitializeGrpcClient(t,
 		map[string]string{
 			"EVENTSTORE_RUN_PROJECTIONS":            "All",
 			"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
