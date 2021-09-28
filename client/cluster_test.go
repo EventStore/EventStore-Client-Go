@@ -9,6 +9,7 @@ import (
 )
 
 func Test_NotLeaderExceptionButWorkAfterRetry(t *testing.T) {
+	t.Skip("Until we move cluster initialization to dockertest")
 	ctx := context.Background()
 
 	// We purposely connect to a follower node so we can trigger on not leader exception.
