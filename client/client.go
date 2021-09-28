@@ -43,7 +43,7 @@ func (client *Client) Close() {
 }
 
 func (client *Client) Projections() projections.Client {
-	return client.projectionClientFactory.CreateClient(client.grpcClient)
+	return client.projectionClientFactory.Create(client.grpcClient)
 }
 
 func (client *Client) UserManagement() user_management.Client {
@@ -51,7 +51,7 @@ func (client *Client) UserManagement() user_management.Client {
 }
 
 func (client *Client) EventStreams() event_streams.Client {
-	return client.eventStreamsClientFactory.CreateClient(client.grpcClient)
+	return client.eventStreamsClientFactory.Create(client.grpcClient)
 }
 
 func (client *Client) PersistentSubscriptions() persistent.Client {
