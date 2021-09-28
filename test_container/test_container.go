@@ -47,12 +47,6 @@ const (
 	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2114"
 )
 
-var defaultEventStoreDockerConfig = EventStoreDockerConfig{
-	Repository: DEFAULT_EVENTSTORE_DOCKER_REPOSITORY,
-	Tag:        DEFAULT_EVENTSTORE_DOCKER_TAG,
-	Port:       DEFAULT_EVENTSTORE_DOCKER_PORT,
-}
-
 func (container *Container) Close() {
 	err := container.Resource.Close()
 	if err != nil {
