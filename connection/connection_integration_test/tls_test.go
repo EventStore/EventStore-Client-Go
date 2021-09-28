@@ -61,26 +61,27 @@ func TestTLSDefaultsWithCertificate(t *testing.T) {
 	require.NoError(t, err)
 }
 
-//
-//func TestTLSWithoutCertificateAndVerify(t *testing.T) {
-//	container := GetEmptyDatabase()
-//	defer container.Close()
-//
-//	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=false", container.Endpoint))
-//	if err != nil {
-//		t.Fatalf("Unexpected configuration error: %s", err.Error())
-//	}
-//
-//	c, err := client.NewClient(config)
-//	if err != nil {
-//		t.Fatalf("Unexpected error: %s", err.Error())
-//	}
-//
-//	numberOfEventsToRead := 1
-//	numberOfEvents := uint64(numberOfEventsToRead)
-//	_, err = c.ReadAllEvents_OLD(context.Background(), direction.Backwards, stream_position.Start{}, numberOfEvents, true)
-//	require.NoError(t, err)
-//}
+func TestTLSWithoutCertificateAndVerify(t *testing.T) {
+	container := test_utils.CreateDockerContainer(nil)
+	defer container.Close()
+
+	config, err := client.ParseConnectionString(
+		fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=false", container.Endpoint))
+	if err != nil {
+		t.Fatalf("Unexpected configuration error: %s", err.Error())
+	}
+
+	grpcClient := connection.NewGrpcClient(*config)
+	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
+
+	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
+		event_streams.ReadRequestDirectionBackward,
+		event_streams.ReadRequestOptionsAllStartPosition{},
+		1,
+		false)
+	require.NoError(t, err)
+}
+
 //
 //func TestTLSWithoutCertificate(t *testing.T) {
 //	container := GetEmptyDatabase()
