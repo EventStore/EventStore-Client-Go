@@ -1,10 +1,11 @@
-package client_test
+package event_streams_integration_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 
 	"github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 
@@ -13,15 +14,9 @@ import (
 )
 
 func Test_ReadAll_Backwards(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	streamId := "stream"
 	events := testCreateEvents(20)
@@ -119,15 +114,9 @@ func Test_ReadAll_Backwards(t *testing.T) {
 }
 
 func Test_ReadAll_Forwards(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	streamId := "stream"
 	events := testCreateEvents(20)

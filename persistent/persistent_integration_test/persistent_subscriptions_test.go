@@ -1,4 +1,4 @@
-package client_test
+package persistent_integration_test
 
 import (
 	"context"
@@ -8,11 +8,12 @@ import (
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_CreatePersistentStreamSubscription(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -130,7 +131,7 @@ func Test_CreatePersistentStreamSubscription(t *testing.T) {
 }
 
 func Test_UpdatePersistentStreamSubscription(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -187,7 +188,7 @@ func Test_UpdatePersistentStreamSubscription(t *testing.T) {
 }
 
 func Test_DeletePersistentStreamSubscription(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -230,10 +231,9 @@ func Test_DeletePersistentStreamSubscription(t *testing.T) {
 }
 
 func TestPersistentSubscriptionClosing(t *testing.T) {
-	container := getPrePopulatedDatabase()
+	container, client, closeFunc := test_container.InitializeWithPrePopulatedDatabase(t)
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer client.Close()
+	defer closeFunc()
 
 	streamID := "dataset20M-0"
 	groupName := "Group 1"
@@ -285,9 +285,9 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 	require.NoError(t, err)
 	receivedEvents.Add(10)
 	droppedEvent.Add(1)
-	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+	timedOut := test_container.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 	subscription.Close()
-	timedOut = waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
+	timedOut = test_container.WaitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for dropped event")
 }

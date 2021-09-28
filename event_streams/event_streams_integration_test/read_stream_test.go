@@ -1,10 +1,11 @@
-package client_test
+package event_streams_integration_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 
 	uuid "github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
@@ -38,15 +39,9 @@ type Event struct {
 }
 
 func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	deletedStream := "deleted_stream"
 	linkedStream := "linked_stream"
@@ -106,15 +101,9 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 }
 
 func Test_Read_Forwards_Linked_Stream(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	deletedStream := "deleted_stream"
 	linkedStream := "linked_stream"
@@ -167,15 +156,9 @@ func Test_Read_Forwards_Linked_Stream(t *testing.T) {
 }
 
 func Test_Read_Backwards_Linked_Stream(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	deletedStream := "deleted_stream"
 	linkedStream := "linked_stream"
@@ -228,15 +211,9 @@ func Test_Read_Backwards_Linked_Stream(t *testing.T) {
 }
 
 func Test_Read_Backwards(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("Stream Does Not Exist Throws", func(t *testing.T) {
 		streamId := "stream_does_not_exist_throws"
@@ -435,15 +412,9 @@ func Test_Read_Backwards(t *testing.T) {
 }
 
 func Test_Read_Forwards(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("Stream Does Not Exist Throws", func(t *testing.T) {
 		streamId := "stream_does_not_exist_throws"

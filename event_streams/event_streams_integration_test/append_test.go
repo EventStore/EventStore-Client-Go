@@ -1,37 +1,19 @@
-package client_test
+package event_streams_integration_test
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/stretchr/testify/require"
-
-	"github.com/gofrs/uuid"
 )
 
-func createTestEventWithMetadataSize(metadataSize int) event_streams.ProposedEvent {
-	return event_streams.ProposedEvent{
-		EventID:      uuid.Must(uuid.NewV4()),
-		EventType:    "TestEvent",
-		ContentType:  "application/octet-stream",
-		UserMetadata: []byte(strings.Repeat("$", metadataSize)),
-		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-	}
-}
-
 func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("With Expected Revision NoStream", func(t *testing.T) {
 		streamName := "test_no_stream"
@@ -83,15 +65,9 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 }
 
 func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("With Expected Revision Any", func(t *testing.T) {
 		streamName := "stream_any"
@@ -156,15 +132,9 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 }
 
 func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
 	streamName := "stream_any"
@@ -188,15 +158,9 @@ func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
 	streamName := "stream_any"
@@ -213,15 +177,9 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *tes
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionAny{}
 	streamName := "stream_any"
@@ -246,15 +204,9 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVe
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
 	streamName := "stream_no_stream"
@@ -279,15 +231,9 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpec
 }
 
 func Test_ReturnsPositionWhenWriting(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	streamName := "stream_no_stream"
 	event := testCreateEvent()
@@ -304,15 +250,9 @@ func Test_ReturnsPositionWhenWriting(t *testing.T) {
 }
 
 func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("Stream Does Not Exist, Revision Any", func(t *testing.T) {
 		streamName := "stream_does_not_exist_any"
@@ -397,15 +337,9 @@ func Test_AppendToDeletedStream_StreamDeletedErr(t *testing.T) {
 }
 
 func Test_AppendToExistingStream(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("First Append With NoStream, Append With Expected Revision Finite", func(t *testing.T) {
 		expectedStreamRevision := event_streams.AppendRequestExpectedStreamRevisionNoStream{}
@@ -607,28 +541,10 @@ func Test_AppendToExistingStream(t *testing.T) {
 	})
 }
 
-func Test_AppendToExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
-	container := getEmptyDatabase()
-	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-}
-
 func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpectedVersionResult(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	streamName := "stream_no_stream"
 
@@ -649,15 +565,9 @@ func Test_AppendToNonExistingStream_WithWrongExpectedRevision_Finite_WrongExpect
 }
 
 func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	streamName := "stream_no_stream"
 	maxCount := 10
@@ -676,27 +586,15 @@ func Test_AppendToStream_MetadataStreamExists_WithStreamExists(t *testing.T) {
 		event_streams.AppendRequestExpectedStreamRevisionStreamExists{},
 		[]event_streams.ProposedEvent{testEvent})
 	require.NoError(t, err)
-	//var stream = _fixture.GetStreamName();
-	//
-	//await _fixture.Client.SetStreamMetadataAsync(stream, StreamState.Any,
-	//	new StreamMetadata(10, default));
-	//
-	//await _fixture.Client.AppendToStreamAsync(
-	//stream,
-	//StreamState.StreamExists,
-	//_fixture.CreateTestEvents());
 }
 
 func Test_AppendToStream_WithAppendLimit(t *testing.T) {
-	container := getEmptyDatabase(createEventStoreEnvironmentVar(EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES, "1024"))
+	container, client,
+		closeFunc := test_container.InitializeContainerAndClient(t, map[string]string{
+		string(test_container.EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES): "1024",
+	})
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("Less than limit", func(t *testing.T) {
 		streamName := "stream_less_than_limit"
@@ -720,15 +618,9 @@ func Test_AppendToStream_WithAppendLimit(t *testing.T) {
 }
 
 func Test_AppendMultipleEvents(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent", func(t *testing.T) {
 		streamName := "sequence_0em1_1e0_2e1_3e2_4e3_5e4_0em1_idempotent"
