@@ -13,6 +13,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ory/dockertest/v3"
 	"github.com/pivonroll/EventStore-Client-Go/client"
+	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/stretchr/testify/require"
 )
 
@@ -223,6 +224,17 @@ func createClientConnectedToContainer(container *Container, t *testing.T) *clien
 	return clientInstance
 }
 
+func createGrpcClientConnectedToContainer(t *testing.T, container *Container) connection.GrpcClient {
+	clientURI := fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint)
+	fmt.Println("Starting grpc client at:", clientURI)
+	config, err := connection.ParseConnectionString(clientURI)
+	require.NoError(t, err)
+
+	grpcClient := connection.NewGrpcClient(*config)
+
+	return grpcClient
+}
+
 func createClientConnectedToURI(connStr string, t *testing.T) *client.Client {
 	config, err := client.ParseConnectionString(connStr)
 	if err != nil {
@@ -237,24 +249,42 @@ func createClientConnectedToURI(connStr string, t *testing.T) *client.Client {
 	return clientInstance
 }
 
-type CloseClientInstanceFunc func()
+type CloseFunc func()
 
-func InitializeWithPrePopulatedDatabase(t *testing.T) (*Container, *client.Client, CloseClientInstanceFunc) {
+func InitializeWithPrePopulatedDatabase(t *testing.T) (*client.Client, CloseFunc) {
 	return InitializeContainerAndClient(t, map[string]string{
 		"EVENTSTORE_DB":     "/data/integration-tests",
 		"EVENTSTORE_MEM_DB": "false",
 	})
 }
 
+func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.GrpcClient, CloseFunc) {
+	return InitializeContainerAndGrpcClient(t, map[string]string{
+		"EVENTSTORE_DB":     "/data/integration-tests",
+		"EVENTSTORE_MEM_DB": "false",
+	})
+}
+
 func InitializeContainerAndClient(t *testing.T,
-	environmentVariableOverrides map[string]string) (*Container, *client.Client, CloseClientInstanceFunc) {
+	environmentVariableOverrides map[string]string) (*client.Client, CloseFunc) {
 	container := CreateDockerContainer(environmentVariableOverrides)
 	clientInstance := createClientConnectedToContainer(container, t)
-	closeClientInstance := func() {
-		err := clientInstance.Close()
-		require.NoError(t, err)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
 	}
-	return container, clientInstance, closeClientInstance
+	return clientInstance, closeFunc
+}
+
+func InitializeContainerAndGrpcClient(t *testing.T,
+	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
+	container := CreateDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
+	}
+	return clientInstance, closeFunc
 }
 
 func GetPrePopulatedDatabase() *Container {

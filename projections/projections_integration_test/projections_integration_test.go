@@ -16,7 +16,7 @@ import (
 )
 
 func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*test_container.Container,
-	*client.Client, test_container.CloseClientInstanceFunc) {
+	*client.Client, test_container.CloseFunc) {
 	return test_container.InitializeContainerAndClient(t, map[string]string{
 		"EVENTSTORE_RUN_PROJECTIONS":            "All",
 		"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",

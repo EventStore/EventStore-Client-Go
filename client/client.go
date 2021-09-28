@@ -38,9 +38,8 @@ func NewClient(configuration *connection.Configuration) (*Client, error) {
 }
 
 // Close ...
-func (client *Client) Close() error {
+func (client *Client) Close() {
 	client.grpcClient.Close()
-	return nil
 }
 
 func (client *Client) Projections() projections.Client {
