@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ory/dockertest/v3"
 	"github.com/pivonroll/EventStore-Client-Go/client"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
@@ -52,23 +51,6 @@ var defaultEventStoreDockerConfig = EventStoreDockerConfig{
 	Repository: DEFAULT_EVENTSTORE_DOCKER_REPOSITORY,
 	Tag:        DEFAULT_EVENTSTORE_DOCKER_TAG,
 	Port:       DEFAULT_EVENTSTORE_DOCKER_PORT,
-}
-
-func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_REPOSITORY_ENV)); exists {
-		config.Repository = value
-	}
-
-	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_TAG_ENV)); exists {
-		config.Tag = value
-	}
-
-	if value, exists := os.LookupEnv(string(EVENTSTORE_DOCKER_PORT_ENV)); exists {
-		config.Port = value
-	}
-
-	fmt.Println(spew.Sdump(config))
-	return config
 }
 
 func (container *Container) Close() {
