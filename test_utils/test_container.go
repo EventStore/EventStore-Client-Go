@@ -50,6 +50,14 @@ func InitializeGrpcClient(t *testing.T,
 	return clientInstance, closeFunc
 }
 
+func InitializeContainerAndGrpcClient(t *testing.T,
+	environmentVariableOverrides map[string]string) (*Container, connection.GrpcClient) {
+	container := CreateDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container)
+
+	return container, clientInstance
+}
+
 func CreateDockerContainer(environmentVariableOverrides map[string]string) *Container {
 	envVariables := readOsEnvironmentVariables(environmentVariableOverrides)
 	dockerRunOptions := &dockertest.RunOptions{
