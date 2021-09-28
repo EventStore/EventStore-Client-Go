@@ -41,7 +41,7 @@ func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.Grpc
 
 func InitializeGrpcClient(t *testing.T,
 	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
-	container := CreateDockerContainer(environmentVariableOverrides)
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
 	clientInstance := createGrpcClientConnectedToContainer(t, container, doNotUseTLS)
 	closeFunc := func() {
 		container.Close()
@@ -52,7 +52,7 @@ func InitializeGrpcClient(t *testing.T,
 
 func InitializeGrpcClientWithTLS(t *testing.T,
 	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
-	container := CreateDockerContainer(environmentVariableOverrides)
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
 	clientInstance := createGrpcClientConnectedToContainer(t, container, useTLS)
 	closeFunc := func() {
 		container.Close()
@@ -63,13 +63,13 @@ func InitializeGrpcClientWithTLS(t *testing.T,
 
 func InitializeContainerAndGrpcClient(t *testing.T,
 	environmentVariableOverrides map[string]string) (*Container, connection.GrpcClient) {
-	container := CreateDockerContainer(environmentVariableOverrides)
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
 	clientInstance := createGrpcClientConnectedToContainer(t, container, doNotUseTLS)
 
 	return container, clientInstance
 }
 
-func CreateDockerContainer(environmentVariableOverrides map[string]string) *Container {
+func StartEventStoreInDockerContainer(environmentVariableOverrides map[string]string) *Container {
 	envVariables := readOsEnvironmentVariables(environmentVariableOverrides)
 	dockerRunOptions := &dockertest.RunOptions{
 		Repository:   envVariables[string(EVENTSTORE_DOCKER_REPOSITORY_ENV)],
@@ -89,7 +89,12 @@ func CreateDockerContainer(environmentVariableOverrides map[string]string) *Cont
 	}
 
 	dockerRunOptions.Env = env
-	return getDatabase(dockerRunOptions)
+
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		log.Fatalf("Could not connect to docker. Reason: %v", err)
+	}
+	return getEventStoreDockerContainer(pool, dockerRunOptions)
 }
 
 // Container ...
@@ -105,13 +110,8 @@ func (container *Container) Close() {
 	}
 }
 
-func getDatabase(options *dockertest.RunOptions) *Container {
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		log.Fatalf("Could not connect to docker. Reason: %v", err)
-	}
-
-	err = setTLSContext(options)
+func getEventStoreDockerContainer(pool *dockertest.Pool, options *dockertest.RunOptions) *Container {
+	err := setTLSContext(options)
 	if err != nil {
 		log.Fatal(err)
 	}

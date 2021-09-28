@@ -40,7 +40,7 @@ func testGetCertificatePoolForFile(t *testing.T, filePath string) *x509.CertPool
 }
 
 func TestTLSDefaultsWithCertificate(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s",
@@ -63,7 +63,7 @@ func TestTLSDefaultsWithCertificate(t *testing.T) {
 }
 
 func TestTLSWithoutCertificateAndVerify(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(
@@ -82,7 +82,7 @@ func TestTLSWithoutCertificateAndVerify(t *testing.T) {
 }
 
 func TestTLSWithoutCertificate(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true", container.Endpoint))
@@ -102,7 +102,7 @@ func TestTLSWithoutCertificate(t *testing.T) {
 }
 
 func TestTLSWithCertificate(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true", container.Endpoint))
@@ -124,7 +124,7 @@ func TestTLSWithCertificate(t *testing.T) {
 }
 
 func TestTLSWithCertificateFromAbsoluteFile(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	absPath, err := filepath.Abs("../../certs/node/node.crt")
@@ -146,7 +146,7 @@ func TestTLSWithCertificateFromAbsoluteFile(t *testing.T) {
 }
 
 func TestTLSWithCertificateFromRelativeFile(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(
@@ -166,7 +166,7 @@ func TestTLSWithCertificateFromRelativeFile(t *testing.T) {
 }
 
 func TestTLSWithInvalidCertificate(t *testing.T) {
-	container := test_utils.CreateDockerContainer(nil)
+	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(

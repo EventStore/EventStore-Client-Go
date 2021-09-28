@@ -42,11 +42,24 @@ jobs:
         docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim
 
     - name: Tests
+      if: ${{ matrix.domain != 'connection' }}
       run: |
         touch vars.env
         docker-compose up
         cd ${{ matrix.domain }}
         go test -v ./...
+        docker-compose down
+
+    - name: Tests with cluster
+      if: ${{ matrix.domain == 'connection' }}
+      run: |
+        touch vars.env
+        docker-compose up
+        docker-compose -f cluster-docker-compose.yml up -d
+        cd ${{ matrix.domain }}
+        go test -v ./...
+        cd ..
+        docker-compose -f cluster-docker-compose.yml down
         docker-compose down
 
   linting:
