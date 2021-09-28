@@ -25,10 +25,6 @@ const (
 	EVENTSTORE_MAX_APPEND_SIZE_IN_BYTES EventStoreEnvironmentVariable = "EVENTSTORE_MAX_APPEND_SIZE"
 )
 
-func CreateEventStoreEnvironmentVar(variableName EventStoreEnvironmentVariable, value string) string {
-	return fmt.Sprintf("%s=%s", variableName, value)
-}
-
 // Container ...
 type Container struct {
 	Endpoint string
