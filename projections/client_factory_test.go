@@ -16,7 +16,7 @@ func TestClientFactoryImpl_CreateClient(t *testing.T) {
 	grpcClient := connection.NewMockGrpcClient(ctrl)
 
 	factory := ClientFactoryImpl{}
-	result := factory.CreateClient(grpcClient)
+	result := factory.Create(grpcClient)
 
 	expectedResult := newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{})
 

@@ -16,7 +16,7 @@ func initializeContainerAndClient(t *testing.T) (projections.Client,
 			"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
 		})
 
-	client := projections.ClientFactoryImpl{}.CreateClient(grpcClient)
+	client := projections.ClientFactoryImpl{}.Create(grpcClient)
 
 	return client, closeFunc
 }
@@ -30,7 +30,7 @@ func initializeClientAndEventStreamsClient(t *testing.T) (projections.Client,
 			"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
 		})
 
-	client := projections.ClientFactoryImpl{}.CreateClient(grpcClient)
+	client := projections.ClientFactoryImpl{}.Create(grpcClient)
 	eventStreamsClient := event_streams.ClientFactoryImpl{}.CreateClient(grpcClient)
 
 	return client, eventStreamsClient, closeFunc
