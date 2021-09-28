@@ -1,4 +1,4 @@
-package client_test
+package persistent_integration_test
 
 import (
 	"context"
@@ -8,11 +8,12 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
-	_, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	_, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	// defer containerInstance.Close()
 
@@ -141,7 +142,7 @@ func Test_PersistentSubscription_ReadExistingStream(t *testing.T) {
 }
 
 func Test_PersistentSubscription_OldConnectionsAreDroppedAfterUpdate(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -210,7 +211,7 @@ func Test_PersistentSubscription_OldConnectionsAreDroppedAfterUpdate(t *testing.
 
 func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithReconnect(t *testing.T) {
 	t.Skip("Skipping cause updating persistent subscription can block on awaiting grpc headers")
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -272,7 +273,7 @@ func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithR
 }
 
 func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -326,7 +327,7 @@ func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T
 }
 
 func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -408,7 +409,7 @@ func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
 }
 
 func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance, closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 

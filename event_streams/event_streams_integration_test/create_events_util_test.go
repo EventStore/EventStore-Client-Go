@@ -1,4 +1,4 @@
-package client_test
+package event_streams_integration_test
 
 import (
 	"context"

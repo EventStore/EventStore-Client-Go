@@ -1,4 +1,4 @@
-package client_test
+package event_streams_integration_test
 
 import (
 	"context"
@@ -7,19 +7,14 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/pivonroll/EventStore-Client-Go/ptr"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_StreamMetaData(t *testing.T) {
-	container := getEmptyDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("getting_for_an_existing_stream_and_no_metadata_exists", func(t *testing.T) {
 		streamId := "getting_for_an_existing_stream_and_no_metadata_exists"

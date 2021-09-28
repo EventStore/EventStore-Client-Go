@@ -1,4 +1,4 @@
-package client_test
+package user_management_integration_test
 
 import (
 	"context"
@@ -7,12 +7,14 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/pivonroll/EventStore-Client-Go/user_management"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_CreateNewUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 
@@ -39,7 +41,8 @@ func Test_CreateNewUser(t *testing.T) {
 }
 
 func Test_UpdateUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -87,7 +90,8 @@ func Test_UpdateUser(t *testing.T) {
 }
 
 func Test_DeleteUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -159,7 +163,8 @@ func Test_DeleteUser(t *testing.T) {
 }
 
 func Test_EnableAndDisableUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -317,7 +322,8 @@ func Test_EnableAndDisableUser(t *testing.T) {
 }
 
 func Test_ChangeUserPassword(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -554,7 +560,8 @@ func Test_ChangeUserPassword(t *testing.T) {
 }
 
 func Test_ResetUserPassword(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -696,7 +703,8 @@ func Test_ResetUserPassword(t *testing.T) {
 }
 
 func Test_ListUsers_ListDefaultUsers(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -736,7 +744,8 @@ func Test_ListUsers_ListDefaultUsers(t *testing.T) {
 }
 
 func Test_ListUsers_ListDefaultAndNewUsers(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -793,7 +802,8 @@ func Test_ListUsers_ListDefaultAndNewUsers(t *testing.T) {
 }
 
 func Test_ListUsers_DoNotListDeletedUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -847,7 +857,8 @@ func Test_ListUsers_DoNotListDeletedUser(t *testing.T) {
 }
 
 func Test_ListUsers_ListDisabledUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -907,7 +918,8 @@ func Test_ListUsers_ListDisabledUser(t *testing.T) {
 }
 
 func Test_ListUsers_ListReEnabledUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -970,7 +982,8 @@ func Test_ListUsers_ListReEnabledUser(t *testing.T) {
 }
 
 func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -1037,7 +1050,8 @@ func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
 }
 
 func Test_ListUsers_ListsUserWithResetPassword(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()
@@ -1098,7 +1112,8 @@ func Test_ListUsers_ListsUserWithResetPassword(t *testing.T) {
 }
 
 func Test_ListUsers_ListsUpdatedUser(t *testing.T) {
-	containerInstance, clientInstance, closeClientInstance := initializeContainerAndClient(t)
+	containerInstance, clientInstance,
+		closeClientInstance := test_container.InitializeContainerAndClient(t, nil)
 	defer closeClientInstance()
 	defer containerInstance.Close()
 	userManagement := clientInstance.UserManagement()

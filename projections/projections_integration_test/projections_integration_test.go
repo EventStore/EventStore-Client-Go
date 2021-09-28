@@ -1,4 +1,4 @@
-package client_test
+package projections_integration_test
 
 import (
 	"context"
@@ -8,16 +8,19 @@ import (
 	"time"
 
 	"github.com/pivonroll/EventStore-Client-Go/client"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/pivonroll/EventStore-Client-Go/projections"
 )
 
-func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*Container, *client.Client, closeClientInstanceFunc) {
-	return initializeContainerAndClient(t,
-		"EVENTSTORE_RUN_PROJECTIONS=All",
-		"EVENTSTORE_START_STANDARD_PROJECTIONS=true")
+func initializeContainerAndClientWithProjectionsEnabled(t *testing.T) (*test_container.Container,
+	*client.Client, test_container.CloseClientInstanceFunc) {
+	return test_container.InitializeContainerAndClient(t, map[string]string{
+		"EVENTSTORE_RUN_PROJECTIONS":            "All",
+		"EVENTSTORE_START_STANDARD_PROJECTIONS": "true",
+	})
 }
 
 func Test_CreateContinuousProjection_TrackEmittedStreamsFalse(t *testing.T) {

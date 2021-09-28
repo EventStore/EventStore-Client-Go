@@ -1,4 +1,4 @@
-package client_test
+package projections_integration_test
 
 import (
 	"context"

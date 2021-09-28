@@ -1,4 +1,4 @@
-package client_test
+package event_streams_integration_test
 
 import (
 	"context"
@@ -9,19 +9,14 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
+	"github.com/pivonroll/EventStore-Client-Go/test_container"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_SubscribeToStream(t *testing.T) {
-	container := getPrePopulatedDatabase()
+	container, client, closeFunc := test_container.InitializeContainerAndClient(t, nil)
+	defer closeFunc()
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	t.Run("Subscribe, With Timeout, From Start To Non-Existing Stream", func(t *testing.T) {
 		streamId := "subscribe_with_timeout_from_start_to_non_existing_stream"
@@ -627,15 +622,9 @@ func Test_SubscribeToStream(t *testing.T) {
 }
 
 func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *testing.T) {
-	container := getPrePopulatedDatabase()
+	container, client, closeFunc := test_container.InitializeWithPrePopulatedDatabase(t)
 	defer container.Close()
-	client := createClientConnectedToContainer(container, t)
-	defer func() {
-		err := client.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer closeFunc()
 
 	streamID := "dataset20M-0"
 	testEvent := event_streams.ProposedEvent{
@@ -681,7 +670,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 
 	receivedEvents.Add(6_000)
 	appendedEvents.Add(1)
-	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+	timedOut := test_container.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 
 	// Write a new event
@@ -694,7 +683,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	require.Equal(t, uint64(6_000), success.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription
-	timedOut = waitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
+	timedOut = test_container.WaitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for the appended events")
 	defer subscription.Close()
 }
@@ -745,17 +734,3 @@ type Position struct {
 //	timedOut = waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 //	require.False(t, timedOut, "Timed out waiting for dropped event")
 //}
-
-func waitWithTimeout(wg *sync.WaitGroup, duration time.Duration) bool {
-	channel := make(chan struct{})
-	go func() {
-		defer close(channel)
-		wg.Wait()
-	}()
-	select {
-	case <-channel:
-		return false
-	case <-time.After(duration):
-		return true
-	}
-}
