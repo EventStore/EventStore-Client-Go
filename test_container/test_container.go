@@ -71,15 +71,6 @@ func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerCon
 	return config
 }
 
-func getDockerOptions() *dockertest.RunOptions {
-	config := readEnvironmentVariables(defaultEventStoreDockerConfig)
-	return &dockertest.RunOptions{
-		Repository:   config.Repository,
-		Tag:          config.Tag,
-		ExposedPorts: []string{config.Port},
-	}
-}
-
 func (container *Container) Close() {
 	err := container.Resource.Close()
 	if err != nil {
