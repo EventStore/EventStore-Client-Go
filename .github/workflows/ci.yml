@@ -28,6 +28,9 @@ jobs:
   tests:
     needs: build
     name: Tests
+    strategy:
+      matrix:
+        domain: [ persistent, projections, event_streams, user_management, client ]
     runs-on: ubuntu-18.04
 
     steps:
@@ -42,6 +45,7 @@ jobs:
       run: |
         touch vars.env
         docker-compose up
+        cd ${{ matrix.domain }}
         go test -v ./...
         docker-compose down
 
