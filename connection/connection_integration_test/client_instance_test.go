@@ -15,3 +15,15 @@ func initializeContainerAndClient(t *testing.T,
 	eventStreamsClient := event_streams.ClientFactoryImpl{}.Create(grpcClient)
 	return container, grpcClient, eventStreamsClient
 }
+
+func initializeContainerAndClientWithTLS(t *testing.T,
+	envVariableOverrides map[string]string) (connection.GrpcClient, event_streams.Client, test_utils.CloseFunc) {
+	grpcClient, closeFunc := test_utils.InitializeGrpcClientWithTLS(t, envVariableOverrides)
+
+	eventStreamsClient := event_streams.ClientFactoryImpl{}.Create(grpcClient)
+	return grpcClient, eventStreamsClient, closeFunc
+}
+
+func initializeEventStreamsWithGrpcClient(grpcClient connection.GrpcClient) event_streams.Client {
+	return event_streams.ClientFactoryImpl{}.Create(grpcClient)
+}

@@ -42,7 +42,18 @@ func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.Grpc
 func InitializeGrpcClient(t *testing.T,
 	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
 	container := CreateDockerContainer(environmentVariableOverrides)
-	clientInstance := createGrpcClientConnectedToContainer(t, container)
+	clientInstance := createGrpcClientConnectedToContainer(t, container, doNotUseTLS)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
+	}
+	return clientInstance, closeFunc
+}
+
+func InitializeGrpcClientWithTLS(t *testing.T,
+	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
+	container := CreateDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainer(t, container, useTLS)
 	closeFunc := func() {
 		container.Close()
 		clientInstance.Close()
@@ -53,7 +64,7 @@ func InitializeGrpcClient(t *testing.T,
 func InitializeContainerAndGrpcClient(t *testing.T,
 	environmentVariableOverrides map[string]string) (*Container, connection.GrpcClient) {
 	container := CreateDockerContainer(environmentVariableOverrides)
-	clientInstance := createGrpcClientConnectedToContainer(t, container)
+	clientInstance := createGrpcClientConnectedToContainer(t, container, doNotUseTLS)
 
 	return container, clientInstance
 }
@@ -224,8 +235,26 @@ func getRootDir() (string, error) {
 	return finalPath, nil
 }
 
-func createGrpcClientConnectedToContainer(t *testing.T, container *Container) connection.GrpcClient {
-	clientURI := fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint)
+type useTLSType bool
+
+const (
+	useTLS      useTLSType = true
+	doNotUseTLS useTLSType = false
+)
+
+func createClientURI(containerEndpoint string, shouldUseTLS useTLSType) string {
+	clientURI := fmt.Sprintf("esdb://admin:changeit@%s", containerEndpoint)
+
+	if shouldUseTLS == doNotUseTLS {
+		clientURI += "?tlsverifycert=false"
+	}
+
+	return clientURI
+}
+
+func createGrpcClientConnectedToContainer(t *testing.T,
+	container *Container, shouldUseTLS useTLSType) connection.GrpcClient {
+	clientURI := createClientURI(container.Endpoint, shouldUseTLS)
 	fmt.Println("Starting grpc client at:", clientURI)
 	config, err := connection.ParseConnectionString(clientURI)
 	require.NoError(t, err)
