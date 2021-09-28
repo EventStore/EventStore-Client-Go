@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/ory/dockertest/v3"
-	"github.com/pivonroll/EventStore-Client-Go/client"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/stretchr/testify/require"
 )
@@ -189,20 +188,6 @@ func createGrpcClientConnectedToContainer(t *testing.T, container *Container) co
 	grpcClient := connection.NewGrpcClient(*config)
 
 	return grpcClient
-}
-
-func createClientConnectedToURI(connStr string, t *testing.T) *client.Client {
-	config, err := client.ParseConnectionString(connStr)
-	if err != nil {
-		t.Fatalf("Error when parsin connection string: %v", err)
-	}
-
-	clientInstance, err := client.NewClient(config)
-	if err != nil {
-		t.Fatalf("Error when creating an ESDB client: %v", err)
-	}
-
-	return clientInstance
 }
 
 type CloseFunc func()
