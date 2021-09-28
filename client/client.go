@@ -55,5 +55,5 @@ func (client *Client) EventStreams() event_streams.Client {
 }
 
 func (client *Client) PersistentSubscriptions() persistent.Client {
-	return client.persistentClientFactory.CreateClient(client.grpcClient)
+	return client.persistentClientFactory.Create(client.grpcClient)
 }

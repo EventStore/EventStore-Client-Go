@@ -14,15 +14,15 @@ func initializeContainerAndClient(t *testing.T,
 	test_utils.CloseFunc) {
 	grpcClient, closeFunc := test_utils.InitializeContainerAndGrpcClient(t, envVariableOverrides)
 
-	client := persistent.ClientFactoryImpl{}.CreateClient(grpcClient)
+	client := persistent.ClientFactoryImpl{}.Create(grpcClient)
 
-	eventStreamsClient := event_streams.ClientFactoryImpl{}.CreateClient(grpcClient)
+	eventStreamsClient := event_streams.ClientFactoryImpl{}.Create(grpcClient)
 
 	return client, eventStreamsClient, closeFunc
 }
 
 func initializeWithPrePopulatedDatabase(t *testing.T) (persistent.Client, test_utils.CloseFunc) {
 	grpcClient, closeFunc := test_utils.InitializeGrpcClientWithPrePopulatedDatabase(t)
-	client := persistent.ClientFactoryImpl{}.CreateClient(grpcClient)
+	client := persistent.ClientFactoryImpl{}.Create(grpcClient)
 	return client, closeFunc
 }
