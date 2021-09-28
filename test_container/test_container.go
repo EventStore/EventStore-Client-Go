@@ -258,17 +258,6 @@ func InitializeGrpcClientWithPrePopulatedDatabase(t *testing.T) (connection.Grpc
 	})
 }
 
-func InitializeContainerAndClient(t *testing.T,
-	environmentVariableOverrides map[string]string) (*client.Client, CloseFunc) {
-	container := CreateDockerContainer(environmentVariableOverrides)
-	clientInstance := createClientConnectedToContainer(container, t)
-	closeFunc := func() {
-		container.Close()
-		clientInstance.Close()
-	}
-	return clientInstance, closeFunc
-}
-
 func InitializeContainerAndGrpcClient(t *testing.T,
 	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
 	container := CreateDockerContainer(environmentVariableOverrides)
