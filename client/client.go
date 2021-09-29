@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
+	"github.com/pivonroll/EventStore-Client-Go/operations"
 	"github.com/pivonroll/EventStore-Client-Go/persistent"
 	"github.com/pivonroll/EventStore-Client-Go/projections"
 	"github.com/pivonroll/EventStore-Client-Go/user_management"
@@ -22,6 +23,7 @@ type Client struct {
 	projectionClientFactory   projections.ClientFactory
 	eventStreamsClientFactory event_streams.ClientFactory
 	userManagementFactory     user_management.ClientFactory
+	operationsClientFactory   operations.ClientFactory
 }
 
 // NewClient ...
@@ -34,6 +36,7 @@ func NewClient(configuration *connection.Configuration) (*Client, error) {
 		projectionClientFactory:   projections.ClientFactoryImpl{},
 		eventStreamsClientFactory: event_streams.ClientFactoryImpl{},
 		userManagementFactory:     user_management.ClientFactoryImpl{},
+		operationsClientFactory:   operations.ClientFactoryImpl{},
 	}, nil
 }
 
@@ -56,4 +59,8 @@ func (client *Client) EventStreams() event_streams.Client {
 
 func (client *Client) PersistentSubscriptions() persistent.Client {
 	return client.persistentClientFactory.Create(client.grpcClient)
+}
+
+func (client *Client) Operations() operations.Client {
+	return client.operationsClientFactory.Create(client.grpcClient)
 }

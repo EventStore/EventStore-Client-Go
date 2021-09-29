@@ -32,9 +32,15 @@
   * List All Users
   * Change User's Password
   * Reset Users Password
+* Operations
+  * Merge Indexes
+  * Resign Node
+  * Restart Persistent Subscriptions
+  * Scavenging (Start/Stop)
+  * Set Node Priority
+  * Shutdown
 
 ## Roadmap
-* Add support for Operations
 * Add API documentation
 
 ## Developing

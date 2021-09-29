@@ -17,4 +17,5 @@ const (
 	FatalError                       ErrorCode = "FatalError"
 	MaximumSubscriberCountReached    ErrorCode = "MaximumSubscriberCountReached"
 	PersistentSubscriptionDroppedErr ErrorCode = "PersistentSubscriptionDroppedErr"
+	ScavengeNotFoundErr              ErrorCode = "ScavengeNotFoundErr"
 )
