@@ -30,7 +30,7 @@ jobs:
     name: Tests
     strategy:
       matrix:
-        domain: [ persistent, projections, event_streams, user_management, connection ]
+        domain: [ persistent, projections, operations, event_streams, user_management, connection ]
     runs-on: ubuntu-18.04
 
     steps:

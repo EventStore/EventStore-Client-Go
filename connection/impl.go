@@ -34,6 +34,7 @@ const (
 	protoUserNotFound                  = "user-not-found"
 	protoMaximumSubscriberCountReached = "maximum-subscribers-reached"
 	protoPersistentSubscriptionDropped = "persistent-subscription-dropped"
+	protoScavengeNotFound              = "scavenge-not-found"
 )
 
 func isProtoException(trailers metadata.MD, protoException string) bool {
@@ -72,6 +73,8 @@ func GetErrorFromProtoException(trailers metadata.MD, stdErr error) errors.Error
 		return errors.NewError(errors.MaximumSubscriberCountReached, stdErr)
 	} else if isProtoException(trailers, protoPersistentSubscriptionDropped) {
 		return errors.NewError(errors.PersistentSubscriptionDroppedErr, stdErr)
+	} else if isProtoException(trailers, protoScavengeNotFound) {
+		return errors.NewError(errors.ScavengeNotFoundErr, stdErr)
 	}
 
 	err := ErrorFromStdErrorByStatus(stdErr)
