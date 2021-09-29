@@ -6,13 +6,13 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
-type AppendRequest struct {
+type appendRequest struct {
 	// AppendRequestContentOptions
 	// AppendRequestContentProposedMessage
 	Content isAppendRequestContent
 }
 
-func (this *AppendRequest) Build() *streams2.AppendReq {
+func (this *appendRequest) Build() *streams2.AppendReq {
 	result := &streams2.AppendReq{
 		Content: nil,
 	}
@@ -52,7 +52,7 @@ func (this *AppendRequest) Build() *streams2.AppendReq {
 	return result
 }
 
-func (this *AppendRequest) buildExpectedStreamRevision(
+func (this *appendRequest) buildExpectedStreamRevision(
 	options *streams2.AppendReq_Options_,
 	content AppendRequestContentOptions) {
 	switch content.ExpectedStreamRevision.(type) {

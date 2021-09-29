@@ -52,7 +52,7 @@ func (client *ClientImpl) appendToStream(
 		return AppendResponse{}, err
 	}
 
-	headerRequest := AppendRequest{Content: options}
+	headerRequest := appendRequest{Content: options}
 	protoErr = appendClient.Send(headerRequest.Build())
 
 	if protoErr != nil {
@@ -62,7 +62,7 @@ func (client *ClientImpl) appendToStream(
 	}
 
 	for _, event := range events {
-		message := AppendRequest{Content: event.ToProposedMessage()}
+		message := appendRequest{Content: event.ToProposedMessage()}
 		protoErr = appendClient.Send(message.Build())
 
 		if protoErr != nil {
