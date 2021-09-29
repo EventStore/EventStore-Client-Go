@@ -1,9 +1,9 @@
-# EventStoreDB Client SDK written in Golang [![Actions Status](https://github.com/pivonroll/EventStore-Client-Go/workflows/CI/badge.svg?branch=develop)](https://github.com/pivonroll/EventStore-Client-Go/actions)
+# EventStoreDB gRPC Client written in Golang [![Actions Status](https://github.com/pivonroll/EventStore-Client-Go/workflows/CI/badge.svg?branch=develop)](https://github.com/pivonroll/EventStore-Client-Go/actions)
 
 **This is a fork of the EventStore's Golang Client for EventStoreDB**
 
-## Supported EventstoreDB Version 
-**Supports Eventstore 21.6.0**
+## Supported EventstoreDB gRPC API version
+**Supports Eventstore gRPC API 21.6.0**
 
 ## How To Install
 ```shell
