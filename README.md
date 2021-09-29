@@ -5,6 +5,11 @@
 ## Supported EventstoreDB Version 
 **Supports Eventstore 21.6.0**
 
+## How To Install
+```shell
+$ go get github.com/pivonroll/EventStore-Client-Go
+```
+
 ## Supported Features
 * Event Streams
   * Append Events One by One
