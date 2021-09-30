@@ -489,7 +489,7 @@ func Test_SubscribeToStream(t *testing.T) {
 	})
 
 	t.Run("Subscribe From Specific Revision To Non-Existing Stream Then Get Event", func(t *testing.T) {
-		streamId := "subscribe__from_start_to_non_existing_stream_then_get_event"
+		streamId := "subscribe__from_specific_revision_to_non_existing_stream_then_get_event"
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 

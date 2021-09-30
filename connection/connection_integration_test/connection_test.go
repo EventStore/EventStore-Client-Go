@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
@@ -33,9 +35,7 @@ func Test_CloseConnection(t *testing.T) {
 		streamID.String(),
 		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 		proposedEvents)
-	if err != nil {
-		t.Fatalf("Unexpected failure %+v", err)
-	}
+	require.NoError(t, err)
 
 	grpcClient.Close()
 	_, err = eventStreamClient.AppendToStream(ctx,

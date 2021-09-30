@@ -64,13 +64,13 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 
 	_, err = client.AppendToStream(context.Background(),
 		deletedStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		testCreateEvents(1))
 	require.NoError(t, err)
 
 	_, err = client.AppendToStream(context.Background(),
 		deletedStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		testCreateEvents(1))
 	require.NoError(t, err)
 
@@ -84,7 +84,7 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 	}
 	_, err = client.AppendToStream(context.Background(),
 		linkedStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		[]event_streams.ProposedEvent{linkedEvent})
 	require.NoError(t, err)
 
@@ -121,7 +121,7 @@ func Test_Read_Forwards_Linked_Stream(t *testing.T) {
 	}
 	_, err = client.AppendToStream(context.Background(),
 		linkedStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		[]event_streams.ProposedEvent{linkedEvent})
 	require.NoError(t, err)
 
@@ -175,7 +175,7 @@ func Test_Read_Backwards_Linked_Stream(t *testing.T) {
 	}
 	_, err = client.AppendToStream(context.Background(),
 		linkedStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.AppendRequestExpectedStreamRevisionAny{},
 		[]event_streams.ProposedEvent{linkedEvent})
 	require.NoError(t, err)
 

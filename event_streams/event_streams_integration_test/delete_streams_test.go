@@ -342,9 +342,7 @@ func Test_DeleteStream(t *testing.T) {
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(1))
-		require.NoError(t, err)
-		_, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
-		require.True(t, isWrongExpectedVersion)
+		require.Equal(t, event_streams.WrongExpectedVersionErr, err.Code())
 	})
 
 	t.Run("Appends Multiple Writes Expected Version Any", func(t *testing.T) {
