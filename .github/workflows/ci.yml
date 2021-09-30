@@ -31,6 +31,8 @@ jobs:
     strategy:
       matrix:
         domain: [ persistent, projections, operations, event_streams, user_management, connection ]
+      fail-fast: false
+      max-parallel: 3
     runs-on: ubuntu-18.04
 
     steps:
@@ -38,8 +40,15 @@ jobs:
 
     - name: Docker Login
       run: |
-        echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com
-        docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim
+        (echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com) || \
+        (echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com) || \
+        (echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com) || \
+        (exit 1)
+        (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+        (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+        (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+        (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+        (exit 1)
 
     - name: Tests
       if: ${{ matrix.domain != 'connection' }}
