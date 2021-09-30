@@ -86,10 +86,9 @@ func Test_DeleteStream(t *testing.T) {
 			[]event_streams.ProposedEvent{event})
 		require.NoError(t, err)
 
-		currentRevision, _ := writeResult.GetCurrentRevision()
 		deleteResult, err := client.DeleteStream(context.Background(),
 			streamName,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		tombstonePosition, isTombstonePosition := deleteResult.GetPosition()
@@ -126,11 +125,9 @@ func Test_DeleteStream(t *testing.T) {
 				testCreateEvents(1))
 			require.NoError(t, err)
 
-			currentRevision, _ := writeResult.GetCurrentRevision()
-
 			_, err = client.DeleteStream(context.Background(),
 				streamId,
-				event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+				event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 			require.NoError(t, err)
 
 			events := testCreateEvents(3)
@@ -141,8 +138,7 @@ func Test_DeleteStream(t *testing.T) {
 				events)
 			require.NoError(t, err)
 
-			currentRevision, _ = writeResult.GetCurrentRevision()
-			require.EqualValues(t, 3, currentRevision)
+			require.EqualValues(t, 3, writeResult.GetCurrentRevision())
 
 			readEvents, err := client.ReadStreamEvents(context.Background(),
 				streamId,
@@ -173,11 +169,9 @@ func Test_DeleteStream(t *testing.T) {
 			testCreateEvents(1))
 		require.NoError(t, err)
 
-		currentRevision, _ := writeResult.GetCurrentRevision()
-
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		events := testCreateEvents(3)
@@ -185,13 +179,12 @@ func Test_DeleteStream(t *testing.T) {
 		writeResult, err = client.AppendToStream(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevision{ // Focus of the test
-				Revision: currentRevision,
+				Revision: writeResult.GetCurrentRevision(),
 			},
 			events)
 		require.NoError(t, err)
 
-		currentRevision, _ = writeResult.GetCurrentRevision()
-		require.EqualValues(t, 3, currentRevision)
+		require.EqualValues(t, 3, writeResult.GetCurrentRevision())
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamId,
@@ -220,8 +213,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
-		currentStreamRevision, _ := writeResult.GetCurrentRevision()
-		require.EqualValues(t, 1, currentStreamRevision)
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 
 		maxCount := 100
 		truncateBefore := event_streams.ReadCountMax - 1
@@ -245,9 +237,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			streamMetadata)
 		require.NoError(t, err)
-		streamMetaCurrentRevision, isCurrentRevision := streamMetadataResponse.GetCurrentRevision()
-		require.True(t, isCurrentRevision)
-		require.EqualValues(t, 0, streamMetaCurrentRevision)
+		require.EqualValues(t, 0, streamMetadataResponse.GetCurrentRevision())
 
 		events := testCreateEvents(3)
 		writeResult, err = client.AppendToStream(context.Background(),
@@ -284,12 +274,11 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
-		currentStreamRevision, _ := writeResult.GetCurrentRevision()
-		require.EqualValues(t, 1, currentStreamRevision)
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		_, err = client.TombstoneStream(context.Background(),
@@ -322,12 +311,11 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
-		currentStreamRevision, _ := writeResult.GetCurrentRevision()
-		require.EqualValues(t, 1, currentStreamRevision)
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		writeResult, err = client.AppendToStream(context.Background(),
@@ -335,8 +323,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(3))
 		require.NoError(t, err)
-		currentStreamRevision, _ = writeResult.GetCurrentRevision()
-		require.EqualValues(t, 4, currentStreamRevision)
+		require.EqualValues(t, 4, writeResult.GetCurrentRevision())
 
 		writeResult, err = client.AppendToStream(context.Background(),
 			streamId,
@@ -352,12 +339,11 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
-		currentStreamRevision, _ := writeResult.GetCurrentRevision()
-		require.EqualValues(t, 1, currentStreamRevision)
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		firstEvents := testCreateEvents(3)
@@ -367,8 +353,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			firstEvents)
 		require.NoError(t, err)
-		currentStreamRevision, _ = writeResult.GetCurrentRevision()
-		require.EqualValues(t, 4, currentStreamRevision)
+		require.EqualValues(t, 4, writeResult.GetCurrentRevision())
 
 		secondEvents := testCreateEvents(2)
 		writeResult, err = client.AppendToStream(context.Background(),
@@ -376,8 +361,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			secondEvents)
 		require.NoError(t, err)
-		currentStreamRevision, _ = writeResult.GetCurrentRevision()
-		require.EqualValues(t, 6, currentStreamRevision)
+		require.EqualValues(t, 6, writeResult.GetCurrentRevision())
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamId,
@@ -425,9 +409,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
 			streamMetadata)
 		require.NoError(t, err)
-		streamMetaCurrentRevision, isCurrentRevision := streamMetadataResponse.GetCurrentRevision()
-		require.True(t, isCurrentRevision)
-		require.EqualValues(t, 1, streamMetaCurrentRevision)
+		require.EqualValues(t, 1, streamMetadataResponse.GetCurrentRevision())
 
 		time.Sleep(200 * time.Millisecond)
 
@@ -456,12 +438,11 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
-		currentStreamRevision, _ := writeResult.GetCurrentRevision()
-		require.EqualValues(t, 1, currentStreamRevision)
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentStreamRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		maxCount := 100
@@ -485,9 +466,7 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
 			streamMetadata)
 		require.NoError(t, err)
-		streamMetaCurrentRevision, isCurrentRevision := streamMetadataResponse.GetCurrentRevision()
-		require.True(t, isCurrentRevision)
-		require.EqualValues(t, 1, streamMetaCurrentRevision)
+		require.EqualValues(t, 1, streamMetadataResponse.GetCurrentRevision())
 
 		time.Sleep(10 * time.Second)
 

@@ -231,14 +231,11 @@ func Test_Read_Backwards(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			events)
 		require.NoError(t, err)
-
-		currentRevision, isCurrentRevision := writeResult.GetCurrentRevision()
-		require.True(t, isCurrentRevision)
-		require.Zero(t, currentRevision)
+		require.Zero(t, writeResult.GetCurrentRevision())
 
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		_, err = client.ReadStreamEvents(context.Background(),
@@ -432,13 +429,11 @@ func Test_Read_Forwards(t *testing.T) {
 			events)
 		require.NoError(t, err)
 
-		currentRevision, isCurrentRevision := writeResult.GetCurrentRevision()
-		require.True(t, isCurrentRevision)
-		require.Zero(t, currentRevision)
+		require.Zero(t, writeResult.GetCurrentRevision())
 
 		_, err = client.DeleteStream(context.Background(),
 			streamId,
-			event_streams.DeleteRequestExpectedStreamRevision{Revision: currentRevision})
+			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		_, err = client.ReadStreamEvents(context.Background(),

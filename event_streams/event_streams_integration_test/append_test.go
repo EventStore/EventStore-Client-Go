@@ -24,9 +24,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 				event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 				[]event_streams.ProposedEvent{})
 			require.NoError(t, err)
-			success, isSuccess := writeResult.GetSuccess()
-			require.True(t, isSuccess)
-			require.True(t, success.GetCurrentRevisionNoStream())
+			require.True(t, writeResult.GetCurrentRevisionNoStream())
 		}
 
 		_, err := client.ReadStreamEvents(context.Background(),
@@ -48,9 +46,7 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 				event_streams.AppendRequestExpectedStreamRevisionAny{},
 				[]event_streams.ProposedEvent{})
 			require.NoError(t, err)
-			success, isSuccess := writeResult.GetSuccess()
-			require.True(t, isSuccess)
-			require.True(t, success.GetCurrentRevisionNoStream())
+			require.True(t, writeResult.GetCurrentRevisionNoStream())
 		}
 
 		_, err := client.ReadStreamEvents(context.Background(),
@@ -77,8 +73,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionAny{},
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.EqualValues(t, 0, success.GetCurrentRevision())
+		require.EqualValues(t, 0, writeResult.GetCurrentRevision())
 
 		events, err := client.ReadStreamEvents(context.Background(),
 			streamName,
@@ -100,8 +95,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.EqualValues(t, 0, success.GetCurrentRevision())
+		require.EqualValues(t, 0, writeResult.GetCurrentRevision())
 
 		events, err := client.ReadStreamEvents(context.Background(),
 			streamName,
@@ -123,9 +117,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
 			testEvents)
 		require.NoError(t, err)
-		currentRevision, isCurrentRevision := writeResult.GetCurrentRevision()
-		require.True(t, isCurrentRevision)
-		require.EqualValues(t, 99, currentRevision)
+		require.EqualValues(t, 99, writeResult.GetCurrentRevision())
 	})
 }
 
@@ -142,16 +134,14 @@ func Test_AppendToExpectedStreamAny_Idempotency(t *testing.T) {
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.EqualValues(t, 3, success.GetCurrentRevision())
+	require.EqualValues(t, 3, writeResult.GetCurrentRevision())
 
 	writeResult, err = client.AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ = writeResult.GetSuccess()
-	require.EqualValues(t, 3, success.GetCurrentRevision())
+	require.EqualValues(t, 3, writeResult.GetCurrentRevision())
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *testing.T) {
@@ -168,8 +158,7 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_BugCase(t *tes
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.EqualValues(t, 5, success.GetCurrentRevision())
+	require.EqualValues(t, 5, writeResult.GetCurrentRevision())
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVersionIsUnreliable(t *testing.T) {
@@ -186,16 +175,14 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionAny_NextExpectedVe
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.EqualValues(t, 5, success.GetCurrentRevision())
+	require.EqualValues(t, 5, writeResult.GetCurrentRevision())
 
 	writeResult, err = client.AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ = writeResult.GetSuccess()
-	require.EqualValues(t, 0, success.GetCurrentRevision())
+	require.EqualValues(t, 0, writeResult.GetCurrentRevision())
 }
 
 func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpectedVersionIsUnreliable(t *testing.T) {
@@ -212,16 +199,14 @@ func Test_AppendMultipleEventsWithSameIds_WithExpectedRevisionNoStream_NextExpec
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.EqualValues(t, 5, success.GetCurrentRevision())
+	require.EqualValues(t, 5, writeResult.GetCurrentRevision())
 
 	writeResult, err = client.AppendToStream(context.Background(),
 		streamName,
 		expectedStreamRevision,
 		events)
 	require.NoError(t, err)
-	success, _ = writeResult.GetSuccess()
-	require.EqualValues(t, 5, success.GetCurrentRevision())
+	require.EqualValues(t, 5, writeResult.GetCurrentRevision())
 }
 
 func Test_ReturnsPositionWhenWriting(t *testing.T) {
@@ -236,8 +221,7 @@ func Test_ReturnsPositionWhenWriting(t *testing.T) {
 		expectedStreamRevision,
 		[]event_streams.ProposedEvent{event})
 
-	writeSuccess, _ := writeResult.GetSuccess()
-	position, _ := writeSuccess.GetPosition()
+	position, _ := writeResult.GetPosition()
 	require.Greater(t, position.PreparePosition, uint64(0))
 	require.Greater(t, position.CommitPosition, uint64(0))
 }
@@ -343,19 +327,17 @@ func Test_AppendToExistingStream(t *testing.T) {
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
 
 		testEvent2 := testCreateEvent()
 		writeResult, err = client.AppendToStream(context.Background(),
 			streamName,
 			event_streams.AppendRequestExpectedStreamRevision{
-				Revision: success.GetCurrentRevision(),
+				Revision: writeResult.GetCurrentRevision(),
 			},
 			[]event_streams.ProposedEvent{testEvent2})
 		require.NoError(t, err)
 
-		success, _ = writeResult.GetSuccess()
-		require.EqualValues(t, 1, success.GetCurrentRevision())
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 	})
 
 	t.Run("First Append With NoStream, Append With Expected Revision Any", func(t *testing.T) {
@@ -369,8 +351,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.EqualValues(t, 0, success.GetCurrentRevision())
+		require.EqualValues(t, 0, writeResult.GetCurrentRevision())
 
 		testEvent2 := testCreateEvent()
 		writeResult, err = client.AppendToStream(context.Background(),
@@ -379,8 +360,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 			[]event_streams.ProposedEvent{testEvent2})
 		require.NoError(t, err)
 
-		success, _ = writeResult.GetSuccess()
-		require.EqualValues(t, 1, success.GetCurrentRevision())
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 	})
 
 	t.Run("First Append With NoStream, Append With Expected Revision StreamExists", func(t *testing.T) {
@@ -394,8 +374,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.EqualValues(t, 0, success.GetCurrentRevision())
+		require.EqualValues(t, 0, writeResult.GetCurrentRevision())
 
 		testEvent2 := testCreateEvent()
 		writeResult, err = client.AppendToStream(context.Background(),
@@ -404,8 +383,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 			[]event_streams.ProposedEvent{testEvent2})
 		require.NoError(t, err)
 
-		success, _ = writeResult.GetSuccess()
-		require.EqualValues(t, 1, success.GetCurrentRevision())
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 	})
 
 	t.Run("First Append With Any, Append With Expected Revision StreamExists", func(t *testing.T) {
@@ -419,8 +397,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 			expectedStreamRevision,
 			[]event_streams.ProposedEvent{testEvent})
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.EqualValues(t, 0, success.GetCurrentRevision())
+		require.EqualValues(t, 0, writeResult.GetCurrentRevision())
 
 		testEvent2 := testCreateEvent()
 		writeResult, err = client.AppendToStream(context.Background(),
@@ -429,8 +406,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 			[]event_streams.ProposedEvent{testEvent2})
 		require.NoError(t, err)
 
-		success, _ = writeResult.GetSuccess()
-		require.EqualValues(t, 1, success.GetCurrentRevision())
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 	})
 
 	t.Run("Stream Does Not Exist, Append With Expected Revision StreamExists", func(t *testing.T) {

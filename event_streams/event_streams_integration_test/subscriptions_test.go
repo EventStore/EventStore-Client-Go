@@ -677,8 +677,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 		event_streams.AppendRequestExpectedStreamRevision{Revision: 5999},
 		[]event_streams.ProposedEvent{testEvent})
 	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.Equal(t, uint64(6_000), success.GetCurrentRevision())
+	require.Equal(t, uint64(6_000), writeResult.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription
 	timedOut = test_utils.WaitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
