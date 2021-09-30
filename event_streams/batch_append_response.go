@@ -2,15 +2,18 @@ package event_streams
 
 import (
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
 type BatchAppendResponse struct {
 	CorrelationId string
-	// Types that are assignable to Result:
-	//	BatchAppendResponseResultError
-	//	BatchAppendResponseResultSuccess
-	Result           isBatchAppendResponseResult
+	// BatchAppendResponseResultSuccessCurrentRevision
+	// BatchAppendResponseResultSuccessCurrentRevisionNoStream
+	CurrentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
+	// BatchAppendResponseResultSuccessPosition
+	// BatchAppendResponseResultSuccessNoPosition
+	Position         isBatchAppendResponseResultSuccessPosition
 	StreamIdentifier string
 	// Types that are assignable to ExpectedStreamPosition:
 	//	BatchAppendResponseExpectedStreamPosition
@@ -20,14 +23,25 @@ type BatchAppendResponse struct {
 	ExpectedStreamPosition isBatchAppendResponseExpectedStreamPosition
 }
 
-func (response BatchAppendResponse) GetError() (BatchAppendResponseResultError, bool) {
-	err, ok := response.Result.(BatchAppendResponseResultError)
-	return err, ok
+func (response BatchAppendResponse) GetRevisionNoStream() bool {
+	_, ok := response.CurrentRevisionOption.(BatchAppendResponseResultSuccessCurrentRevisionNoStream)
+	return ok
 }
 
-func (response BatchAppendResponse) GetSuccess() (BatchAppendResponseResultSuccess, bool) {
-	success, ok := response.Result.(BatchAppendResponseResultSuccess)
-	return success, ok
+func (response BatchAppendResponse) GetRevision() uint64 {
+	if revision, ok := response.CurrentRevisionOption.(BatchAppendResponseResultSuccessCurrentRevision); ok {
+		return revision.CurrentRevision
+	}
+
+	return 0
+}
+
+func (response BatchAppendResponse) GetPosition() (BatchAppendResponseResultSuccessPosition, bool) {
+	if position, ok := response.Position.(BatchAppendResponseResultSuccessPosition); ok {
+		return position, true
+	}
+
+	return BatchAppendResponseResultSuccessPosition{}, false
 }
 
 func (response BatchAppendResponse) IsExpectedStreamPositionNil() bool {
@@ -59,17 +73,27 @@ func (response BatchAppendResponse) IsExpectedStreamExistsPosition() bool {
 	return ok
 }
 
-type isBatchAppendResponseResult interface {
-	isBatchAppendResponseResult()
+const BatchAppendErr errors.ErrorCode = "BatchAppendErr"
+
+type BatchError struct {
+	err       errors.Error
+	ProtoCode int32
+	Message   string
+	Details   []ErrorDetails
 }
 
-type BatchAppendResponseResultError struct {
-	Code    int32
-	Message string
-	Details []ErrorDetails
+func newBatchError() BatchError {
+	return BatchError{
+		err: errors.NewErrorCode(BatchAppendErr),
+	}
 }
 
-func (this BatchAppendResponseResultError) isBatchAppendResponseResult() {
+func (b BatchError) Error() string {
+	return b.err.Error()
+}
+
+func (b BatchError) Code() errors.ErrorCode {
+	return b.err.Code()
 }
 
 type ErrorDetails struct {
@@ -77,37 +101,13 @@ type ErrorDetails struct {
 	Value   []byte
 }
 
-type BatchAppendResponseResultSuccess struct {
+type batchAppendResponseResultSuccess struct {
 	// BatchAppendResponseResultSuccessCurrentRevision
 	// BatchAppendResponseResultSuccessCurrentRevisionNoStream
 	CurrentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
 	// BatchAppendResponseResultSuccessPosition
 	// BatchAppendResponseResultSuccessNoPosition
 	Position isBatchAppendResponseResultSuccessPosition
-}
-
-func (success BatchAppendResponseResultSuccess) GetRevisionNoStream() bool {
-	_, ok := success.CurrentRevisionOption.(BatchAppendResponseResultSuccessCurrentRevisionNoStream)
-	return ok
-}
-
-func (success BatchAppendResponseResultSuccess) GetRevision() uint64 {
-	if revision, ok := success.CurrentRevisionOption.(BatchAppendResponseResultSuccessCurrentRevision); ok {
-		return revision.CurrentRevision
-	}
-
-	return 0
-}
-
-func (success BatchAppendResponseResultSuccess) GetPosition() (BatchAppendResponseResultSuccessPosition, bool) {
-	if position, ok := success.Position.(BatchAppendResponseResultSuccessPosition); ok {
-		return position, true
-	}
-
-	return BatchAppendResponseResultSuccessPosition{}, false
-}
-
-func (this BatchAppendResponseResultSuccess) isBatchAppendResponseResult() {
 }
 
 type isBatchAppendResponseResultSuccessCurrentRevision interface {
@@ -171,11 +171,35 @@ func (this BatchAppendResponseExpectedStreamPositionStreamExists) isBatchAppendR
 
 type batchResponseAdapter interface {
 	CreateResponse(protoResponse *streams2.BatchAppendResp) BatchAppendResponse
+	CreateResponseWithError(protoResponse *streams2.BatchAppendResp) (BatchAppendResponse, errors.Error)
 }
 
 type batchResponseAdapterImpl struct{}
 
 func (this batchResponseAdapterImpl) CreateResponse(
+	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
+	return this.buildResult(protoResponse)
+}
+
+func (this batchResponseAdapterImpl) CreateResponseWithError(
+	protoResponse *streams2.BatchAppendResp) (BatchAppendResponse, errors.Error) {
+
+	if protoResponse.Result != nil {
+		if protoError, ok := protoResponse.Result.(*streams2.BatchAppendResp_Error); ok {
+			return BatchAppendResponse{}, BatchError{
+				ProtoCode: protoError.Error.Code,
+				Message:   protoError.Error.Message,
+				Details:   buildErrorDetails(protoError.Error.Details),
+			}
+		} else {
+			return this.buildResult(protoResponse), nil
+		}
+	}
+
+	panic("Unsupported result type")
+}
+
+func (this batchResponseAdapterImpl) buildResult(
 	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
 	correlationId := protoResponse.GetCorrelationId()
 	correlationIdString := correlationId.GetString_()
@@ -185,28 +209,16 @@ func (this batchResponseAdapterImpl) CreateResponse(
 		StreamIdentifier: string(protoResponse.StreamIdentifier.StreamName),
 	}
 
-	result.Result = this.buildResult(protoResponse)
 	result.ExpectedStreamPosition = this.buildExpectedStreamPosition(protoResponse)
+	if protoResponse.Result != nil {
+		if protoSuccess, ok := protoResponse.Result.(*streams2.BatchAppendResp_Success_); ok {
+			success := this.buildResultSuccess(protoSuccess)
+			result.CurrentRevisionOption = success.CurrentRevisionOption
+			result.Position = success.Position
+		}
+	}
 
 	return result
-}
-
-func (this batchResponseAdapterImpl) buildResult(
-	response *streams2.BatchAppendResp) isBatchAppendResponseResult {
-	switch response.Result.(type) {
-	case *streams2.BatchAppendResp_Error:
-		protoError := response.GetError()
-		return BatchAppendResponseResultError{
-			Code:    protoError.Code,
-			Message: protoError.Message,
-			Details: buildErrorDetails(protoError.Details),
-		}
-	case *streams2.BatchAppendResp_Success_:
-		protoSuccess := response.Result.(*streams2.BatchAppendResp_Success_)
-		return this.buildResultSuccess(protoSuccess)
-	default:
-		panic("unsupported type received")
-	}
 }
 
 func buildErrorDetails(protoDetails []*any.Any) []ErrorDetails {
@@ -223,8 +235,8 @@ func buildErrorDetails(protoDetails []*any.Any) []ErrorDetails {
 }
 
 func (this batchResponseAdapterImpl) buildResultSuccess(
-	protoSuccess *streams2.BatchAppendResp_Success_) BatchAppendResponseResultSuccess {
-	result := BatchAppendResponseResultSuccess{}
+	protoSuccess *streams2.BatchAppendResp_Success_) batchAppendResponseResultSuccess {
+	result := batchAppendResponseResultSuccess{}
 
 	switch protoSuccess.Success.CurrentRevisionOption.(type) {
 	case *streams2.BatchAppendResp_Success_CurrentRevision:
