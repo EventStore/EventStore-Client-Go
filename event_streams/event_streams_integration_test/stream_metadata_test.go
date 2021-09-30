@@ -90,14 +90,12 @@ func Test_StreamMetaData(t *testing.T) {
 	t.Run("setting_with_wrong_expected_version_throws", func(t *testing.T) {
 		streamId := "setting_with_wrong_expected_version_throws"
 
-		writeResult, err := client.SetStreamMetadata(context.Background(),
+		_, err := client.SetStreamMetadata(context.Background(),
 			streamId,
 			event_streams.AppendRequestExpectedStreamRevision{Revision: 2},
 			event_streams.StreamMetadata{},
 		)
-		require.NoError(t, err)
-		_, isWrongExpectedVersion := writeResult.GetWrongExpectedVersion()
-		require.True(t, isWrongExpectedVersion)
+		require.Equal(t, event_streams.WrongExpectedVersionErr, err.Code())
 	})
 
 	t.Run("latest_metadata_returned_stream_revision_any", func(t *testing.T) {

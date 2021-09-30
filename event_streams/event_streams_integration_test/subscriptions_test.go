@@ -489,7 +489,7 @@ func Test_SubscribeToStream(t *testing.T) {
 	})
 
 	t.Run("Subscribe From Specific Revision To Non-Existing Stream Then Get Event", func(t *testing.T) {
-		streamId := "subscribe__from_start_to_non_existing_stream_then_get_event"
+		streamId := "subscribe__from_specific_revision_to_non_existing_stream_then_get_event"
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
@@ -677,8 +677,7 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 		event_streams.AppendRequestExpectedStreamRevision{Revision: 5999},
 		[]event_streams.ProposedEvent{testEvent})
 	require.NoError(t, err)
-	success, _ := writeResult.GetSuccess()
-	require.Equal(t, uint64(6_000), success.GetCurrentRevision())
+	require.Equal(t, uint64(6_000), writeResult.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription
 	timedOut = test_utils.WaitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)

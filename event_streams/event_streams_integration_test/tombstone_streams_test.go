@@ -98,10 +98,9 @@ func Test_TombstoneStream(t *testing.T) {
 			[]event_streams.ProposedEvent{event})
 		require.NoError(t, err)
 
-		currentRevision, _ := writeResult.GetCurrentRevision()
 		tombstoneResult, err := client.TombstoneStream(context.Background(),
 			streamName,
-			event_streams.TombstoneRequestExpectedStreamRevision{Revision: currentRevision})
+			event_streams.TombstoneRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
 		tombstonePosition, isTombstonePosition := tombstoneResult.GetPosition()

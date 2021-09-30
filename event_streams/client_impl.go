@@ -31,7 +31,7 @@ const (
 	AppendToStream_FailedToCloseStreamErr    errors.ErrorCode = "AppendToStream_FailedToCloseStreamErr"
 )
 
-func (client *ClientImpl) appendToStream(
+func (client *ClientImpl) appendToStreamWithError(
 	ctx context.Context,
 	options AppendRequestContentOptions,
 	events []ProposedEvent,
@@ -81,7 +81,7 @@ func (client *ClientImpl) appendToStream(
 		return AppendResponse{}, err
 	}
 
-	return client.appendResponseAdapter.CreateResponse(response), nil
+	return client.appendResponseAdapter.CreateResponseWithError(response)
 }
 
 func (client *ClientImpl) AppendToStream(
@@ -90,7 +90,7 @@ func (client *ClientImpl) AppendToStream(
 	expectedStreamRevision IsAppendRequestExpectedStreamRevision,
 	events []ProposedEvent,
 ) (AppendResponse, errors.Error) {
-	return client.appendToStream(ctx, AppendRequestContentOptions{
+	return client.appendToStreamWithError(ctx, AppendRequestContentOptions{
 		StreamIdentifier:       streamID,
 		ExpectedStreamRevision: expectedStreamRevision,
 	}, events)
@@ -159,7 +159,7 @@ func (client *ClientImpl) SetStreamMetadata(
 	metadata StreamMetadata) (AppendResponse, errors.Error) {
 	streamMetadataEvent := NewMetadataEvent(metadata)
 
-	return client.appendToStream(ctx, AppendRequestContentOptions{
+	return client.appendToStreamWithError(ctx, AppendRequestContentOptions{
 		StreamIdentifier:       GetMetaStreamOf(streamID),
 		ExpectedStreamRevision: expectedStreamRevision,
 	}, []ProposedEvent{streamMetadataEvent})
