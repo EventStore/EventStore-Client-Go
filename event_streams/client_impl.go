@@ -149,7 +149,7 @@ func (client *ClientImpl) BatchAppendToStream(ctx context.Context,
 		return BatchAppendResponse{}, err
 	}
 
-	return client.batchResponseAdapter.CreateResponse(response), nil
+	return client.batchResponseAdapter.CreateResponseWithError(response)
 }
 
 func (client *ClientImpl) SetStreamMetadata(

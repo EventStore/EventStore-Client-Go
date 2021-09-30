@@ -19,7 +19,7 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 
 		iterations := 2
 		for ; iterations > 0; iterations-- {
-			writeResult, err := client.BatchAppendToStream(context.Background(),
+			_, err := client.BatchAppendToStream(context.Background(),
 				event_streams.BatchAppendRequestOptions{
 					StreamIdentifier:       streamName,
 					ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionNoStream{},
@@ -28,8 +28,6 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 				[]event_streams.ProposedEvent{},
 				5)
 			require.NoError(t, err)
-			_, isSuccess := writeResult.GetSuccess()
-			require.True(t, isSuccess)
 		}
 		_, err := client.ReadStreamEvents(context.Background(),
 			streamName,
@@ -54,9 +52,7 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 				[]event_streams.ProposedEvent{},
 				1)
 			require.NoError(t, err)
-			success, isSuccess := writeResult.GetSuccess()
-			require.True(t, isSuccess)
-			require.True(t, success.GetRevisionNoStream())
+			require.True(t, writeResult.GetRevisionNoStream())
 		}
 
 		_, err := client.ReadStreamEvents(context.Background(),
@@ -87,9 +83,8 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 			[]event_streams.ProposedEvent{testEvent},
 			1)
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.False(t, success.GetRevisionNoStream())
-		require.EqualValues(t, 0, success.GetRevision())
+		require.False(t, writeResult.GetRevisionNoStream())
+		require.EqualValues(t, 0, writeResult.GetRevision())
 
 		events, err := client.ReadStreamEvents(context.Background(),
 			streamName,
@@ -115,8 +110,7 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 			testEvents,
 			50)
 		require.NoError(t, err)
-		success, _ := writeResult.GetSuccess()
-		require.False(t, success.GetRevisionNoStream())
-		require.EqualValues(t, 99, success.GetRevision())
+		require.False(t, writeResult.GetRevisionNoStream())
+		require.EqualValues(t, 99, writeResult.GetRevision())
 	})
 }
