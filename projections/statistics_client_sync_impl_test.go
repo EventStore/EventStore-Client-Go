@@ -1,8 +1,12 @@
 package projections
 
 import (
-	"errors"
+	stdErrors "errors"
 	"testing"
+
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+
+	"google.golang.org/grpc/metadata"
 
 	"github.com/stretchr/testify/require"
 
@@ -31,17 +35,33 @@ func TestStatisticsClientSyncImpl_Read(t *testing.T) {
 		require.Equal(t, StatisticsClientResponse{Name: "some name"}, result)
 	})
 
-	t.Run("Error returned from proto client", func(t *testing.T) {
-		errorResult := errors.New("some error")
+	t.Run("Error returned from proto client does not match known exception", func(t *testing.T) {
+		errorResult := stdErrors.New("some error")
 
 		protoClient := projections.NewMockProjections_StatisticsClient(ctrl)
 		protoClient.EXPECT().Recv().Return(nil, errorResult)
+		protoClient.EXPECT().Trailer().Return(metadata.MD{})
 
 		statisticsClient := newStatisticsClientSyncImpl(protoClient)
 		result, err := statisticsClient.Read()
 
 		require.Error(t, err)
-		require.EqualError(t, err, errorResult.Error())
+		require.Equal(t, errors.FatalError, err.Code())
+		require.Equal(t, StatisticsClientResponse{}, result)
+	})
+
+	t.Run("Error returned from proto client matches known exception", func(t *testing.T) {
+		errorResult := stdErrors.New("some error")
+
+		protoClient := projections.NewMockProjections_StatisticsClient(ctrl)
+		protoClient.EXPECT().Recv().Return(nil, errorResult)
+		protoClient.EXPECT().Trailer().Return(metadata.MD{"exception": []string{"maximum-subscribers-reached"}})
+
+		statisticsClient := newStatisticsClientSyncImpl(protoClient)
+		result, err := statisticsClient.Read()
+
+		require.Error(t, err)
+		require.Equal(t, errors.MaximumSubscriberCountReached, err.Code())
 		require.Equal(t, StatisticsClientResponse{}, result)
 	})
 }
