@@ -684,9 +684,17 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 	defer subscription.Close()
 }
 
-type Position struct {
-	Prepare uint64 `json:"prepare"`
-	Commit  uint64 `json:"commit"`
+func Test_SubscribeToStream_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamId := "stream_does_not_exist_throws"
+	_, err := client.SubscribeToStream(context.Background(),
+		streamId,
+		event_streams.SubscribeRequestOptionsStreamRevisionStart{},
+		false)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
 //func TestConnectionClosing(t *testing.T) {
