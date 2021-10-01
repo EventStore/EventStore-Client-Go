@@ -133,22 +133,16 @@ func (this SubscribeToStreamRequest) buildFilter() *streams2.ReadReq_Options_Fil
 	switch filter.FilterBy.(type) {
 	case SubscribeRequestFilterByEventType:
 		eventTypeFilter := filter.FilterBy.(SubscribeRequestFilterByEventType)
-
+		filterExpression := this.buildFilterExpression(eventTypeFilter.Matcher)
 		result.Filter.Filter = &streams2.ReadReq_Options_FilterOptions_EventType{
-			EventType: &streams2.ReadReq_Options_FilterOptions_Expression{
-				Regex:  eventTypeFilter.Regex,
-				Prefix: eventTypeFilter.Prefix,
-			},
+			EventType: filterExpression,
 		}
 
 	case SubscribeRequestFilterByStreamIdentifier:
 		streamIdentifierFilter := filter.FilterBy.(SubscribeRequestFilterByStreamIdentifier)
-
+		filterExpression := this.buildFilterExpression(streamIdentifierFilter.Matcher)
 		result.Filter.Filter = &streams2.ReadReq_Options_FilterOptions_StreamIdentifier{
-			StreamIdentifier: &streams2.ReadReq_Options_FilterOptions_Expression{
-				Regex:  streamIdentifierFilter.Regex,
-				Prefix: streamIdentifierFilter.Prefix,
-			},
+			StreamIdentifier: filterExpression,
 		}
 	}
 
@@ -166,6 +160,19 @@ func (this SubscribeToStreamRequest) buildFilter() *streams2.ReadReq_Options_Fil
 		}
 	}
 
+	return result
+}
+
+func (this SubscribeToStreamRequest) buildFilterExpression(
+	matcher filterMatcher) *streams2.ReadReq_Options_FilterOptions_Expression {
+	result := &streams2.ReadReq_Options_FilterOptions_Expression{}
+	if regexMatcher, ok := matcher.(RegexFilterMatcher); ok {
+		result.Regex = regexMatcher.Regex
+	} else if prefixMatcher, ok := matcher.(PrefixFilterMatcher); ok {
+		result.Prefix = prefixMatcher.PrefixList
+	} else {
+		panic("Invalid type received")
+	}
 	return result
 }
 
@@ -190,15 +197,13 @@ type isSubscribeRequestFilterBy interface {
 }
 
 type SubscribeRequestFilterByEventType struct {
-	Regex  string
-	Prefix []string
+	Matcher filterMatcher
 }
 
 func (this SubscribeRequestFilterByEventType) isSubscribeRequestFilterBy() {}
 
 type SubscribeRequestFilterByStreamIdentifier struct {
-	Regex  string
-	Prefix []string
+	Matcher filterMatcher
 }
 
 func (this SubscribeRequestFilterByStreamIdentifier) isSubscribeRequestFilterBy() {}
@@ -289,3 +294,21 @@ const (
 	SubscribeRequestDirectionForward SubscribeRequestDirection = "SubscribeRequestDirectionForward"
 	SubscribeRequestDirectionEnd     SubscribeRequestDirection = "SubscribeRequestDirectionEnd"
 )
+
+type filterMatcher interface {
+	isFilterMatcher()
+}
+
+type RegexFilterMatcher struct {
+	Regex string
+}
+
+func (regex RegexFilterMatcher) isFilterMatcher() {
+}
+
+type PrefixFilterMatcher struct {
+	PrefixList []string
+}
+
+func (prefix PrefixFilterMatcher) isFilterMatcher() {
+}

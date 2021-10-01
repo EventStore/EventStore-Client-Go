@@ -192,9 +192,7 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 
 		require.Eventually(t, func() bool {
 			readResult, err := streamReader.ReadOne()
-			if err != nil {
-				t.Fail()
-			}
+			require.NoError(t, err)
 
 			if event, isEvent := readResult.GetEvent(); isEvent {
 				if !systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
@@ -212,6 +210,6 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 		afterEvents)
 	require.NoError(t, err)
 
-	// wait for reader to receive cancellation
+	// wait for reader to receive events
 	wg.Wait()
 }

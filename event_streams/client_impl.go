@@ -426,6 +426,7 @@ func (client *ClientImpl) subscribeToStream(
 
 	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
 
+	fmt.Println(spew.Sdump(*request.Build()))
 	readStreamClient, protoErr := grpcStreamsClient.Read(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {
