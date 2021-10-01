@@ -1,6 +1,12 @@
 package projections
 
-import "github.com/pivonroll/EventStore-Client-Go/protos/projections"
+import (
+	"io"
+
+	"github.com/pivonroll/EventStore-Client-Go/connection"
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/protos/projections"
+)
 
 type StatisticsClientSyncImpl struct {
 	client             projections.Projections_StatisticsClient
@@ -9,10 +15,10 @@ type StatisticsClientSyncImpl struct {
 
 type statisticsReadResult struct {
 	statisticsClientResponse StatisticsClientResponse
-	err                      error
+	err                      errors.Error
 }
 
-func (this *StatisticsClientSyncImpl) Read() (StatisticsClientResponse, error) {
+func (this *StatisticsClientSyncImpl) Read() (StatisticsClientResponse, errors.Error) {
 	channel := make(chan statisticsReadResult)
 
 	this.readRequestChannel <- channel
@@ -21,10 +27,18 @@ func (this *StatisticsClientSyncImpl) Read() (StatisticsClientResponse, error) {
 	return resp.statisticsClientResponse, resp.err
 }
 
-func (statisticsSync *StatisticsClientSyncImpl) readOne() (StatisticsClientResponse, error) {
-	result, err := statisticsSync.client.Recv()
-	if err != nil {
-		return StatisticsClientResponse{}, err
+func (statisticsSync *StatisticsClientSyncImpl) readOne() (StatisticsClientResponse, errors.Error) {
+	result, protoErr := statisticsSync.client.Recv()
+	if protoErr != nil {
+		if protoErr == io.EOF {
+			return StatisticsClientResponse{}, errors.NewError(errors.EndOfStream, protoErr)
+		}
+		trailer := statisticsSync.client.Trailer()
+		err := connection.GetErrorFromProtoException(trailer, protoErr)
+		if err != nil {
+			return StatisticsClientResponse{}, err
+		}
+		return StatisticsClientResponse{}, errors.NewError(errors.FatalError, protoErr)
 	}
 
 	return StatisticsClientResponse{

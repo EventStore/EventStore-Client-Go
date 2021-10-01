@@ -18,7 +18,7 @@ func TestClientFactoryImpl_CreateClient(t *testing.T) {
 	factory := ClientFactoryImpl{}
 	result := factory.Create(grpcClient)
 
-	expectedResult := newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{})
+	expectedResult := newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{}, statisticsClientSyncFactoryImpl{})
 
 	require.Equal(t, expectedResult, result)
 }

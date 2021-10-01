@@ -14,5 +14,7 @@ type ClientFactoryImpl struct{}
 
 func (clientFactory ClientFactoryImpl) Create(
 	grpcClient connection.GrpcClient) Client {
-	return newClientImpl(grpcClient, grpcProjectionsClientFactoryImpl{})
+	return newClientImpl(grpcClient,
+		grpcProjectionsClientFactoryImpl{},
+		statisticsClientSyncFactoryImpl{})
 }

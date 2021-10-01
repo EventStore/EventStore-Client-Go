@@ -2,7 +2,6 @@ package projections
 
 import (
 	"context"
-	"io"
 	"testing"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
@@ -1210,26 +1209,18 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		handle := connection.NewMockConnectionHandle(ctrl)
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
 		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
 
-		responseList := []*projections.StatisticsResp{
+		responseList := []StatisticsClientResponse{
 			{
-				Details: &projections.StatisticsResp_Details{
-					Name: "response 1",
-				},
+				Name: "Some name 1",
 			},
 			{
-				Details: &projections.StatisticsResp_Details{
-					Name: "response 2",
-				},
+				Name: "Some name 2",
 			},
 		}
-
-		for _, item := range responseList {
-			statisticsClient.EXPECT().Recv().Return(item, nil)
-		}
-
-		statisticsClient.EXPECT().Recv().Return(nil, io.EOF)
 
 		var headers, trailers metadata.MD
 
@@ -1240,11 +1231,18 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
+			statisticsClientSyncRead.EXPECT().Read().Return(responseList[0], nil),
+			statisticsClientSyncRead.EXPECT().Read().Return(responseList[1], nil),
+			statisticsClientSyncRead.EXPECT().Read().Return(StatisticsClientResponse{},
+				errors.NewErrorCode(errors.EndOfStream)),
 		)
 
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
 		allProjectionsResult, err := client.ListAllProjections(ctx)
@@ -1313,10 +1311,11 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
-
-		errorResult := errors.NewErrorCode("some error")
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
 
 		var headers, trailers metadata.MD
+		errorCode := errors.FatalError
 
 		gomock.InOrder(
 			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
@@ -1325,17 +1324,21 @@ func TestClientImpl_ListAllProjections(t *testing.T) {
 				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
-			statisticsClient.EXPECT().Recv().Return(nil, errorResult),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
+			statisticsClientSyncRead.EXPECT().Read().Return(StatisticsClientResponse{},
+				errors.NewErrorCode(errorCode)),
 		)
 
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
 		allProjectionsResult, err := client.ListAllProjections(ctx)
 		require.Error(t, err)
-		require.Equal(t, FailedToReadStatistics, err.Code())
+		require.Equal(t, errorCode, err.Code())
 		require.Nil(t, allProjectionsResult)
 	})
 }
@@ -1357,19 +1360,17 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 		handle := connection.NewMockConnectionHandle(ctrl)
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
 		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
 
 		var headers, trailers metadata.MD
-		responseList := []*projections.StatisticsResp{
+		responseList := []StatisticsClientResponse{
 			{
-				Details: &projections.StatisticsResp_Details{
-					Name: "response 1",
-				},
+				Name: "Some name 1",
 			},
 			{
-				Details: &projections.StatisticsResp_Details{
-					Name: "response 2",
-				},
+				Name: "Some name 2",
 			},
 		}
 
@@ -1378,17 +1379,20 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 			handle.EXPECT().Connection().Return(grpcClientConn),
 			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
 				Return(grpcProjectionsClientMock),
-			statisticsClient.EXPECT().Recv().Return(responseList[0], nil),
-			statisticsClient.EXPECT().Recv().Return(responseList[1], nil),
-			statisticsClient.EXPECT().Recv().Return(nil, io.EOF),
+			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
+			statisticsClientSyncRead.EXPECT().Read().Return(responseList[0], nil),
+			statisticsClientSyncRead.EXPECT().Read().Return(responseList[1], nil),
+			statisticsClientSyncRead.EXPECT().Read().Return(StatisticsClientResponse{},
+				errors.NewErrorCode(errors.EndOfStream)),
 		)
-
-		grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-			grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil)
 
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
 		projectionsResult, err := client.ListContinuousProjections(ctx)
@@ -1457,11 +1461,12 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
 		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
-
-		errorResult := errors.NewErrorCode("some error")
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
 
 		var headers, trailers metadata.MD
 
+		errorCode := errors.FatalError
 		gomock.InOrder(
 			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
 			handle.EXPECT().Connection().Return(grpcClientConn),
@@ -1469,17 +1474,21 @@ func TestClientImpl_ListContinuousProjections(t *testing.T) {
 				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
-			statisticsClient.EXPECT().Recv().Return(nil, errorResult),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
+			statisticsClientSyncRead.EXPECT().Read().Return(StatisticsClientResponse{},
+				errors.NewErrorCode(errorCode)),
 		)
 
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
 		allProjectionsResult, err := client.ListContinuousProjections(ctx)
 		require.Error(t, err)
-		require.Equal(t, FailedToReadStatistics, err.Code())
+		require.Equal(t, errorCode, err.Code())
 		require.Nil(t, allProjectionsResult)
 	})
 }
@@ -1501,19 +1510,17 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 		handle := connection.NewMockConnectionHandle(ctrl)
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
 		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
 
 		var headers, trailers metadata.MD
-		responseList := []*projections.StatisticsResp{
+		responseList := []StatisticsClientResponse{
 			{
-				Details: &projections.StatisticsResp_Details{
-					Name: "response 1",
-				},
+				Name: "Some name 1",
 			},
 			{
-				Details: &projections.StatisticsResp_Details{
-					Name: "response 2",
-				},
+				Name: "Some name 2",
 			},
 		}
 
@@ -1524,15 +1531,18 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
-
-			statisticsClient.EXPECT().Recv().Return(responseList[0], nil),
-			statisticsClient.EXPECT().Recv().Return(responseList[1], nil),
-			statisticsClient.EXPECT().Recv().Return(nil, io.EOF),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
+			statisticsClientSyncRead.EXPECT().Read().Return(responseList[0], nil),
+			statisticsClientSyncRead.EXPECT().Read().Return(responseList[1], nil),
+			statisticsClientSyncRead.EXPECT().Read().Return(StatisticsClientResponse{},
+				errors.NewErrorCode(errors.EndOfStream)),
 		)
 
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
 		projectionsResult, err := client.ListOneTimeProjections(ctx)
@@ -1599,31 +1609,35 @@ func TestClientImpl_ListOneTimeProjections(t *testing.T) {
 		handle := connection.NewMockConnectionHandle(ctrl)
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
 		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
 
-		errorResult := errors.NewErrorCode("some error")
-		statisticsClient.EXPECT().Recv().Return(nil, errorResult)
-
 		var headers, trailers metadata.MD
+		errorCode := errors.FatalError
 
 		gomock.InOrder(
 			grpcClient.EXPECT().GetConnectionHandle().Return(handle, nil),
 			handle.EXPECT().Connection().Return(grpcClientConn),
 			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
 				Return(grpcProjectionsClientMock),
-
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
 				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
+			statisticsClientSyncRead.EXPECT().Read().Return(StatisticsClientResponse{},
+				errors.NewErrorCode(errorCode)),
 		)
 
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
 		allProjectionsResult, err := client.ListOneTimeProjections(ctx)
 		require.Error(t, err)
-		require.Equal(t, FailedToReadStatistics, err.Code())
+		require.Equal(t, errorCode, err.Code())
 		require.Nil(t, allProjectionsResult)
 	})
 }

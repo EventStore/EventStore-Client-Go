@@ -2,7 +2,6 @@ package projections
 
 import (
 	"context"
-	"io"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
@@ -15,6 +14,7 @@ import (
 type ClientImpl struct {
 	grpcClient                   connection.GrpcClient
 	grpcProjectionsClientFactory grpcProjectionsClientFactory
+	statisticsClientSyncFactory  statisticsClientSyncFactory
 }
 
 const FailedToCreateProjectionErr errors.ErrorCode = "FailedToCreateProjectionErr"
@@ -104,7 +104,7 @@ func (client *ClientImpl) GetProjectionStatistics(
 		return nil, err
 	}
 
-	return newStatisticsClientSyncImpl(statisticsClient), nil
+	return client.statisticsClientSyncFactory.Create(statisticsClient), nil
 }
 
 const FailedToDisableProjectionErr errors.ErrorCode = "FailedToDisableProjectionErr"
@@ -281,12 +281,13 @@ func (client *ClientImpl) ListAllProjections(
 	var result []StatisticsClientResponse
 
 	for {
-		statisticsResult, protoErr := statisticsClient.Read()
-		if protoErr != nil {
-			if protoErr == io.EOF {
+		statisticsResult, err := statisticsClient.Read()
+		if err != nil {
+			if err.Code() == errors.EndOfStream {
 				break
 			}
-			return nil, errors.NewError(FailedToReadStatistics, protoErr)
+
+			return nil, err
 		}
 
 		result = append(result, statisticsResult)
@@ -308,12 +309,12 @@ func (client *ClientImpl) ListContinuousProjections(
 	var result []StatisticsClientResponse
 
 	for {
-		statisticsResult, protoErr := statisticsClient.Read()
-		if protoErr != nil {
-			if protoErr == io.EOF {
+		statisticsResult, err := statisticsClient.Read()
+		if err != nil {
+			if err.Code() == errors.EndOfStream {
 				break
 			}
-			return nil, errors.NewError(FailedToReadStatistics, protoErr)
+			return nil, err
 		}
 
 		result = append(result, statisticsResult)
@@ -335,12 +336,12 @@ func (client *ClientImpl) ListOneTimeProjections(
 	var result []StatisticsClientResponse
 
 	for {
-		statisticsResult, protoErr := statisticsClient.Read()
-		if protoErr != nil {
-			if protoErr == io.EOF {
+		statisticsResult, err := statisticsClient.Read()
+		if err != nil {
+			if err.Code() == errors.EndOfStream {
 				break
 			}
-			return nil, errors.NewError(FailedToReadStatistics, protoErr)
+			return nil, err
 		}
 
 		result = append(result, statisticsResult)
@@ -351,9 +352,11 @@ func (client *ClientImpl) ListOneTimeProjections(
 
 func newClientImpl(
 	grpcClient connection.GrpcClient,
-	grpcProjectionsClientFactory grpcProjectionsClientFactory) *ClientImpl {
+	grpcProjectionsClientFactory grpcProjectionsClientFactory,
+	statisticsClientSyncFactory statisticsClientSyncFactory) *ClientImpl {
 	return &ClientImpl{
 		grpcProjectionsClientFactory: grpcProjectionsClientFactory,
 		grpcClient:                   grpcClient,
+		statisticsClientSyncFactory:  statisticsClientSyncFactory,
 	}
 }

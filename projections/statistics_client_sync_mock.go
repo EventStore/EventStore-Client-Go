@@ -8,6 +8,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	errors "github.com/pivonroll/EventStore-Client-Go/errors"
+	projections "github.com/pivonroll/EventStore-Client-Go/protos/projections"
 )
 
 // MockStatisticsClientSync is a mock of StatisticsClientSync interface.
@@ -34,11 +36,11 @@ func (m *MockStatisticsClientSync) EXPECT() *MockStatisticsClientSyncMockRecorde
 }
 
 // Read mocks base method.
-func (m *MockStatisticsClientSync) Read() (StatisticsClientResponse, error) {
+func (m *MockStatisticsClientSync) Read() (StatisticsClientResponse, errors.Error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read")
 	ret0, _ := ret[0].(StatisticsClientResponse)
-	ret1, _ := ret[1].(error)
+	ret1, _ := ret[1].(errors.Error)
 	return ret0, ret1
 }
 
@@ -46,4 +48,41 @@ func (m *MockStatisticsClientSync) Read() (StatisticsClientResponse, error) {
 func (mr *MockStatisticsClientSyncMockRecorder) Read() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockStatisticsClientSync)(nil).Read))
+}
+
+// MockstatisticsClientSyncFactory is a mock of statisticsClientSyncFactory interface.
+type MockstatisticsClientSyncFactory struct {
+	ctrl     *gomock.Controller
+	recorder *MockstatisticsClientSyncFactoryMockRecorder
+}
+
+// MockstatisticsClientSyncFactoryMockRecorder is the mock recorder for MockstatisticsClientSyncFactory.
+type MockstatisticsClientSyncFactoryMockRecorder struct {
+	mock *MockstatisticsClientSyncFactory
+}
+
+// NewMockstatisticsClientSyncFactory creates a new mock instance.
+func NewMockstatisticsClientSyncFactory(ctrl *gomock.Controller) *MockstatisticsClientSyncFactory {
+	mock := &MockstatisticsClientSyncFactory{ctrl: ctrl}
+	mock.recorder = &MockstatisticsClientSyncFactoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockstatisticsClientSyncFactory) EXPECT() *MockstatisticsClientSyncFactoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockstatisticsClientSyncFactory) Create(client projections.Projections_StatisticsClient) StatisticsClientSync {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", client)
+	ret0, _ := ret[0].(StatisticsClientSync)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockstatisticsClientSyncFactoryMockRecorder) Create(client interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockstatisticsClientSyncFactory)(nil).Create), client)
 }

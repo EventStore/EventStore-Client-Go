@@ -1,9 +1,25 @@
 package projections
 
+import (
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+	"github.com/pivonroll/EventStore-Client-Go/protos/projections"
+)
+
 //go:generate mockgen -source=statistics_client_sync.go -destination=statistics_client_sync_mock.go -package=projections
 
 type StatisticsClientSync interface {
-	Read() (StatisticsClientResponse, error)
+	Read() (StatisticsClientResponse, errors.Error)
+}
+
+type statisticsClientSyncFactory interface {
+	Create(client projections.Projections_StatisticsClient) StatisticsClientSync
+}
+
+type statisticsClientSyncFactoryImpl struct{}
+
+func (factory statisticsClientSyncFactoryImpl) Create(
+	statisticsClient projections.Projections_StatisticsClient) StatisticsClientSync {
+	return newStatisticsClientSyncImpl(statisticsClient)
 }
 
 const (
