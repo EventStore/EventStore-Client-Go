@@ -3,10 +3,25 @@ package projections
 import "github.com/pivonroll/EventStore-Client-Go/protos/projections"
 
 type StatisticsClientSyncImpl struct {
-	client projections.Projections_StatisticsClient
+	client             projections.Projections_StatisticsClient
+	readRequestChannel chan chan statisticsReadResult
 }
 
-func (statisticsSync *StatisticsClientSyncImpl) Read() (StatisticsClientResponse, error) {
+type statisticsReadResult struct {
+	statisticsClientResponse StatisticsClientResponse
+	err                      error
+}
+
+func (this *StatisticsClientSyncImpl) Read() (StatisticsClientResponse, error) {
+	channel := make(chan statisticsReadResult)
+
+	this.readRequestChannel <- channel
+	resp := <-channel
+
+	return resp.statisticsClientResponse, resp.err
+}
+
+func (statisticsSync *StatisticsClientSyncImpl) readOne() (StatisticsClientResponse, error) {
 	result, err := statisticsSync.client.Recv()
 	if err != nil {
 		return StatisticsClientResponse{}, err
@@ -35,8 +50,27 @@ func (statisticsSync *StatisticsClientSyncImpl) Read() (StatisticsClientResponse
 	}, nil
 }
 
-func newStatisticsClientSyncImpl(client projections.Projections_StatisticsClient) *StatisticsClientSyncImpl {
-	return &StatisticsClientSyncImpl{
-		client: client,
+func (statisticsSync *StatisticsClientSyncImpl) readLoop() {
+	for {
+		responseChannel := <-statisticsSync.readRequestChannel
+		result, err := statisticsSync.readOne()
+
+		response := statisticsReadResult{
+			statisticsClientResponse: result,
+			err:                      err,
+		}
+
+		responseChannel <- response
 	}
+}
+
+func newStatisticsClientSyncImpl(client projections.Projections_StatisticsClient) *StatisticsClientSyncImpl {
+	statisticsReadClient := &StatisticsClientSyncImpl{
+		client:             client,
+		readRequestChannel: make(chan chan statisticsReadResult),
+	}
+
+	go statisticsReadClient.readLoop()
+
+	return statisticsReadClient
 }
