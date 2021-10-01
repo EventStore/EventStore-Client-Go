@@ -654,6 +654,16 @@ func Test_ListContinuousProjections_WithIncorrectCredentials(t *testing.T) {
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
+func Test_ListOneTimeProjections_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	_, err := client.ListOneTimeProjections(context.Background())
+
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
 const (
 	StandardProjectionStreams          = "$streams"
 	StandardProjectionStreamByCategory = "$stream_by_category"
