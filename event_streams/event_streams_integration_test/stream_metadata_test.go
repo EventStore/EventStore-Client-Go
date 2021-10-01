@@ -178,3 +178,35 @@ func Test_StreamMetaData(t *testing.T) {
 		require.Equal(t, errors.DeadlineExceededErr, err.Code())
 	})
 }
+
+func Test_GetStreamMetaData_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamId := "stream_does_not_exist_throws"
+	_, err := client.GetStreamMetadata(context.Background(), streamId)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
+func Test_SetStreamMetaData_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamId := "latest_metadata_is_returned"
+
+	expectedStreamMetadata := event_streams.StreamMetadata{
+		MaxCount:              ptr.Int(17),
+		TruncateBefore:        ptr.UInt64(10),
+		CacheControlInSeconds: ptr.UInt64(17),
+		MaxAgeInSeconds:       ptr.UInt64(15),
+	}
+
+	_, err := client.SetStreamMetadata(context.Background(),
+		streamId,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		expectedStreamMetadata,
+	)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
