@@ -596,3 +596,18 @@ func Test_Read_Forwards(t *testing.T) {
 		require.Equal(t, errors.DeadlineExceededErr, err.Code())
 	})
 }
+
+func Test_Read_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamId := "stream_does_not_exist_throws"
+	_, err := client.ReadStreamEvents(context.Background(),
+		streamId,
+		event_streams.ReadRequestDirectionForward,
+		event_streams.ReadRequestOptionsStreamRevisionStart{},
+		1,
+		false)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
