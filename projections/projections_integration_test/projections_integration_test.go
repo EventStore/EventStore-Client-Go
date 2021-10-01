@@ -613,6 +613,17 @@ func Test_GetProjectionStatistics_WithIncorrectCredentials(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func Test_ResetProjection_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	resetOptions := projections.ResetOptionsRequest{}
+	resetOptions.SetName(StandardProjectionStreams)
+	err := client.ResetProjection(context.Background(), resetOptions)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
 const (
 	StandardProjectionStreams          = "$streams"
 	StandardProjectionStreamByCategory = "$stream_by_category"
