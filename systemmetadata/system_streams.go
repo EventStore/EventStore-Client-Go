@@ -8,3 +8,7 @@ const (
 	SettingsStream    SystemStream = "$settings"
 	StatsStreamPrefix SystemStream = "$stats"
 )
+
+func IsSystemStream(streamId string) bool {
+	return len(streamId) > 0 && streamId[0] == '$'
+}

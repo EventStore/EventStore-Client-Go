@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivonroll/EventStore-Client-Go/systemmetadata"
+
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 
 	"github.com/stretchr/testify/require"
@@ -14,7 +16,6 @@ import (
 )
 
 func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenCancelled(t *testing.T) {
-	t.Skip("When we subscribe to all from start, subscription cannot be cancelled")
 	client, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
 
@@ -33,7 +34,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenCancelled(t *te
 		require.Eventually(t, func() bool {
 			_, err := streamReader.ReadOne()
 			return err != nil && err.Code() == errors.CanceledErr
-		}, time.Second*7, time.Second)
+		}, time.Second*7, time.Millisecond)
 	}()
 
 	time.Sleep(1 * time.Second)
@@ -71,7 +72,6 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenCancelled(t *test
 }
 
 func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenReaderClosed(t *testing.T) {
-	t.Skip("When we subscribe to all from start, subscription cannot be cancelled")
 	client, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
 
@@ -89,7 +89,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenReaderClosed(t 
 		require.Eventually(t, func() bool {
 			_, err := streamReader.ReadOne()
 			return err != nil && err.Code() == errors.CanceledErr
-		}, time.Second*7, time.Second)
+		}, time.Second*7, time.Millisecond)
 	}()
 
 	time.Sleep(1 * time.Second)
@@ -120,6 +120,39 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenReaderClosed(t *t
 	}()
 
 	time.Sleep(1 * time.Second)
+	streamReader.Close()
+	// wait for reader to receive cancellation
+	wg.Wait()
+}
+
+func Test_SubscribeToAll_FromStart_ToEmptyDatabase(t *testing.T) {
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	streamReader, err := client.SubscribeToAll(context.Background(),
+		event_streams.SubscribeRequestOptionsAllEndPosition{},
+		false)
+	require.NoError(t, err)
+
+	go func() {
+		defer wg.Done()
+
+		require.Eventually(t, func() bool {
+			readResult, err := streamReader.ReadOne()
+
+			if event, isEvent := readResult.GetEvent(); isEvent {
+				if systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+					t.Fail()
+				}
+			}
+
+			return err != nil && err.Code() == errors.CanceledErr
+		}, time.Second*7, time.Millisecond)
+	}()
+
 	streamReader.Close()
 	// wait for reader to receive cancellation
 	wg.Wait()
