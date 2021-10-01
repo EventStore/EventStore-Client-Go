@@ -600,7 +600,7 @@ func Test_GetProjectionState_WithIncorrectCredentials(t *testing.T) {
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
-func Test_GetProjectionStatistics_WithIncorrectCredentials(t *testing.T) {
+func Test_GetProjectionStatistics_WithIncorrectCredentials_DoesNotFail(t *testing.T) {
 	client, closeFunc := initializeContainerAndClientWithCredentials(t,
 		"wrong_user_name", "wrong_password", nil)
 	defer closeFunc()
@@ -621,6 +621,16 @@ func Test_ResetProjection_WithIncorrectCredentials(t *testing.T) {
 	resetOptions := projections.ResetOptionsRequest{}
 	resetOptions.SetName(StandardProjectionStreams)
 	err := client.ResetProjection(context.Background(), resetOptions)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
+func Test_RestartProjectionsSubsystem_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	err := client.RestartProjectionsSubsystem(context.Background())
+
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
