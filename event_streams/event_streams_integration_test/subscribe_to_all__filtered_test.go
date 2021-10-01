@@ -330,3 +330,23 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 		waitForReadingNewEvents.Wait()
 	})
 }
+
+func Test_SubscribeToAll_Filtered_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	_, err := client.SubscribeToAllFiltered(context.Background(),
+		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		false,
+		event_streams.SubscribeRequestFilter{
+			FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+				Matcher: event_streams.PrefixFilterMatcher{
+					PrefixList: []string{"aaa"},
+				},
+			},
+			Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+			CheckpointIntervalMultiplier: 5,
+		})
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
