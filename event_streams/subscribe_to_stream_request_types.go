@@ -13,7 +13,7 @@ type SubscribeToStreamRequest struct {
 	ResolveLinks bool
 	// SubscribeRequestFilter
 	// SubscribeRequestNoFilter
-	Filter isSubscribeRequestFilterOption
+	Filter IsSubscribeRequestFilterOption
 }
 
 func (this SubscribeToStreamRequest) Build() *streams2.ReadReq {
@@ -169,7 +169,7 @@ func (this SubscribeToStreamRequest) buildFilter() *streams2.ReadReq_Options_Fil
 	return result
 }
 
-type isSubscribeRequestFilterOption interface {
+type IsSubscribeRequestFilterOption interface {
 	isSubscribeRequestFilterOption()
 }
 

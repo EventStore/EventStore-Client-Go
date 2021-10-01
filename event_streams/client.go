@@ -85,4 +85,10 @@ type Client interface {
 		resolveLinks bool,
 		filter SubscribeRequestFilter,
 	) (StreamReader, errors.Error)
+
+	SubscribeToAll(
+		ctx context.Context,
+		position IsSubscribeRequestOptionsAllPosition,
+		resolveLinks bool,
+	) (StreamReader, errors.Error)
 }

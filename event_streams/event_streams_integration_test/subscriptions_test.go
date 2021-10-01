@@ -51,8 +51,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
-		ctx := context.Background()
-		ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+		ctx, cancelFunc := context.WithCancel(context.Background())
 
 		streamReader, err := client.SubscribeToStream(ctx,
 			streamId,
