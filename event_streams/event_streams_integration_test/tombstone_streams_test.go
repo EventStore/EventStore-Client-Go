@@ -111,3 +111,16 @@ func Test_TombstoneStream(t *testing.T) {
 		require.True(t, tombstonePosition.GreaterThan(writePosition))
 	})
 }
+
+func Test_TombstoneStream_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamName := "stream_does_not_exist_no_stream"
+
+	_, err := client.TombstoneStream(context.Background(),
+		streamName,
+		event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
