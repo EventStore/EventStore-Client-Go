@@ -12,31 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type Created struct {
-	Seconds int64 `json:"seconds"`
-	Nanos   int   `json:"nanos"`
-}
-
-type StreamRevision struct {
-	Value uint64 `json:"value"`
-}
-
-type TestEvent struct {
-	Event Event `json:"event"`
-}
-
-type Event struct {
-	StreamID       string         `json:"streamId"`
-	StreamRevision StreamRevision `json:"streamRevision"`
-	EventID        uuid.UUID      `json:"eventId"`
-	EventType      string         `json:"eventType"`
-	EventData      []byte         `json:"eventData"`
-	UserMetadata   []byte         `json:"userMetadata"`
-	ContentType    string         `json:"contentType"`
-	Position       Position       `json:"position"`
-	Created        Created        `json:"created"`
-}
-
 func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 	client, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
