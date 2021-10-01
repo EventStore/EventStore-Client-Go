@@ -2,6 +2,7 @@ package event_streams_integration_test
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -154,6 +155,63 @@ func Test_SubscribeToAll_FromStart_ToEmptyDatabase(t *testing.T) {
 	}()
 
 	streamReader.Close()
+	// wait for reader to receive cancellation
+	wg.Wait()
+}
+
+func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOnes(t *testing.T) {
+	client, closeFunc := initializeContainerAndClient(t, nil)
+	defer closeFunc()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	firstStream := "firstStream"
+	secondStream := "secondStream"
+
+	beforeEvents := testCreateEvents(10)
+	afterEvents := testCreateEvents(10)
+
+	allUserEvents := append(beforeEvents, afterEvents...)
+
+	_, err := client.AppendToStream(context.Background(),
+		firstStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		beforeEvents)
+	require.NoError(t, err)
+
+	streamReader, err := client.SubscribeToAll(context.Background(),
+		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		false)
+	require.NoError(t, err)
+
+	go func() {
+		defer wg.Done()
+
+		var resultsRead []event_streams.ProposedEvent
+
+		require.Eventually(t, func() bool {
+			readResult, err := streamReader.ReadOne()
+			if err != nil {
+				t.Fail()
+			}
+
+			if event, isEvent := readResult.GetEvent(); isEvent {
+				if !systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+					resultsRead = append(resultsRead, event.ToProposedEvent())
+				}
+			}
+
+			return reflect.DeepEqual(allUserEvents, resultsRead)
+		}, time.Second*10, time.Millisecond)
+	}()
+
+	_, err = client.AppendToStream(context.Background(),
+		secondStream,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		afterEvents)
+	require.NoError(t, err)
+
 	// wait for reader to receive cancellation
 	wg.Wait()
 }

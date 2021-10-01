@@ -76,8 +76,6 @@ type ReadResponseEvent struct {
 }
 
 func (this ReadResponseEvent) ToProposedEvent() ProposedEvent {
-	// metadata[system_metadata.SystemMetadataKeysContentType] = string(this.ContentType)
-	// metadata[system_metadata.SystemMetadataKeysType] = this.EventType
 	contentType := this.Event.Metadata[system_metadata.SystemMetadataKeysContentType]
 	if contentType != string(ContentTypeJson) && contentType != string(ContentTypeOctetStream) {
 		panic("Invalid content type ")
