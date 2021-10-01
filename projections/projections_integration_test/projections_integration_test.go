@@ -543,6 +543,17 @@ func Test_UpdateProjection_WithIncorrectCredentials(t *testing.T) {
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
+func Test_AbortProjection_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	abortOptions := projections.AbortOptionsRequest{}
+	abortOptions.SetName(StandardProjectionStreams)
+	err := client.AbortProjection(context.Background(), abortOptions)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
 const (
 	StandardProjectionStreams          = "$streams"
 	StandardProjectionStreamByCategory = "$stream_by_category"
