@@ -195,3 +195,16 @@ func Test_ReadAll_Forwards(t *testing.T) {
 		require.Len(t, readEvents, maxCount)
 	})
 }
+
+func Test_ReadAll_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	_, err := client.ReadAllEvents(context.Background(),
+		event_streams.ReadRequestDirectionForward,
+		event_streams.ReadRequestOptionsAllEndPosition{},
+		1,
+		false)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
