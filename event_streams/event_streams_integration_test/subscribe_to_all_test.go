@@ -213,3 +213,14 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 	// wait for reader to receive events
 	wg.Wait()
 }
+
+func Test_Test_SubscribeToAll_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	_, err := client.SubscribeToAll(context.Background(),
+		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		false)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
