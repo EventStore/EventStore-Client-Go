@@ -176,7 +176,6 @@ func Test_UpdateTransientProjection_EmitFalse(t *testing.T) {
 }
 
 func Test_UpdateTransientProjection_EmitTrue(t *testing.T) {
-	t.Skip("Only execute this test locally when only one node is running")
 	client, closeFunc := initializeContainerAndClient(t)
 	defer closeFunc()
 
