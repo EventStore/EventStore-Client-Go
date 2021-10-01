@@ -576,6 +576,18 @@ func Test_EnableProjection_WithIncorrectCredentials(t *testing.T) {
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
+func Test_GetProjectionResult_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	resultOptions := projections.ResultOptionsRequest{}
+	resultOptions.SetName("MyContinuousProjection")
+	_, err := client.
+		GetProjectionResult(context.Background(), resultOptions)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
 const (
 	StandardProjectionStreams          = "$streams"
 	StandardProjectionStreamByCategory = "$stream_by_category"
