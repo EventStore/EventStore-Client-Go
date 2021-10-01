@@ -352,6 +352,9 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 		handle := connection.NewMockConnectionHandle(ctrl)
 		grpcProjectionsClientFactoryInstance := NewMockgrpcProjectionsClientFactory(ctrl)
 		grpcProjectionsClientMock := projections.NewMockProjectionsClient(ctrl)
+		statisticsClientSyncFactoryInstance := NewMockstatisticsClientSyncFactory(ctrl)
+		statisticsClientSyncRead := NewMockStatisticsClientSync(ctrl)
+		statisticsClient := projections.NewMockProjections_StatisticsClient(ctrl)
 
 		var headers, trailers metadata.MD
 
@@ -361,15 +364,18 @@ func TestClientImpl_ProjectionStatistics(t *testing.T) {
 			grpcProjectionsClientFactoryInstance.EXPECT().Create(grpcClientConn).
 				Return(grpcProjectionsClientMock),
 			grpcProjectionsClientMock.EXPECT().Statistics(ctx, grpcOptions,
-				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(nil, nil),
+				grpc.Header(&headers), grpc.Trailer(&trailers)).Times(1).Return(statisticsClient, nil),
+			statisticsClientSyncFactoryInstance.EXPECT().Create(statisticsClient).
+				Return(statisticsClientSyncRead),
 		)
 		client := ClientImpl{
 			grpcClient:                   grpcClient,
 			grpcProjectionsClientFactory: grpcProjectionsClientFactoryInstance,
+			statisticsClientSyncFactory:  statisticsClientSyncFactoryInstance,
 		}
 
-		statisticsClient, err := client.GetProjectionStatistics(ctx, options)
-		require.NotNil(t, statisticsClient)
+		result, err := client.GetProjectionStatistics(ctx, options)
+		require.Equal(t, statisticsClientSyncRead, result)
 		require.NoError(t, err)
 	})
 
