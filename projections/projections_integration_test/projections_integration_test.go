@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/pivonroll/EventStore-Client-Go/projections"
@@ -512,6 +514,19 @@ func Test_ListOneTimeProjections(t *testing.T) {
 	require.Len(t, result, 1)
 
 	require.Equal(t, projections.StatisticsModeOneTime, result[0].Mode)
+}
+
+func Test_CreateProjection_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	createOptions := projections.CreateOptionsRequest{}
+	createOptions.SetMode(projections.CreateConfigModeOneTimeOption{}).
+		SetQuery("fromAll().when({$init: function (state, ev) {return {};}});")
+
+	err := client.CreateProjection(context.Background(), createOptions)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
 const (

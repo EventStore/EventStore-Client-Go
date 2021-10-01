@@ -35,3 +35,12 @@ func initializeClientAndEventStreamsClient(t *testing.T) (projections.Client,
 
 	return client, eventStreamsClient, closeFunc
 }
+
+func initializeContainerAndClientWithCredentials(t *testing.T,
+	username string,
+	password string, envVariableOverrides map[string]string) (projections.Client, test_utils.CloseFunc) {
+	grpcClient, closeFunc := test_utils.InitializeGrpcClientWithCredentials(t, username, password, envVariableOverrides)
+
+	client := projections.ClientFactoryImpl{}.Create(grpcClient)
+	return client, closeFunc
+}
