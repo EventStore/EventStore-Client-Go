@@ -529,6 +529,20 @@ func Test_CreateProjection_WithIncorrectCredentials(t *testing.T) {
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
+func Test_UpdateProjection_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	updateOptions := projections.UpdateOptionsRequest{}
+	updateOptions.SetName("MyTransient_no_emit")
+	updateOptions.SetQuery("fromAll().when({$init: function (s, e) {return {};}});").
+		SetEmitOption(projections.UpdateOptionsEmitOptionNoEmit{})
+
+	err := client.UpdateProjection(context.Background(), updateOptions)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
+
 const (
 	StandardProjectionStreams          = "$streams"
 	StandardProjectionStreamByCategory = "$stream_by_category"
