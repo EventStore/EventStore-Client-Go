@@ -486,3 +486,16 @@ func Test_DeleteStream(t *testing.T) {
 		require.Equal(t, expectedMetaData, metaData.GetStreamMetadata())
 	})
 }
+
+func Test_DeleteStream_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamName := "stream_does_not_exist_no_stream"
+
+	_, err := client.DeleteStream(context.Background(),
+		streamName,
+		event_streams.DeleteRequestExpectedStreamRevisionNoStream{})
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
