@@ -954,32 +954,16 @@ func Test_AppendMultipleEvents(t *testing.T) {
 	})
 }
 
-//func TestAppendToSystemStreamWithIncorrectCredentials(t *testing.T) {
-//	container := GetEmptyDatabase()
-//	defer container.Close()
-//
-//	conn := fmt.Sprintf("esdb://bad_user:bad_password@%s?tlsverifycert=false", container.Endpoint)
-//	config, err := client.ParseConnectionString(conn)
-//	if err != nil {
-//		t.Fatalf("Unexpected configuration error: %s", err.Error())
-//	}
-//
-//	client, err := client.NewClient(config)
-//	if err != nil {
-//		t.Fatalf("Unexpected failure setting up test connection: %s", err.Error())
-//	}
-//
-//	defer client.Close()
-//	events := []messages.ProposedEvent{
-//		createTestEvent(),
-//	}
-//
-//	streamID, _ := uuid.NewV4()
-//	context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-//	defer cancel()
-//	_, err = client.AppendToStream_OLD(context, streamID.String(), stream_revision.StreamRevisionAny, events)
-//
-//	if !errors.Is(err, client_errors.ErrUnauthenticated) {
-//		t.Fatalf("Expected Unauthenticated, got %+v", err)
-//	}
-//}
+func Test_Append_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+	events := testCreateEvents(3)
+
+	streamName := "Append_WithIncorrectCredentials"
+	_, err := client.AppendToStream(context.Background(),
+		streamName,
+		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		events[:2])
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}

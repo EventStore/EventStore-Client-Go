@@ -50,6 +50,19 @@ func InitializeGrpcClient(t *testing.T,
 	return clientInstance, closeFunc
 }
 
+func InitializeGrpcClientWithCredentials(t *testing.T,
+	username string,
+	password string,
+	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
+	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
+	clientInstance := createGrpcClientConnectedToContainerWithCredentials(t, username, password, container, doNotUseTLS)
+	closeFunc := func() {
+		container.Close()
+		clientInstance.Close()
+	}
+	return clientInstance, closeFunc
+}
+
 func InitializeGrpcClientWithTLS(t *testing.T,
 	environmentVariableOverrides map[string]string) (connection.GrpcClient, CloseFunc) {
 	container := StartEventStoreInDockerContainer(environmentVariableOverrides)
@@ -242,8 +255,8 @@ const (
 	doNotUseTLS useTLSType = false
 )
 
-func createClientURI(containerEndpoint string, shouldUseTLS useTLSType) string {
-	clientURI := fmt.Sprintf("esdb://admin:changeit@%s", containerEndpoint)
+func createClientURI(username string, password string, containerEndpoint string, shouldUseTLS useTLSType) string {
+	clientURI := fmt.Sprintf("esdb://%s:%s@%s", username, password, containerEndpoint)
 
 	if shouldUseTLS == doNotUseTLS {
 		clientURI += "?tlsverifycert=false"
@@ -254,7 +267,14 @@ func createClientURI(containerEndpoint string, shouldUseTLS useTLSType) string {
 
 func createGrpcClientConnectedToContainer(t *testing.T,
 	container *Container, shouldUseTLS useTLSType) connection.GrpcClient {
-	clientURI := createClientURI(container.Endpoint, shouldUseTLS)
+	return createGrpcClientConnectedToContainerWithCredentials(t, "admin", "changeit", container, shouldUseTLS)
+}
+
+func createGrpcClientConnectedToContainerWithCredentials(t *testing.T,
+	username string,
+	password string,
+	container *Container, shouldUseTLS useTLSType) connection.GrpcClient {
+	clientURI := createClientURI(username, password, container.Endpoint, shouldUseTLS)
 	fmt.Println("Starting grpc client at:", clientURI)
 	config, err := connection.ParseConnectionString(clientURI)
 	require.NoError(t, err)
