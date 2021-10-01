@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivonroll/EventStore-Client-Go/ptr"
+
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/stretchr/testify/require"
 
@@ -215,7 +217,6 @@ func Test_DeleteStream(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
 
-		maxCount := 100
 		truncateBefore := event_streams.ReadCountMax - 1
 		streamMetadata := event_streams.StreamMetadata{
 			MaxAgeInSeconds:       nil,
@@ -224,7 +225,7 @@ func Test_DeleteStream(t *testing.T) {
 			Acl: &event_streams.StreamAcl{
 				DeleteRoles: []string{"some-role"},
 			},
-			MaxCount: &maxCount,
+			MaxCount: ptr.Int(100),
 			CustomMetadata: event_streams.CustomMetadataType{
 				"key1": true,
 				"key2": 17,
@@ -387,7 +388,6 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.DeleteRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
 
-		maxCount := 100
 		truncateBefore := event_streams.ReadCountMax
 		streamMetadata := event_streams.StreamMetadata{
 			MaxAgeInSeconds:       nil,
@@ -396,7 +396,7 @@ func Test_DeleteStream(t *testing.T) {
 			Acl: &event_streams.StreamAcl{
 				DeleteRoles: []string{"some-role"},
 			},
-			MaxCount: &maxCount,
+			MaxCount: ptr.Int(100),
 			CustomMetadata: event_streams.CustomMetadataType{
 				"key1": true,
 				"key2": float64(17),
@@ -411,15 +411,15 @@ func Test_DeleteStream(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 1, streamMetadataResponse.GetCurrentRevision())
 
-		time.Sleep(200 * time.Millisecond)
-
-		_, err = client.ReadStreamEvents(context.Background(),
-			streamId,
-			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsStreamRevisionStart{},
-			event_streams.ReadCountMax,
-			false)
-		require.Equal(t, errors.StreamNotFoundErr, err.Code())
+		require.Eventually(t, func() bool {
+			_, err = client.ReadStreamEvents(context.Background(),
+				streamId,
+				event_streams.ReadRequestDirectionForward,
+				event_streams.ReadRequestOptionsStreamRevisionStart{},
+				event_streams.ReadCountMax,
+				false)
+			return err != nil && err.Code() == errors.StreamNotFoundErr
+		}, time.Second*5, time.Millisecond*200)
 
 		expectedMetaData := streamMetadata
 		*expectedMetaData.TruncateBefore = 0
@@ -445,7 +445,6 @@ func Test_DeleteStream(t *testing.T) {
 			event_streams.DeleteRequestExpectedStreamRevision{Revision: writeResult.GetCurrentRevision()})
 		require.NoError(t, err)
 
-		maxCount := 100
 		streamMetadata := event_streams.StreamMetadata{
 			MaxAgeInSeconds:       nil,
 			TruncateBefore:        nil,
@@ -453,7 +452,7 @@ func Test_DeleteStream(t *testing.T) {
 			Acl: &event_streams.StreamAcl{
 				DeleteRoles: []string{"some-role"},
 			},
-			MaxCount: &maxCount,
+			MaxCount: ptr.Int(100),
 			CustomMetadata: event_streams.CustomMetadataType{
 				"key1": true,
 				"key2": float64(17),
@@ -468,16 +467,17 @@ func Test_DeleteStream(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 1, streamMetadataResponse.GetCurrentRevision())
 
-		time.Sleep(10 * time.Second)
+		require.Eventually(t, func() bool {
+			readEvents, err := client.ReadStreamEvents(context.Background(),
+				streamId,
+				event_streams.ReadRequestDirectionForward,
+				event_streams.ReadRequestOptionsStreamRevisionStart{},
+				event_streams.ReadCountMax,
+				false)
+			require.NoError(t, err)
 
-		readEvents, err := client.ReadStreamEvents(context.Background(),
-			streamId,
-			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsStreamRevisionStart{},
-			event_streams.ReadCountMax,
-			false)
-		require.NoError(t, err)
-		require.Empty(t, readEvents)
+			return err == nil && len(readEvents) == 0
+		}, time.Second*10, time.Millisecond*500)
 
 		expectedMetaData := streamMetadata
 		*expectedMetaData.TruncateBefore = 2

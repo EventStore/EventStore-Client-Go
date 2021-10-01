@@ -303,14 +303,15 @@ func Test_GetResultOfProjection(t *testing.T) {
 
 	pushEventsToStream(t, eventStreamsClient, streamName, testEvent)
 
-	time.Sleep(time.Second * 2)
+	var projectionResult projections.ResultResponse
 
-	resultOptions := projections.ResultOptionsRequest{}
-	resultOptions.SetName("MyContinuousProjection")
-	projectionResult, err := client.
-		GetProjectionResult(context.Background(), resultOptions)
-	require.NoError(t, err)
-	require.Equal(t, projections.ResultResponseStructType, projectionResult.GetType())
+	require.Eventually(t, func() bool {
+		resultOptions := projections.ResultOptionsRequest{}
+		resultOptions.SetName("MyContinuousProjection")
+		projectionResult, err = client.
+			GetProjectionResult(context.Background(), resultOptions)
+		return err == nil && projectionResult.GetType() == projections.ResultResponseStructType
+	}, time.Second*5, time.Millisecond*500)
 
 	type resultStructType struct {
 		Count int64 `json:"count"`
@@ -366,14 +367,14 @@ func Test_GetStateOfProjection(t *testing.T) {
 
 	pushEventsToStream(t, eventStreamsClient, streamName, testEvent)
 
-	time.Sleep(time.Second * 2)
-
-	resultOptions := projections.StateOptionsRequest{}
-	resultOptions.SetName("MyContinuousProjection")
-	projectionResult, err := client.
-		GetProjectionState(context.Background(), resultOptions)
-	require.NoError(t, err)
-	require.Equal(t, projections.StateResponseStructType, projectionResult.GetType())
+	var projectionResult projections.StateResponse
+	require.Eventually(t, func() bool {
+		resultOptions := projections.StateOptionsRequest{}
+		resultOptions.SetName("MyContinuousProjection")
+		projectionResult, err = client.
+			GetProjectionState(context.Background(), resultOptions)
+		return err == nil && projectionResult.GetType() == projections.StateResponseStructType
+	}, time.Second*5, time.Millisecond*500)
 
 	type resultStructType struct {
 		Count int64 `json:"count"`

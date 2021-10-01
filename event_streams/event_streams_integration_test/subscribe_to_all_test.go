@@ -95,7 +95,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenReaderClosed(t 
 
 	time.Sleep(1 * time.Second)
 	streamReader.Close()
-	// wait for reader to receive cancellation
+	// wait for reader to receive stream reader's close
 	wg.Wait()
 }
 
@@ -122,7 +122,7 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenReaderClosed(t *t
 
 	time.Sleep(1 * time.Second)
 	streamReader.Close()
-	// wait for reader to receive cancellation
+	// wait for reader to receive stream reader's close
 	wg.Wait()
 }
 

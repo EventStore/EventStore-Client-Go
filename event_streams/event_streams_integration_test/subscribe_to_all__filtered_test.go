@@ -117,7 +117,7 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 		streamReader.Close()
-		// wait for reader to receive cancellation
+		// wait for reader to receive stream reader's close
 		wg.Wait()
 	})
 
@@ -150,7 +150,7 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 		streamReader.Close()
-		// wait for reader to receive cancellation
+		// wait for reader to receive stream reader's close
 		wg.Wait()
 	})
 }

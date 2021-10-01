@@ -71,7 +71,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 		cancelFunc()
-		// wait for reader to receive timeout
+		// wait for reader to receive cancellation
 		wg.Wait()
 	})
 
@@ -251,7 +251,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
-		// wait for reader to receive timeout
+		// wait for reader to receive tombstone
 		wg.Wait()
 	})
 
@@ -425,7 +425,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 		cancelFunc()
-		// wait for reader to receive timeout
+		// wait for reader to receive cancellation
 		wg.Wait()
 	})
 
@@ -457,7 +457,7 @@ func Test_SubscribeToStream(t *testing.T) {
 			streamId,
 			event_streams.TombstoneRequestExpectedStreamRevisionNoStream{})
 		require.NoError(t, err)
-		// wait for reader to receive timeout
+		// wait for reader to receive tombstone
 		wg.Wait()
 	})
 
@@ -614,7 +614,7 @@ func Test_SubscribeToStream(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 		cancelFunc()
-		// wait for reader to receive timeout
+		// wait for reader to receive cancellation
 		wg.Wait()
 	})
 }
