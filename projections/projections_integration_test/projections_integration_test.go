@@ -600,6 +600,19 @@ func Test_GetProjectionState_WithIncorrectCredentials(t *testing.T) {
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
 
+func Test_GetProjectionStatistics_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	stateOptions := projections.StatisticsOptionsRequest{}
+	stateOptions.SetMode(projections.StatisticsOptionsRequestModeName{
+		Name: StandardProjectionStreams,
+	})
+	_, err := client.GetProjectionStatistics(context.Background(), stateOptions)
+	require.NoError(t, err)
+}
+
 const (
 	StandardProjectionStreams          = "$streams"
 	StandardProjectionStreamByCategory = "$stream_by_category"
