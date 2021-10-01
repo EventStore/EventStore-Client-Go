@@ -114,3 +114,23 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		require.EqualValues(t, 99, writeResult.GetRevision())
 	})
 }
+
+func Test_BatchAppend_WithIncorrectCredentials(t *testing.T) {
+	client, closeFunc := initializeContainerAndClientWithCredentials(t,
+		"wrong_user_name", "wrong_password", nil)
+	defer closeFunc()
+
+	streamName := "batch_append_to_non_existing_stream_no_stream_append_multiple_at_once"
+
+	testEvents := testCreateEvents(100)
+
+	_, err := client.BatchAppendToStream(context.Background(),
+		event_streams.BatchAppendRequestOptions{
+			StreamIdentifier:       streamName,
+			ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionAny{},
+			Deadline:               time.Now().Add(time.Second * 10),
+		},
+		testEvents,
+		50)
+	require.Equal(t, errors.UnauthenticatedErr, err.Code())
+}
