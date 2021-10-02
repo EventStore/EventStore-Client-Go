@@ -46,7 +46,7 @@ type Client interface {
 		direction ReadRequestDirection,
 		revision IsReadRequestStreamOptionsStreamRevision,
 		count uint64,
-		resolveLinks bool) (ReadResponseEventList, errors.Error)
+		resolveLinks bool) (ResolvedEventList, errors.Error)
 
 	ReadAllEvents(
 		ctx context.Context,
@@ -54,7 +54,7 @@ type Client interface {
 		position IsReadRequestOptionsAllPosition,
 		count uint64,
 		resolveLinks bool,
-	) (ReadResponseEventList, errors.Error)
+	) (ResolvedEventList, errors.Error)
 
 	GetStreamReader(
 		ctx context.Context,

@@ -145,7 +145,7 @@ func Test_SubscribeToAll_FromStart_ToEmptyDatabase(t *testing.T) {
 			readResult, err := streamReader.ReadOne()
 
 			if event, isEvent := readResult.GetEvent(); isEvent {
-				if systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+				if systemmetadata.IsSystemStream(event.Event.StreamId) {
 					t.Fail()
 				}
 			}
@@ -188,14 +188,14 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 	go func() {
 		defer wg.Done()
 
-		var resultsRead []event_streams.ProposedEvent
+		var resultsRead event_streams.ProposedEventList
 
 		require.Eventually(t, func() bool {
 			readResult, err := streamReader.ReadOne()
 			require.NoError(t, err)
 
 			if event, isEvent := readResult.GetEvent(); isEvent {
-				if !systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+				if !systemmetadata.IsSystemStream(event.Event.StreamId) {
 					resultsRead = append(resultsRead, event.ToProposedEvent())
 				}
 			}

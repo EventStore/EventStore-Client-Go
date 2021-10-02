@@ -56,7 +56,7 @@ func (result StreamMetadataResultImpl) GetMetaStreamRevision() uint64 {
 	return result.MetaStreamRevision
 }
 
-func NewStreamMetadataResultImpl(streamId string, event ReadResponseEvent) StreamMetadataResultImpl {
+func NewStreamMetadataResultImpl(streamId string, event ResolvedEvent) StreamMetadataResultImpl {
 	var metaData StreamMetadata
 	if err := json.Unmarshal(event.Event.Data, &metaData); err != nil {
 		panic(err)
@@ -65,7 +65,7 @@ func NewStreamMetadataResultImpl(streamId string, event ReadResponseEvent) Strea
 	return StreamMetadataResultImpl{
 		StreamId:           streamId,
 		StreamMetadata:     metaData,
-		MetaStreamRevision: event.Event.StreamRevision,
+		MetaStreamRevision: event.Event.EventNumber,
 	}
 }
 

@@ -266,7 +266,7 @@ func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithR
 	require.Equal(t, thirdEvent.EventID, secondReadEvent.Event.EventID)
 }
 
-func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T) {
+func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect_Bug_ReceivesFirstEvent(t *testing.T) {
 	client, eventStreamsClient, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
 
@@ -274,14 +274,18 @@ func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T
 	firstEvent := testCreateEvent()
 	secondEvent := testCreateEvent()
 	thirdEvent := testCreateEvent()
+
 	pushEventsToStream(t, eventStreamsClient, streamID, firstEvent, secondEvent, thirdEvent)
+
+	settings := persistent.DefaultRequestSettings
+	settings.MinCheckpointCount = 2
 
 	groupName := "GroupAckToReceiveNewEventsWithReconnect"
 	request := persistent.CreateOrUpdateStreamRequest{
 		StreamName: streamID,
 		GroupName:  groupName,
 		Revision:   persistent.StreamRevisionStart{},
-		Settings:   persistent.DefaultRequestSettings,
+		Settings:   settings,
 	}
 	err := client.CreateStreamSubscription(
 		context.Background(),
@@ -298,6 +302,9 @@ func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T
 	require.NoError(t, err)
 	require.NotNil(t, firstReadEvent.Event)
 
+	err = readConnectionClient.Ack(firstReadEvent)
+	require.NoError(t, err)
+
 	secondReadEvent, err := readConnectionClient.ReadOne()
 	require.NoError(t, err)
 	require.NotNil(t, secondReadEvent.Event)
@@ -306,15 +313,21 @@ func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect(t *testing.T
 	err = readConnectionClient.Ack(secondReadEvent)
 	require.NoError(t, err)
 
+	time.Sleep(3 * time.Second)
 	readConnectionClient.Close()
 
-	// subscribe to stream again (continue to receive events)
+	// wait for some time for connection to actually close
+	time.Sleep(5 * time.Second)
+
 	readConnectionClient, err = client.
 		SubscribeToStreamSync(context.Background(), bufferSize, groupName, streamID)
 	require.NoError(t, err)
 
 	thirdReadEvent, err := readConnectionClient.ReadOne()
 	require.NoError(t, err)
+	err = readConnectionClient.Ack(thirdReadEvent)
+	require.NoError(t, err)
+
 	require.NotNil(t, thirdReadEvent.Event)
 	require.Equal(t, thirdEvent.EventID, thirdReadEvent.Event.EventID)
 }

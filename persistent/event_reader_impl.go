@@ -65,7 +65,7 @@ func (reader *eventReaderImpl) Ack(messages ...ReadResponseEvent) errors.Error {
 		return errors.NewErrorCode(Exceeds_Max_Message_Count_Err)
 	}
 
-	ids := []uuid.UUID{}
+	var ids []uuid.UUID
 	for _, event := range messages {
 		ids = append(ids, event.GetOriginalEvent().EventID)
 	}
@@ -79,8 +79,8 @@ func (reader *eventReaderImpl) Ack(messages ...ReadResponseEvent) errors.Error {
 		},
 	})
 
-	trailers := reader.protoClient.Trailer()
 	if protoErr != nil {
+		trailers := reader.protoClient.Trailer()
 		err := connection.GetErrorFromProtoException(trailers, protoErr)
 		if err != nil {
 			return err

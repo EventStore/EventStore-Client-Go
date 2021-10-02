@@ -2,7 +2,14 @@ package event_streams
 
 import (
 	"fmt"
-	"reflect"
+	"strconv"
+	"time"
+
+	"github.com/pivonroll/EventStore-Client-Go/errors"
+
+	"github.com/pivonroll/EventStore-Client-Go/position"
+
+	"github.com/pivonroll/EventStore-Client-Go/ptr"
 
 	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 
@@ -11,20 +18,14 @@ import (
 )
 
 type ReadResponse struct {
-	// ReadResponseEvent
+	// ResolvedEvent
 	// ReadResponseCheckpoint
-	// ReadResponseStreamNotFound
 	Result isReadResponseResult
 }
 
-func (response ReadResponse) GetEvent() (ReadResponseEvent, bool) {
-	event, isEvent := response.Result.(ReadResponseEvent)
+func (response ReadResponse) GetEvent() (ResolvedEvent, bool) {
+	event, isEvent := response.Result.(ResolvedEvent)
 	return event, isEvent
-}
-
-func (response ReadResponse) GetStreamNotFound() (ReadResponseStreamNotFound, bool) {
-	streamNotFound, isEvent := response.Result.(ReadResponseStreamNotFound)
-	return streamNotFound, isEvent
 }
 
 func (response ReadResponse) GetCheckpoint() (ReadResponseCheckpoint, bool) {
@@ -36,92 +37,21 @@ type isReadResponseResult interface {
 	isReadResponseResult()
 }
 
-type ReadResponseStreamNotFound struct {
-	StreamId string
+type StreamNotFoundError struct {
+	err      errors.Error
+	streamId string
 }
 
-func (this ReadResponseStreamNotFound) isReadResponseResult() {}
-
-type ReadResponseEventList []ReadResponseEvent
-
-func (list ReadResponseEventList) Reverse() ReadResponseEventList {
-	result := make(ReadResponseEventList, len(list))
-	copy(result, list)
-	n := reflect.ValueOf(result).Len()
-	swap := reflect.Swapper(result)
-	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
-		swap(i, j)
-	}
-
-	return result
+func (streamNotFound StreamNotFoundError) Error() string {
+	return streamNotFound.err.Error()
 }
 
-func (list ReadResponseEventList) ToProposedEvents() []ProposedEvent {
-	var result []ProposedEvent
-
-	for _, responseEvent := range list {
-		result = append(result, responseEvent.ToProposedEvent())
-	}
-
-	return result
+func (streamNotFound StreamNotFoundError) Code() errors.ErrorCode {
+	return streamNotFound.err.Code()
 }
 
-type ReadResponseEvent struct {
-	Event *ReadResponseRecordedEvent
-	Link  *ReadResponseRecordedEvent
-	// Types that are assignable to Position:
-	//	ReadResponseEventCommitPosition
-	//	ReadResponseEventNoPosition
-	Position IsReadResponsePosition
-}
-
-func (this ReadResponseEvent) ToProposedEvent() ProposedEvent {
-	contentType := this.Event.Metadata[system_metadata.SystemMetadataKeysContentType]
-	if contentType != string(ContentTypeJson) && contentType != string(ContentTypeOctetStream) {
-		panic("Invalid content type ")
-	}
-	return ProposedEvent{
-		EventID:      this.Event.Id,
-		EventType:    this.Event.Metadata[system_metadata.SystemMetadataKeysType],
-		ContentType:  ContentType(contentType),
-		Data:         this.Event.Data,
-		UserMetadata: this.Event.CustomMetadata,
-	}
-}
-
-func (this ReadResponseEvent) isReadResponseResult() {}
-
-func (this ReadResponseEvent) GetCommitPosition() (uint64, bool) {
-	if commitPosition, isCommitPosition := this.Position.(ReadResponseEventCommitPosition); isCommitPosition {
-		return commitPosition.CommitPosition, true
-	}
-
-	return 0, false
-}
-
-type IsReadResponsePosition interface {
-	isReadResponsePosition()
-}
-
-type ReadResponseEventCommitPosition struct {
-	CommitPosition uint64
-}
-
-func (this ReadResponseEventCommitPosition) isReadResponsePosition() {}
-
-type ReadResponseEventNoPosition struct{}
-
-func (this ReadResponseEventNoPosition) isReadResponsePosition() {}
-
-type ReadResponseRecordedEvent struct {
-	Id               uuid.UUID
-	StreamIdentifier string
-	StreamRevision   uint64
-	PreparePosition  uint64
-	CommitPosition   uint64
-	Metadata         map[string]string
-	CustomMetadata   []byte
-	Data             []byte
+func (streamNotFound StreamNotFoundError) GetStreamId() string {
+	return streamNotFound.streamId
 }
 
 type ReadResponseCheckpoint struct {
@@ -132,61 +62,28 @@ type ReadResponseCheckpoint struct {
 func (this ReadResponseCheckpoint) isReadResponseResult() {}
 
 type readResponseAdapter interface {
-	Create(response *streams2.ReadResp) ReadResponse
+	Create(response *streams2.ReadResp) (ReadResponse, errors.Error)
 }
 
 type readResponseAdapterImpl struct{}
 
-func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) ReadResponse {
+func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) (ReadResponse, errors.Error) {
 	result := ReadResponse{}
 
 	switch protoResponse.Content.(type) {
 	case *streams2.ReadResp_Event:
 		protoEventResponse := protoResponse.Content.(*streams2.ReadResp_Event).Event
-		event := ReadResponseEvent{}
+		event := ResolvedEvent{}
 
-		if protoEventResponse.Event != nil {
-			protoEvent := protoEventResponse.Event
-			id := protoEvent.GetId()
-			idString := id.GetString_()
-
-			event.Event = &ReadResponseRecordedEvent{
-				Id:               uuid.FromStringOrNil(idString),
-				StreamIdentifier: string(protoEvent.StreamIdentifier.StreamName),
-				StreamRevision:   protoEvent.StreamRevision,
-				PreparePosition:  protoEvent.PreparePosition,
-				CommitPosition:   protoEvent.CommitPosition,
-				Metadata:         protoEvent.Metadata,
-				CustomMetadata:   protoEvent.CustomMetadata,
-				Data:             protoEvent.Data,
-			}
-		}
-
-		if protoEventResponse.Link != nil {
-			protoEventLink := protoEventResponse.Link
-			id := protoEventLink.GetId()
-			idString := id.GetString_()
-
-			event.Link = &ReadResponseRecordedEvent{
-				Id:               uuid.FromStringOrNil(idString),
-				StreamIdentifier: string(protoEventLink.StreamIdentifier.StreamName),
-				StreamRevision:   protoEventLink.StreamRevision,
-				PreparePosition:  protoEventLink.PreparePosition,
-				CommitPosition:   protoEventLink.CommitPosition,
-				Metadata:         protoEventLink.Metadata,
-				CustomMetadata:   protoEventLink.CustomMetadata,
-				Data:             protoEventLink.Data,
-			}
-		}
+		event.Event = createRecordedEvent(protoEventResponse.Event)
+		event.Link = createRecordedEvent(protoEventResponse.Link)
 
 		switch protoEventResponse.Position.(type) {
 		case *streams2.ReadResp_ReadEvent_CommitPosition:
 			protoPosition := protoEventResponse.Position.(*streams2.ReadResp_ReadEvent_CommitPosition)
-			event.Position = ReadResponseEventCommitPosition{
-				CommitPosition: protoPosition.CommitPosition,
-			}
+			event.CommitPosition = ptr.UInt64(protoPosition.CommitPosition)
 		case *streams2.ReadResp_ReadEvent_NoPosition:
-			event.Position = ReadResponseEventNoPosition{}
+			event.CommitPosition = nil
 		}
 
 		result.Result = event
@@ -198,10 +95,10 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 		}
 	case *streams2.ReadResp_StreamNotFound_:
 		protoStreamNotFound := protoResponse.Content.(*streams2.ReadResp_StreamNotFound_).StreamNotFound
-		result.Result = ReadResponseStreamNotFound{
-			StreamId: string(protoStreamNotFound.StreamIdentifier.StreamName),
+		return ReadResponse{}, StreamNotFoundError{
+			streamId: string(protoStreamNotFound.StreamIdentifier.StreamName),
+			err:      errors.NewErrorCode(errors.StreamNotFoundErr),
 		}
-
 	default:
 		if protoResponse.GetConfirmation() != nil {
 			panic(fmt.Sprintf("Received stream confirmation for stream %s",
@@ -210,5 +107,49 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) Rea
 		panic("Unexpected type received")
 	}
 
-	return result
+	return result, nil
+}
+
+func createRecordedEvent(protoEvent *streams2.ReadResp_ReadEvent_RecordedEvent) *RecordedEvent {
+	if protoEvent == nil {
+		return nil
+	}
+
+	protoEventId := protoEvent.GetId().GetString_()
+
+	contentType := protoEvent.Metadata[system_metadata.SystemMetadataKeysContentType]
+	if contentType != string(ContentTypeJson) && contentType != string(ContentTypeOctetStream) {
+		panic("Invalid content type ")
+	}
+
+	eventType := protoEvent.Metadata[system_metadata.SystemMetadataKeysType]
+
+	systemMetadata := protoEvent.Metadata
+	createdAtString := protoEvent.Metadata[system_metadata.SystemMetadataKeysCreated]
+	createdAtDotNetTicks, err := strconv.ParseInt(createdAtString, 10, 64)
+	if err != nil {
+		panic(fmt.Sprintf("Invalid value received for date time. Value %s", createdAtString))
+	}
+
+	// The metadata contains the number of .NET "ticks" (100ns increments) since the UNIX epoch
+	createdDateTime := time.Unix(0, createdAtDotNetTicks*100).UTC()
+
+	delete(systemMetadata, system_metadata.SystemMetadataKeysType)
+	delete(systemMetadata, system_metadata.SystemMetadataKeysContentType)
+
+	return &RecordedEvent{
+		EventID:     uuid.FromStringOrNil(protoEventId),
+		EventType:   eventType,
+		ContentType: ContentType(contentType),
+		StreamId:    string(protoEvent.StreamIdentifier.StreamName),
+		EventNumber: protoEvent.StreamRevision,
+		Position: position.Position{
+			Commit:  protoEvent.CommitPosition,
+			Prepare: protoEvent.PreparePosition,
+		},
+		CreatedDateTime: createdDateTime,
+		Data:            protoEvent.Data,
+		SystemMetadata:  systemMetadata,
+		UserMetadata:    protoEvent.CustomMetadata,
+	}
 }

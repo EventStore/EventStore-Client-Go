@@ -210,14 +210,14 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			var result []event_streams.ProposedEvent
+			var result event_streams.ProposedEventList
 			require.Eventually(t, func() bool {
 				readResult, err := streamReader.ReadOne()
 
 				require.NoError(t, err)
 
 				if event, isEvent := readResult.GetEvent(); isEvent {
-					if !systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+					if !systemmetadata.IsSystemStream(event.Event.StreamId) {
 						result = append(result, event.ToProposedEvent())
 					}
 				}
@@ -274,14 +274,14 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 		go func() {
 			defer waitForReadingFirstEvents.Done()
 
-			var result []event_streams.ProposedEvent
+			var result event_streams.ProposedEventList
 			require.Eventually(t, func() bool {
 				readResult, err := streamReader.ReadOne()
 
 				require.NoError(t, err)
 
 				if event, isEvent := readResult.GetEvent(); isEvent {
-					if !systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+					if !systemmetadata.IsSystemStream(event.Event.StreamId) {
 						result = append(result, event.ToProposedEvent())
 					}
 				}
@@ -311,14 +311,14 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 		go func() {
 			defer waitForReadingNewEvents.Done()
 			waitForNewEventsAppend.Wait()
-			var result []event_streams.ProposedEvent
+			var result event_streams.ProposedEventList
 			require.Eventually(t, func() bool {
 				readResult, err := streamReader.ReadOne()
 
 				require.NoError(t, err)
 
 				if event, isEvent := readResult.GetEvent(); isEvent {
-					if !systemmetadata.IsSystemStream(event.Event.StreamIdentifier) {
+					if !systemmetadata.IsSystemStream(event.Event.StreamId) {
 						result = append(result, event.ToProposedEvent())
 					}
 				}

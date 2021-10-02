@@ -110,6 +110,13 @@ func StartEventStoreInDockerContainer(environmentVariableOverrides map[string]st
 	return getEventStoreDockerContainer(pool, dockerRunOptions)
 }
 
+func GetEnableAdminUiWithAtomPub() map[string]string {
+	return map[string]string{
+		"EVENTSTORE_ENABLE_EXTERNAL_TCP":       "true",
+		"EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP": "true",
+	}
+}
+
 // Container ...
 type Container struct {
 	Endpoint string

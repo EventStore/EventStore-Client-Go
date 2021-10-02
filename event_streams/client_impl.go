@@ -239,7 +239,7 @@ const (
 
 func (client *ClientImpl) readStreamEvents(
 	ctx context.Context,
-	readRequest ReadRequest) ([]ReadResponseEvent, errors.Error) {
+	readRequest ReadRequest) (ResolvedEventList, errors.Error) {
 
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
@@ -259,7 +259,7 @@ func (client *ClientImpl) readStreamEvents(
 		return nil, err
 	}
 
-	var result []ReadResponseEvent
+	var result ResolvedEventList
 
 	var readError errors.Error
 
@@ -274,11 +274,13 @@ func (client *ClientImpl) readStreamEvents(
 			break
 		}
 
-		readResult := client.readResponseAdapter.Create(protoReadResult)
-		if _, streamIsNotFound := readResult.GetStreamNotFound(); streamIsNotFound {
-			readError = errors.NewErrorCode(errors.StreamNotFoundErr)
-			break
-		} else if _, isCheckpoint := readResult.GetCheckpoint(); isCheckpoint {
+		readResult, err := client.readResponseAdapter.Create(protoReadResult)
+		if err != nil {
+			cancel()
+			return nil, err
+		}
+
+		if _, isCheckpoint := readResult.GetCheckpoint(); isCheckpoint {
 			continue
 		}
 
@@ -493,7 +495,7 @@ func (client *ClientImpl) ReadStreamEvents(
 	direction ReadRequestDirection,
 	revision IsReadRequestStreamOptionsStreamRevision,
 	count uint64,
-	resolveLinks bool) (ReadResponseEventList, errors.Error) {
+	resolveLinks bool) (ResolvedEventList, errors.Error) {
 	return client.readStreamEvents(ctx, ReadRequest{
 		StreamOption: ReadRequestStreamOptions{
 			StreamIdentifier: streamID,
@@ -512,7 +514,7 @@ func (client *ClientImpl) ReadAllEvents(
 	position IsReadRequestOptionsAllPosition,
 	count uint64,
 	resolveLinks bool,
-) (ReadResponseEventList, errors.Error) {
+) (ResolvedEventList, errors.Error) {
 
 	return client.readStreamEvents(ctx, ReadRequest{
 		StreamOption: ReadRequestStreamOptionsAll{
