@@ -187,7 +187,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer readerWait.Done()
 
-			var result []event_streams.ProposedEvent
+			var result event_streams.ProposedEventList
 
 			for {
 				response, err := streamReader.ReadOne()
@@ -284,7 +284,7 @@ func Test_SubscribeToStream(t *testing.T) {
 		go func() {
 			defer readerWait.Done()
 
-			var result []event_streams.ProposedEvent
+			var result event_streams.ProposedEventList
 
 			for {
 				response, err := streamReader.ReadOne()
@@ -654,11 +654,11 @@ func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *te
 					continue
 				}
 
-				require.Equal(t, testEvent.EventID, event.Event.Id)
-				require.Equal(t, uint64(6_000), event.Event.StreamRevision)
-				require.Equal(t, streamID, event.Event.StreamIdentifier)
+				require.Equal(t, testEvent.EventID, event.Event.EventID)
+				require.Equal(t, uint64(6_000), event.Event.EventNumber)
+				require.Equal(t, streamID, event.Event.StreamId)
 				require.Equal(t, testEvent.Data, event.Event.Data)
-				require.Equal(t, testEvent.UserMetadata, event.Event.CustomMetadata)
+				require.Equal(t, testEvent.UserMetadata, event.Event.UserMetadata)
 				appendedEvents.Done()
 				break
 			}

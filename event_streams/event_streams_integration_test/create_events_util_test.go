@@ -21,8 +21,8 @@ func testCreateEvent() event_streams.ProposedEvent {
 	return createTestEventWithMetadataSize(4)
 }
 
-func testCreateEvents(count uint32) []event_streams.ProposedEvent {
-	result := make([]event_streams.ProposedEvent, count)
+func testCreateEvents(count uint32) event_streams.ProposedEventList {
+	result := make(event_streams.ProposedEventList, count)
 	var i uint32 = 0
 	for ; i < count; i++ {
 		result[i] = testCreateEvent()
@@ -30,8 +30,8 @@ func testCreateEvents(count uint32) []event_streams.ProposedEvent {
 	return result
 }
 
-func testCreateEventsWithMetadata(count uint32, metadataSize int) []event_streams.ProposedEvent {
-	result := make([]event_streams.ProposedEvent, count)
+func testCreateEventsWithMetadata(count uint32, metadataSize int) event_streams.ProposedEventList {
+	result := make(event_streams.ProposedEventList, count)
 	var i uint32 = 0
 	for ; i < count; i++ {
 		result[i] = createTestEventWithMetadataSize(metadataSize)
@@ -39,9 +39,9 @@ func testCreateEventsWithMetadata(count uint32, metadataSize int) []event_stream
 	return result
 }
 
-func testCreateEventsWithBytesCap(bytesCap uint) []event_streams.ProposedEvent {
+func testCreateEventsWithBytesCap(bytesCap uint) event_streams.ProposedEventList {
 	byteCount := uint(0)
-	result := make([]event_streams.ProposedEvent, 0)
+	result := make(event_streams.ProposedEventList, 0)
 
 	for {
 		newEvent := testCreateEvent()

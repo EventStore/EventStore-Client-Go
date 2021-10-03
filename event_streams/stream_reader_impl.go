@@ -60,8 +60,8 @@ func (this *StreamReaderImpl) readOne() (ReadResponse, errors.Error) {
 		return ReadResponse{}, errors.NewError(errors.FatalError, protoErr)
 	}
 
-	result := this.readResponseAdapter.Create(protoResponse)
-	return result, nil
+	result, err := this.readResponseAdapter.Create(protoResponse)
+	return result, err
 }
 
 func (this *StreamReaderImpl) Close() {

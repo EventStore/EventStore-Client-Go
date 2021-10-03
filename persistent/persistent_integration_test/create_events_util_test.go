@@ -24,38 +24,12 @@ func testCreateEvent() event_streams.ProposedEvent {
 	return createTestEventWithMetadataSize(4)
 }
 
-func testCreateEvents(count uint32) []event_streams.ProposedEvent {
+func testCreateEvents(count uint32) event_streams.ProposedEventList {
 	result := make([]event_streams.ProposedEvent, count)
 	var i uint32 = 0
 	for ; i < count; i++ {
 		result[i] = testCreateEvent()
 	}
-	return result
-}
-
-func testCreateEventsWithMetadata(count uint32, metadataSize int) []event_streams.ProposedEvent {
-	result := make([]event_streams.ProposedEvent, count)
-	var i uint32 = 0
-	for ; i < count; i++ {
-		result[i] = createTestEventWithMetadataSize(metadataSize)
-	}
-	return result
-}
-
-func testCreateEventsWithBytesCap(bytesCap uint) []event_streams.ProposedEvent {
-	byteCount := uint(0)
-	result := make([]event_streams.ProposedEvent, 0)
-
-	for {
-		newEvent := testCreateEvent()
-		byteCount += uint(len(newEvent.Data))
-
-		if byteCount > bytesCap {
-			break
-		}
-		result = append(result, newEvent)
-	}
-
 	return result
 }
 
