@@ -2,10 +2,8 @@ package event_streams
 
 import (
 	"context"
-	"fmt"
 	"io"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
@@ -74,8 +72,6 @@ func (client *ClientImpl) appendToStreamWithError(
 
 	response, protoErr := appendClient.CloseAndRecv()
 	if protoErr != nil {
-		trailers2 := appendClient.Trailer()
-		fmt.Println(spew.Sdump(trailers2))
 		err = client.grpcClient.HandleError(handle, headers, trailers, protoErr,
 			AppendToStream_FailedToCloseStreamErr)
 		return AppendResponse{}, err
@@ -428,7 +424,6 @@ func (client *ClientImpl) subscribeToStream(
 
 	grpcStreamsClient := streams2.NewStreamsClient(handle.Connection())
 
-	fmt.Println(spew.Sdump(*request.Build()))
 	readStreamClient, protoErr := grpcStreamsClient.Read(ctx, request.Build(),
 		grpc.Header(&headers), grpc.Trailer(&trailers))
 	if protoErr != nil {

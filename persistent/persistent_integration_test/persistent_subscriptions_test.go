@@ -224,7 +224,7 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 
 	streamID := "dataset20M-0"
 	groupName := "Group 1"
-	var bufferSize int32 = 2
+	bufferSize := int32(2)
 
 	streamConfig := persistent.CreateOrUpdateStreamRequest{
 		StreamName: streamID,
@@ -237,8 +237,12 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var receivedEvents sync.WaitGroup
-	var droppedEvent sync.WaitGroup
+	receivedEvents := sync.WaitGroup{}
+	droppedEvent := sync.WaitGroup{}
+	waitForClose := sync.WaitGroup{}
+	waitForClose.Add(1)
+	receivedEvents.Add(10)
+	droppedEvent.Add(1)
 
 	subscription, err := client.SubscribeToStreamSync(
 		context.Background(), bufferSize, groupName, streamID)
@@ -249,6 +253,9 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 		current := 1
 
 		for {
+			if current == 11 {
+				waitForClose.Wait()
+			}
 			result, err := subscription.ReadOne()
 
 			if err != nil && err.Code() == errors.CanceledErr {
@@ -268,12 +275,10 @@ func TestPersistentSubscriptionClosing(t *testing.T) {
 		}
 	}()
 
-	require.NoError(t, err)
-	receivedEvents.Add(10)
-	droppedEvent.Add(1)
 	timedOut := test_utils.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for initial set of events")
 	subscription.Close()
+	waitForClose.Done()
 	timedOut = test_utils.WaitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 	require.False(t, timedOut, "Timed out waiting for dropped event")
 }
