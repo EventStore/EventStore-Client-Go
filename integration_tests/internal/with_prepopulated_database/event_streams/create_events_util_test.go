@@ -1,4 +1,4 @@
-package integration_test_with_prepopulated_database
+package event_streams_with_prepopulated_database
 
 import (
 	"strings"

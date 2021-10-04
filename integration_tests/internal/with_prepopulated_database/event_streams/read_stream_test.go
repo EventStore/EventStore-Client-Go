@@ -1,4 +1,4 @@
-package integration_test_with_prepopulated_database
+package event_streams_with_prepopulated_database
 
 import (
 	"context"
@@ -16,7 +16,7 @@ func Test_ReadStreamEvents(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("ForwardsFromZeroPosition", func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../../resources/test/dataset20M-1800-e0-e10.json")
+		eventsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/dataset20M-1800-e0-e10.json"))
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -50,7 +50,7 @@ func Test_ReadStreamEvents(t *testing.T) {
 	})
 
 	t.Run("BackwardsFromEndPosition", func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../../resources/test/dataset20M-1800-e1999-e1990.json")
+		eventsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/dataset20M-1800-e1999-e1990.json"))
 		require.NoError(t, err)
 
 		var testEvents []TestEvent

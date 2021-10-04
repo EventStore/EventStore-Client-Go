@@ -1,4 +1,4 @@
-package integration_test_with_prepopulated_database
+package event_streams_with_prepopulated_database
 
 import (
 	"context"
@@ -16,9 +16,9 @@ func TestSubscribeToAll_WithFilterDeliversCorrectEvents(t *testing.T) {
 	client, closeFunc := initializeWithPrePopulatedDatabase(t)
 	defer closeFunc()
 
-	positionsContent, err := ioutil.ReadFile("../../resources/test/all-positions-filtered-stream-194-e0-e30.json")
+	positionsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/all-positions-filtered-stream-194-e0-e30.json"))
 	require.NoError(t, err)
-	versionsContent, err := ioutil.ReadFile("../../resources/test/all-versions-filtered-stream-194-e0-e30.json")
+	versionsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/all-versions-filtered-stream-194-e0-e30.json"))
 	require.NoError(t, err)
 	var positions []Position
 	var versions []uint64

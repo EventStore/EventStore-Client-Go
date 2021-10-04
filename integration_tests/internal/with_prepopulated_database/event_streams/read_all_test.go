@@ -1,4 +1,4 @@
-package integration_test_with_prepopulated_database
+package event_streams_with_prepopulated_database
 
 import (
 	"context"
@@ -17,7 +17,7 @@ func Test_ReadAllEvents(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("ForwardsFromZeroPosition", func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../../resources/test/all-e0-e10.json")
+		eventsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/all-e0-e10.json"))
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -49,7 +49,7 @@ func Test_ReadAllEvents(t *testing.T) {
 	})
 
 	t.Run("ForwardsFromNonZeroPosition", func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../../resources/test/all-c1788-p1788.json")
+		eventsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/all-c1788-p1788.json"))
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -85,7 +85,7 @@ func Test_ReadAllEvents(t *testing.T) {
 	})
 
 	t.Run("BackwardsFromZeroPosition", func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../../resources/test/all-back-e0-e10.json")
+		eventsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/all-back-e0-e10.json"))
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -118,7 +118,7 @@ func Test_ReadAllEvents(t *testing.T) {
 	})
 
 	t.Run("BackwardsFromNonZeroPosition", func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../../resources/test/all-back-c3386-p3386.json")
+		eventsContent, err := ioutil.ReadFile(joinRootPathAndFilePath("resources/test/all-back-c3386-p3386.json"))
 		require.NoError(t, err)
 
 		var testEvents []TestEvent

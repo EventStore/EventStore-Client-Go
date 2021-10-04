@@ -47,7 +47,7 @@ func TestTLSDefaultsWithCertificate(t *testing.T) {
 		container.Endpoint))
 	require.NoError(t, err)
 
-	certificatePool := testGetCertificatePoolForFile(t, "../../certs/node/node.crt")
+	certificatePool := testGetCertificatePoolForFile(t, joinRootPathAndFilePath("certs/node/node.crt"))
 
 	config.RootCAs = certificatePool
 
@@ -108,7 +108,7 @@ func TestTLSWithCertificate(t *testing.T) {
 	config, err := client.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true", container.Endpoint))
 	require.NoError(t, err)
 
-	certificatePool := testGetCertificatePoolForFile(t, "../../certs/node/node.crt")
+	certificatePool := testGetCertificatePoolForFile(t, joinRootPathAndFilePath("certs/node/node.crt"))
 
 	config.RootCAs = certificatePool
 
@@ -127,7 +127,7 @@ func TestTLSWithCertificateFromAbsoluteFile(t *testing.T) {
 	container := test_utils.StartEventStoreInDockerContainer(nil)
 	defer container.Close()
 
-	absPath, err := filepath.Abs("../../certs/node/node.crt")
+	absPath, err := filepath.Abs(joinRootPathAndFilePath("certs/node/node.crt"))
 	require.NoError(t, err)
 
 	s := fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true&tlsCAFile=%s", container.Endpoint, absPath)
@@ -150,8 +150,8 @@ func TestTLSWithCertificateFromRelativeFile(t *testing.T) {
 	defer container.Close()
 
 	config, err := client.ParseConnectionString(
-		fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true&tlsCAFile=../../certs/node/node.crt",
-			container.Endpoint))
+		fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true&tlsCAFile=%s",
+			container.Endpoint, joinRootPathAndFilePath("certs/node/node.crt")))
 	require.NoError(t, err)
 
 	grpcClient := connection.NewGrpcClient(*config)
@@ -173,7 +173,7 @@ func TestTLSWithInvalidCertificate(t *testing.T) {
 		fmt.Sprintf("esdb://admin:changeit@%s?tls=true&tlsverifycert=true", container.Endpoint))
 	require.NoError(t, err)
 
-	certificatePool := testGetCertificatePoolForFile(t, "../../certs/untrusted-ca/ca.crt")
+	certificatePool := testGetCertificatePoolForFile(t, joinRootPathAndFilePath("certs/untrusted-ca/ca.crt"))
 	config.RootCAs = certificatePool
 
 	grpcClient := connection.NewGrpcClient(*config)
