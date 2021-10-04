@@ -6,10 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
-	"github.com/pivonroll/EventStore-Client-Go/test_utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -619,71 +617,6 @@ func Test_SubscribeToStream(t *testing.T) {
 	})
 }
 
-func TestStreamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(t *testing.T) {
-	client, closeFunc := initializeWithPrePopulatedDatabase(t)
-	defer closeFunc()
-
-	streamID := "dataset20M-0"
-	testEvent := event_streams.ProposedEvent{
-		EventID:      uuid.FromStringOrNil("84c8e36c-4e64-11ea-8b59-b7f658acfc9f"),
-		EventType:    "TestEvent",
-		ContentType:  "application/octet-stream",
-		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
-		Data:         []byte{0xb, 0xe, 0xe, 0xf},
-	}
-
-	var receivedEvents sync.WaitGroup
-	var appendedEvents sync.WaitGroup
-	subscription, err := client.SubscribeToStream(
-		context.Background(),
-		"dataset20M-0",
-		event_streams.SubscribeRequestOptionsStreamRevisionStart{},
-		false)
-	require.NoError(t, err)
-
-	go func() {
-		current := 0
-		for {
-			subEvent, err := subscription.ReadOne()
-			require.NoError(t, err)
-
-			if event, isEvent := subEvent.GetEvent(); isEvent {
-				current++
-				if current <= 6_000 {
-					receivedEvents.Done()
-					continue
-				}
-
-				require.Equal(t, testEvent.EventID, event.Event.EventID)
-				require.Equal(t, uint64(6_000), event.Event.EventNumber)
-				require.Equal(t, streamID, event.Event.StreamId)
-				require.Equal(t, testEvent.Data, event.Event.Data)
-				require.Equal(t, testEvent.UserMetadata, event.Event.UserMetadata)
-				appendedEvents.Done()
-				break
-			}
-		}
-	}()
-
-	receivedEvents.Add(6_000)
-	appendedEvents.Add(1)
-	timedOut := test_utils.WaitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
-	require.False(t, timedOut, "Timed out waiting for initial set of events")
-
-	// Write a new event
-	writeResult, err := client.AppendToStream(context.Background(),
-		streamID,
-		event_streams.AppendRequestExpectedStreamRevision{Revision: 5999},
-		[]event_streams.ProposedEvent{testEvent})
-	require.NoError(t, err)
-	require.Equal(t, uint64(6_000), writeResult.GetCurrentRevision())
-
-	// Assert event was forwarded to the subscription
-	timedOut = test_utils.WaitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
-	require.False(t, timedOut, "Timed out waiting for the appended events")
-	defer subscription.Close()
-}
-
 func Test_SubscribeToStream_WithIncorrectCredentials(t *testing.T) {
 	client, closeFunc := initializeContainerAndClientWithCredentials(t,
 		"wrong_user_name", "wrong_password", nil)
@@ -696,45 +629,3 @@ func Test_SubscribeToStream_WithIncorrectCredentials(t *testing.T) {
 		false)
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }
-
-//func TestConnectionClosing(t *testing.T) {
-//	container := GetPrePopulatedDatabase()
-//	defer container.Close()
-//	client := CreateTestClient(container, t)
-//	defer client.Close()
-//
-//	var receivedEvents sync.WaitGroup
-//	var droppedEvent sync.WaitGroup
-//	subscription, err := client.SubscribeToStream_OLD(context.Background(), "dataset20M-0", stream_position.Start{}, false)
-//
-//	go func() {
-//		current := 1
-//
-//		for {
-//			subEvent := subscription.Recv()
-//
-//			if subEvent.EventAppeared != nil {
-//				if current <= 10 {
-//					receivedEvents.Done()
-//					current++
-//				}
-//
-//				continue
-//			}
-//
-//			if subEvent.Dropped != nil {
-//				droppedEvent.Done()
-//				break
-//			}
-//		}
-//	}()
-//
-//	require.NoError(t, err)
-//	receivedEvents.Add(10)
-//	droppedEvent.Add(1)
-//	timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
-//	require.False(t, timedOut, "Timed out waiting for initial set of events")
-//	subscription.Close()
-//	timedOut = waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
-//	require.False(t, timedOut, "Timed out waiting for dropped event")
-//}

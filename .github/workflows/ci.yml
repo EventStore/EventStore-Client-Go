@@ -25,14 +25,62 @@ jobs:
       if: ${{ matrix.os != 'windows-2019' }}
       run: ./build.sh --generate-protos
 
-  tests:
+  unit-tests:
     needs: build
-    name: Tests
+    name: Unit Tests
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Generate certificates
+      run: |
+        docker-compose up
+        docker-compose down
+
+    - name: Run Connection Tests
+      run: |
+        cd connection
+        go test -v ./...
+        cd ..
+
+    - name: Run Event Stream Tests
+      run: |
+        cd event_streams
+        go test -v ./...
+        cd ..
+
+    - name: Run Persistent Tests
+      run: |
+        cd persistent
+        go test -v ./...
+        cd ..
+
+    - name: Run Projections Tests
+      run: |
+        cd projections
+        go test -v ./...
+        cd ..
+
+    - name: Run Operations Tests
+      run: |
+        cd operations
+        go test -v ./...
+        cd ..
+
+    - name: Run User Management Tests
+      run: |
+        cd user_management
+        go test -v ./...
+        cd ..
+
+  integration-tests-with-empty-database:
+    needs: unit-tests
+    name: Integration Tests With Empty Database
     strategy:
       matrix:
-        domain: [ persistent, projections, operations, event_streams, user_management, connection ]
+        domain: [ connection, persistent, projections, operations, event_streams, user_management ]
       fail-fast: false
-      max-parallel: 3
     runs-on: ubuntu-18.04
 
     steps:
@@ -55,7 +103,7 @@ jobs:
       run: |
         touch vars.env
         docker-compose up
-        cd ${{ matrix.domain }}
+        cd integration_tests/internal/with_empty_database/${{ matrix.domain }}
         go test -v ./...
         docker-compose down
 
@@ -65,14 +113,46 @@ jobs:
         touch vars.env
         docker-compose up
         docker-compose -f cluster-docker-compose.yml up -d
-        cd ${{ matrix.domain }}
+        cd integration_tests/internal/with_empty_database/${{ matrix.domain }}
         go test -v ./...
-        cd ..
+        cd ../../../..
         docker-compose -f cluster-docker-compose.yml down
         docker-compose down
 
+  integration-tests-with-prepopulated-database:
+    needs: integration-tests-with-empty-database
+    name: Integration Tests With Prepopulated Database
+    strategy:
+      matrix:
+        domain: [ event_streams ]
+      fail-fast: false
+    runs-on: ubuntu-18.04
+
+    steps:
+      -   uses: actions/checkout@v1
+
+      -   name: Docker Login
+          run: |
+            (echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com) || \
+            (echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com) || \
+            (echo ${{ secrets.GITHUB_TOKEN }} | docker login -u pivonroll --password-stdin docker.pkg.github.com) || \
+            (exit 1)
+            (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+            (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+            (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+            (docker pull docker.pkg.github.com/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata:21.6.0-buster-slim) || \
+            (exit 1)
+
+      -   name: Tests
+          run: |
+            touch vars.env
+            docker-compose up
+            cd integration_tests/internal/with_prepopulated_database/${{ matrix.domain }}
+            go test -v ./...
+            docker-compose down
+
   linting:
-    needs: tests
+    needs: integration-tests-with-prepopulated-database
     name: Linting
     runs-on: ubuntu-18.04
 
