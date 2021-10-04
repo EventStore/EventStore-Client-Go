@@ -30,7 +30,7 @@ jobs:
     name: Tests
     strategy:
       matrix:
-        domain: [ persistent, projections, operations, integration_tests/event_streams_with_empty_database, integration_tests/event_streams_with_prepopulated_database, user_management, connection ]
+        domain: [ persistent_with_empty_database, projections_with_empty_database, operations_with_empty_database, event_streams_with_empty_database, event_streams_with_prepopulated_database, user_management_with_empty_database, connection_with_empty_database ]
       fail-fast: false
       max-parallel: 3
     runs-on: ubuntu-18.04
@@ -55,19 +55,19 @@ jobs:
       run: |
         touch vars.env
         docker-compose up
-        cd ${{ matrix.domain }}
+        cd integration_tests/${{ matrix.domain }}
         go test -v ./...
         docker-compose down
 
     - name: Tests with cluster
-      if: ${{ matrix.domain == 'connection' }}
+      if: ${{ matrix.domain == 'connection_with_empty_database' }}
       run: |
         touch vars.env
         docker-compose up
         docker-compose -f cluster-docker-compose.yml up -d
-        cd ${{ matrix.domain }}
+        cd integration_tests/${{ matrix.domain }}
         go test -v ./...
-        cd ..
+        cd ../..
         docker-compose -f cluster-docker-compose.yml down
         docker-compose down
 
