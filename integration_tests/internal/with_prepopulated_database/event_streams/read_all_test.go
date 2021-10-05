@@ -32,7 +32,7 @@ func Test_ReadAllEvents(t *testing.T) {
 
 		events, err := client.ReadAllEvents(ctx,
 			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsAllStartPosition{}, numberOfEvents, true)
+			event_streams.ReadPositionAllStart{}, numberOfEvents, true)
 		require.NoError(t, err)
 
 		for i := 0; i < numberOfEventsToRead; i++ {
@@ -64,7 +64,7 @@ func Test_ReadAllEvents(t *testing.T) {
 
 		events, err := client.ReadAllEvents(ctx,
 			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsAllPosition{
+			event_streams.ReadPositionAll{
 				CommitPosition:  1788,
 				PreparePosition: 1788,
 			},
@@ -100,7 +100,7 @@ func Test_ReadAllEvents(t *testing.T) {
 
 		events, err := client.ReadAllEvents(ctx,
 			event_streams.ReadRequestDirectionBackward,
-			event_streams.ReadRequestOptionsAllEndPosition{},
+			event_streams.ReadPositionAllEnd{},
 			numberOfEvents, true)
 		require.NoError(t, err)
 
@@ -133,7 +133,7 @@ func Test_ReadAllEvents(t *testing.T) {
 
 		events, err := client.ReadAllEvents(ctx,
 			event_streams.ReadRequestDirectionBackward,
-			event_streams.ReadRequestOptionsAllPosition{
+			event_streams.ReadPositionAll{
 				CommitPosition:  3386,
 				PreparePosition: 3386,
 			},

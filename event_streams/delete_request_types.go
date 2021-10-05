@@ -8,11 +8,11 @@ import (
 type DeleteRequest struct {
 	StreamIdentifier string
 	// Types that are assignable to ExpectedStreamRevision:
-	//	DeleteRequestExpectedStreamRevision
-	//	DeleteRequestExpectedStreamRevisionNoStream
-	//	DeleteRequestExpectedStreamRevisionAny
-	//	DeleteRequestExpectedStreamRevisionStreamExists
-	ExpectedStreamRevision IsDeleteRequestExpectedStreamRevision
+	// WriteStreamRevision
+	// WriteStreamRevisionNoStream
+	// WriteStreamRevisionAny
+	// WriteStreamRevisionStreamExists
+	ExpectedStreamRevision IsWriteStreamRevision
 }
 
 func (this DeleteRequest) Build() *streams2.DeleteReq {
@@ -26,51 +26,25 @@ func (this DeleteRequest) Build() *streams2.DeleteReq {
 	}
 
 	switch this.ExpectedStreamRevision.(type) {
-	case DeleteRequestExpectedStreamRevision:
-		revision := this.ExpectedStreamRevision.(DeleteRequestExpectedStreamRevision)
+	case WriteStreamRevision:
+		revision := this.ExpectedStreamRevision.(WriteStreamRevision)
 		result.Options.ExpectedStreamRevision = &streams2.DeleteReq_Options_Revision{
 			Revision: revision.Revision,
 		}
 
-	case DeleteRequestExpectedStreamRevisionNoStream:
+	case WriteStreamRevisionNoStream:
 		result.Options.ExpectedStreamRevision = &streams2.DeleteReq_Options_NoStream{
 			NoStream: &shared.Empty{},
 		}
-	case DeleteRequestExpectedStreamRevisionAny:
+	case WriteStreamRevisionAny:
 		result.Options.ExpectedStreamRevision = &streams2.DeleteReq_Options_Any{
 			Any: &shared.Empty{},
 		}
-	case DeleteRequestExpectedStreamRevisionStreamExists:
+	case WriteStreamRevisionStreamExists:
 		result.Options.ExpectedStreamRevision = &streams2.DeleteReq_Options_StreamExists{
 			StreamExists: &shared.Empty{},
 		}
 	}
 
 	return result
-}
-
-type IsDeleteRequestExpectedStreamRevision interface {
-	isDeleteRequestExpectedStreamRevision()
-}
-
-type DeleteRequestExpectedStreamRevision struct {
-	Revision uint64
-}
-
-func (this DeleteRequestExpectedStreamRevision) isDeleteRequestExpectedStreamRevision() {
-}
-
-type DeleteRequestExpectedStreamRevisionNoStream struct{}
-
-func (this DeleteRequestExpectedStreamRevisionNoStream) isDeleteRequestExpectedStreamRevision() {
-}
-
-type DeleteRequestExpectedStreamRevisionAny struct{}
-
-func (this DeleteRequestExpectedStreamRevisionAny) isDeleteRequestExpectedStreamRevision() {
-}
-
-type DeleteRequestExpectedStreamRevisionStreamExists struct{}
-
-func (this DeleteRequestExpectedStreamRevisionStreamExists) isDeleteRequestExpectedStreamRevision() {
 }

@@ -33,7 +33,7 @@ func Test_ReadStreamEvents(t *testing.T) {
 		events, err := client.ReadStreamEvents(ctx,
 			streamId,
 			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsStreamRevisionStart{}, numberOfEvents, true)
+			event_streams.ReadStreamRevisionStart{}, numberOfEvents, true)
 		require.NoError(t, err)
 
 		for i := 0; i < numberOfEventsToRead; i++ {
@@ -67,7 +67,7 @@ func Test_ReadStreamEvents(t *testing.T) {
 		events, err := client.ReadStreamEvents(ctx,
 			streamId,
 			event_streams.ReadRequestDirectionBackward,
-			event_streams.ReadRequestOptionsStreamRevisionEnd{}, numberOfEvents, true)
+			event_streams.ReadStreamRevisionEnd{}, numberOfEvents, true)
 		require.NoError(t, err)
 
 		for i := 0; i < numberOfEventsToRead; i++ {

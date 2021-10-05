@@ -26,7 +26,7 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		streamReader, err := client.SubscribeToAllFiltered(ctx,
-			event_streams.SubscribeRequestOptionsAllStartPosition{},
+			event_streams.ReadPositionAllStart{},
 			false,
 			event_streams.SubscribeRequestFilter{
 				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
@@ -60,7 +60,7 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		streamReader, err := client.SubscribeToAllFiltered(ctx,
-			event_streams.SubscribeRequestOptionsAllStartPosition{},
+			event_streams.ReadPositionAllStart{},
 			false,
 			event_streams.SubscribeRequestFilter{
 				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
@@ -93,7 +93,7 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 		wg.Add(1)
 
 		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
-			event_streams.SubscribeRequestOptionsAllStartPosition{},
+			event_streams.ReadPositionAllStart{},
 			false,
 			event_streams.SubscribeRequestFilter{
 				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
@@ -126,7 +126,7 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 		wg.Add(1)
 
 		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
-			event_streams.SubscribeRequestOptionsAllEndPosition{},
+			event_streams.ReadPositionAllEnd{},
 			false,
 			event_streams.SubscribeRequestFilter{
 				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
@@ -175,26 +175,26 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 
 		_, err := client.AppendToStream(context.Background(),
 			otherStream,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			otherStreamEvents)
 		require.NoError(t, err)
 
 		_, err = client.AppendToStream(context.Background(),
 			prefixStream,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			prefixStreamEvents)
 		require.NoError(t, err)
 
 		_, err = client.AppendToStream(context.Background(),
 			prefixStream2,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			prefixStreamEvents2)
 		require.NoError(t, err)
 
 		appPrefixEvents := append(prefixStreamEvents, prefixStreamEvents2...)
 
 		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
-			event_streams.SubscribeRequestOptionsAllStartPosition{},
+			event_streams.ReadPositionAllStart{},
 			false,
 			event_streams.SubscribeRequestFilter{
 				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
@@ -243,18 +243,18 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 
 		_, err := client.AppendToStream(context.Background(),
 			otherStream,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			otherStreamEvents)
 		require.NoError(t, err)
 
 		_, err = client.AppendToStream(context.Background(),
 			prefixStream,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			prefixStreamEvents)
 		require.NoError(t, err)
 
 		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
-			event_streams.SubscribeRequestOptionsAllStartPosition{},
+			event_streams.ReadPositionAllStart{},
 			false,
 			event_streams.SubscribeRequestFilter{
 				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
@@ -299,7 +299,7 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 			waitForReadingFirstEvents.Wait()
 			_, err = client.AppendToStream(context.Background(),
 				newPrefixStream,
-				event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+				event_streams.WriteStreamRevisionNoStream{},
 				newPrefixStreamEvents)
 			require.NoError(t, err)
 		}()
@@ -337,7 +337,7 @@ func Test_SubscribeToAll_Filtered_WithIncorrectCredentials(t *testing.T) {
 	defer closeFunc()
 
 	_, err := client.SubscribeToAllFiltered(context.Background(),
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		event_streams.ReadPositionAllStart{},
 		false,
 		event_streams.SubscribeRequestFilter{
 			FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{

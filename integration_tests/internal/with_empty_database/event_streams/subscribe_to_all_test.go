@@ -25,7 +25,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenCancelled(t *te
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	streamReader, err := client.SubscribeToAll(ctx,
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		event_streams.ReadPositionAllStart{},
 		false)
 	require.NoError(t, err)
 
@@ -53,7 +53,7 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenCancelled(t *test
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	streamReader, err := client.SubscribeToAll(ctx,
-		event_streams.SubscribeRequestOptionsAllEndPosition{},
+		event_streams.ReadPositionAllEnd{},
 		false)
 	require.NoError(t, err)
 
@@ -80,7 +80,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenReaderClosed(t 
 	wg.Add(1)
 
 	streamReader, err := client.SubscribeToAll(context.Background(),
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		event_streams.ReadPositionAllStart{},
 		false)
 	require.NoError(t, err)
 
@@ -107,7 +107,7 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenReaderClosed(t *t
 	wg.Add(1)
 
 	streamReader, err := client.SubscribeToAll(context.Background(),
-		event_streams.SubscribeRequestOptionsAllEndPosition{},
+		event_streams.ReadPositionAllEnd{},
 		false)
 	require.NoError(t, err)
 
@@ -134,7 +134,7 @@ func Test_SubscribeToAll_FromStart_ToEmptyDatabase(t *testing.T) {
 	wg.Add(1)
 
 	streamReader, err := client.SubscribeToAll(context.Background(),
-		event_streams.SubscribeRequestOptionsAllEndPosition{},
+		event_streams.ReadPositionAllEnd{},
 		false)
 	require.NoError(t, err)
 
@@ -176,12 +176,12 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 
 	_, err := client.AppendToStream(context.Background(),
 		firstStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.WriteStreamRevisionNoStream{},
 		beforeEvents)
 	require.NoError(t, err)
 
 	streamReader, err := client.SubscribeToAll(context.Background(),
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		event_streams.ReadPositionAllStart{},
 		false)
 	require.NoError(t, err)
 
@@ -206,7 +206,7 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 
 	_, err = client.AppendToStream(context.Background(),
 		secondStream,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.WriteStreamRevisionNoStream{},
 		afterEvents)
 	require.NoError(t, err)
 
@@ -220,7 +220,7 @@ func Test_Test_SubscribeToAll_WithIncorrectCredentials(t *testing.T) {
 	defer closeFunc()
 
 	_, err := client.SubscribeToAll(context.Background(),
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		event_streams.ReadPositionAllStart{},
 		false)
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
 }

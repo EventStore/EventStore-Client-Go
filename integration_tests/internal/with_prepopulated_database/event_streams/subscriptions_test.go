@@ -28,7 +28,7 @@ func Test_StreamSubscription_DeliversAllEventsInStreamAndListensForNewEvents(t *
 	streamReader, err := client.SubscribeToStream(
 		context.Background(),
 		streamID,
-		event_streams.SubscribeRequestOptionsStreamRevisionStart{},
+		event_streams.ReadStreamRevisionStart{},
 		false)
 	defer streamReader.Close()
 	require.NoError(t, err)
@@ -64,7 +64,7 @@ func Test_StreamSubscription_DeliversAllEventsInStreamAndListensForNewEvents(t *
 	// Write a new event
 	writeResult, err := client.AppendToStream(context.Background(),
 		streamID,
-		event_streams.AppendRequestExpectedStreamRevision{Revision: 5999},
+		event_streams.WriteStreamRevision{Revision: 5999},
 		testEvent)
 	require.NoError(t, err)
 	require.False(t, writeResult.GetCurrentRevisionNoStream())
@@ -90,7 +90,7 @@ func Test_SubscribeToStream_ConnectionClosing(t *testing.T) {
 
 	reader, err := client.SubscribeToStream(context.Background(),
 		"dataset20M-0",
-		event_streams.SubscribeRequestOptionsStreamRevisionStart{},
+		event_streams.ReadStreamRevisionStart{},
 		false)
 	require.NoError(t, err)
 

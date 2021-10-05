@@ -33,14 +33,14 @@ func Test_CloseConnection(t *testing.T) {
 	defer cancel()
 	_, err := eventStreamClient.AppendToStream(ctx,
 		streamID.String(),
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.WriteStreamRevisionNoStream{},
 		proposedEvents)
 	require.NoError(t, err)
 
 	grpcClient.Close()
 	_, err = eventStreamClient.AppendToStream(ctx,
 		streamID.String(),
-		event_streams.AppendRequestExpectedStreamRevisionAny{},
+		event_streams.WriteStreamRevisionAny{},
 		proposedEvents)
 
 	assert.Equal(t, connection.EsdbConnectionIsClosed, err.Code())
