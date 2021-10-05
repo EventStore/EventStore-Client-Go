@@ -13,14 +13,14 @@ func newWrongExpectedVersionError() WrongExpectedVersion {
 type WrongExpectedVersion struct {
 	err errors.Error
 	// Types that are assignable to CurrentRevisionOption_20_6_0:
-	//	AppendResponseWrongCurrentRevision_20_6_0
-	//	AppendResponseWrongCurrentRevisionNoStream_20_6_0
-	CurrentRevision_20_6_0 isAppendResponseWrongCurrentRevision_20_6_0
+	//	AppendResponseWrongCurrentRevision2060
+	//	AppendResponseWrongCurrentRevisionNoStream2060
+	CurrentRevision_20_6_0 isAppendResponseWrongCurrentRevision2060
 	// Types that are assignable to ExpectedRevisionOption_20_6_0:
-	//	AppendResponseWrongExpectedRevision_20_6_0
-	//	AppendResponseWrongExpectedRevisionAny_20_6_0
-	//	AppendResponseWrongExpectedRevisionStreamExists_20_6_0
-	ExpectedRevision_20_6_0 isAppendResponseWrongExpectedRevision_20_6_0
+	//	AppendResponseWrongExpectedRevision2060
+	//	AppendResponseWrongExpectedRevisionAny2060
+	//	AppendResponseWrongExpectedRevisionStreamExists2060
+	ExpectedRevision_20_6_0 isAppendResponseWrongExpectedRevision2060
 	// Types that are assignable to CurrentRevisionOption:
 	//	AppendResponseWrongCurrentRevision
 	//	AppendResponseWrongCurrentRevisionNoStream
@@ -44,7 +44,7 @@ func (exception WrongExpectedVersion) Code() errors.ErrorCode {
 func (exception WrongExpectedVersion) GetExpectedRevision() uint64 {
 	if revision, ok := exception.ExpectedRevision.(AppendResponseWrongExpectedRevision); ok {
 		return revision.ExpectedRevision
-	} else if revision, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevision_20_6_0); ok {
+	} else if revision, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevision2060); ok {
 		return revision.ExpectedRevision
 	}
 
@@ -54,7 +54,7 @@ func (exception WrongExpectedVersion) GetExpectedRevision() uint64 {
 func (exception WrongExpectedVersion) IsExpectedRevisionFinite() bool {
 	if _, ok := exception.ExpectedRevision.(AppendResponseWrongExpectedRevision); ok {
 		return true
-	} else if _, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevision_20_6_0); ok {
+	} else if _, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevision2060); ok {
 		return true
 	}
 
@@ -69,7 +69,7 @@ func (exception WrongExpectedVersion) IsExpectedRevisionNoStream() bool {
 func (exception WrongExpectedVersion) IsExpectedRevisionAny() bool {
 	if _, ok := exception.ExpectedRevision.(AppendResponseWrongExpectedRevisionAny); ok {
 		return true
-	} else if _, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevisionAny_20_6_0); ok {
+	} else if _, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevisionAny2060); ok {
 		return true
 	}
 
@@ -79,7 +79,7 @@ func (exception WrongExpectedVersion) IsExpectedRevisionAny() bool {
 func (exception WrongExpectedVersion) IsExpectedRevisionStreamExists() bool {
 	if _, ok := exception.ExpectedRevision.(AppendResponseWrongExpectedRevisionStreamExists); ok {
 		return true
-	} else if _, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevisionStreamExists_20_6_0); ok {
+	} else if _, ok := exception.ExpectedRevision_20_6_0.(AppendResponseWrongExpectedRevisionStreamExists2060); ok {
 		return true
 	}
 
@@ -89,7 +89,7 @@ func (exception WrongExpectedVersion) IsExpectedRevisionStreamExists() bool {
 func (exception WrongExpectedVersion) IsCurrentRevisionNoStream() bool {
 	if _, ok := exception.CurrentRevision.(AppendResponseWrongCurrentRevisionNoStream); ok {
 		return true
-	} else if _, ok := exception.CurrentRevision_20_6_0.(AppendResponseWrongCurrentRevisionNoStream_20_6_0); ok {
+	} else if _, ok := exception.CurrentRevision_20_6_0.(AppendResponseWrongCurrentRevisionNoStream2060); ok {
 		return true
 	}
 
@@ -99,7 +99,7 @@ func (exception WrongExpectedVersion) IsCurrentRevisionNoStream() bool {
 func (exception WrongExpectedVersion) GetCurrentRevision() (uint64, bool) {
 	if revision, ok := exception.CurrentRevision.(AppendResponseWrongCurrentRevision); ok {
 		return revision.CurrentRevision, true
-	} else if revision, ok := exception.CurrentRevision_20_6_0.(AppendResponseWrongCurrentRevision_20_6_0); ok {
+	} else if revision, ok := exception.CurrentRevision_20_6_0.(AppendResponseWrongCurrentRevision2060); ok {
 		return revision.CurrentRevision, true
 	}
 
