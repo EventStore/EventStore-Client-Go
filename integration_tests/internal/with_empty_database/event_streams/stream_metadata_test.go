@@ -19,7 +19,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err := client.AppendToStream(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			testCreateEvents(2))
 		require.NoError(t, err)
 
@@ -32,7 +32,7 @@ func Test_StreamMetaData(t *testing.T) {
 		streamId := "empty_metadata"
 		_, err := client.SetStreamMetadata(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			event_streams.StreamMetadata{},
 		)
 		require.NoError(t, err)
@@ -57,7 +57,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err := client.SetStreamMetadata(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+			event_streams.WriteStreamRevisionNoStream{},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
@@ -76,7 +76,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err = client.SetStreamMetadata(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
+			event_streams.WriteStreamRevision{Revision: 0},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
@@ -92,7 +92,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err := client.SetStreamMetadata(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 2},
+			event_streams.WriteStreamRevision{Revision: 2},
 			event_streams.StreamMetadata{},
 		)
 		require.Equal(t, event_streams.WrongExpectedVersionErr, err.Code())
@@ -110,7 +110,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err := client.SetStreamMetadata(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			event_streams.WriteStreamRevisionAny{},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
@@ -129,7 +129,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err = client.SetStreamMetadata(context.Background(),
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			event_streams.WriteStreamRevisionAny{},
 			expectedStreamMetadata,
 		)
 		require.NoError(t, err)
@@ -148,7 +148,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err := client.SetStreamMetadata(timeoutCtx,
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevisionAny{},
+			event_streams.WriteStreamRevisionAny{},
 			event_streams.StreamMetadata{},
 		)
 		require.Equal(t, errors.DeadlineExceededErr, err.Code())
@@ -162,7 +162,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		_, err := client.SetStreamMetadata(timeoutCtx,
 			streamId,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 0},
+			event_streams.WriteStreamRevision{Revision: 0},
 			event_streams.StreamMetadata{},
 		)
 		require.Equal(t, errors.DeadlineExceededErr, err.Code())
@@ -205,7 +205,7 @@ func Test_SetStreamMetaData_WithIncorrectCredentials(t *testing.T) {
 
 	_, err := client.SetStreamMetadata(context.Background(),
 		streamId,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.WriteStreamRevisionNoStream{},
 		expectedStreamMetadata,
 	)
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())

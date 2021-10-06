@@ -32,7 +32,7 @@ func TestSubscribeToAll_WithFilterDeliversCorrectEvents(t *testing.T) {
 
 	reader, err := client.SubscribeToAllFiltered(
 		context.Background(),
-		event_streams.SubscribeRequestOptionsAllStartPosition{},
+		event_streams.ReadPositionAllStart{},
 		false,
 		event_streams.SubscribeRequestFilter{
 			FilterBy: event_streams.SubscribeRequestFilterByEventType{

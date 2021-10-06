@@ -15,7 +15,7 @@ func Test_DeleteStream(t *testing.T) {
 
 	result, err := client.DeleteStream(context.Background(),
 		"dataset20M-1800",
-		event_streams.DeleteRequestExpectedStreamRevision{Revision: 1999})
+		event_streams.WriteStreamRevision{Revision: 1999})
 	require.NoError(t, err)
 
 	position, isPosition := result.GetPosition()

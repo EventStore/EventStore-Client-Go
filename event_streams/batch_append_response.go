@@ -8,13 +8,13 @@ import (
 
 type BatchAppendResponse struct {
 	CorrelationId string
-	// BatchAppendResponseResultSuccessCurrentRevision
-	// BatchAppendResponseResultSuccessCurrentRevisionNoStream
-	CurrentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
 	// BatchAppendResponseResultSuccessPosition
 	// BatchAppendResponseResultSuccessNoPosition
 	Position         isBatchAppendResponseResultSuccessPosition
 	StreamIdentifier string
+	// BatchAppendResponseResultSuccessCurrentRevision
+	// BatchAppendResponseResultSuccessCurrentRevisionNoStream
+	CurrentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
 	// Types that are assignable to ExpectedStreamPosition:
 	//	BatchAppendResponseExpectedStreamPosition
 	//	BatchAppendResponseExpectedStreamPositionNoStream

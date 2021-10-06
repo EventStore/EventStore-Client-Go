@@ -10,7 +10,7 @@ type Client interface {
 	AppendToStream(
 		ctx context.Context,
 		streamID string,
-		expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+		expectedStreamRevision IsWriteStreamRevision,
 		events []ProposedEvent,
 	) (AppendResponse, errors.Error)
 
@@ -23,18 +23,18 @@ type Client interface {
 	SetStreamMetadata(
 		ctx context.Context,
 		streamID string,
-		expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+		expectedStreamRevision IsWriteStreamRevision,
 		metadata StreamMetadata) (AppendResponse, errors.Error)
 
 	DeleteStream(
 		ctx context.Context,
 		streamID string,
-		revision IsDeleteRequestExpectedStreamRevision) (DeleteResponse, errors.Error)
+		revision IsWriteStreamRevision) (DeleteResponse, errors.Error)
 
 	TombstoneStream(
 		ctx context.Context,
 		streamID string,
-		revision IsTombstoneRequestExpectedStreamRevision) (TombstoneResponse, errors.Error)
+		revision IsWriteStreamRevision) (TombstoneResponse, errors.Error)
 
 	GetStreamMetadata(
 		ctx context.Context,
@@ -44,14 +44,14 @@ type Client interface {
 		ctx context.Context,
 		streamID string,
 		direction ReadRequestDirection,
-		revision IsReadRequestStreamOptionsStreamRevision,
+		revision IsReadStreamRevision,
 		count uint64,
 		resolveLinks bool) (ResolvedEventList, errors.Error)
 
 	ReadAllEvents(
 		ctx context.Context,
 		direction ReadRequestDirection,
-		position IsReadRequestOptionsAllPosition,
+		position IsReadPositionAll,
 		count uint64,
 		resolveLinks bool,
 	) (ResolvedEventList, errors.Error)
@@ -60,14 +60,14 @@ type Client interface {
 		ctx context.Context,
 		streamID string,
 		direction ReadRequestDirection,
-		revision IsReadRequestStreamOptionsStreamRevision,
+		revision IsReadStreamRevision,
 		count uint64,
 		resolveLinks bool) (StreamReader, errors.Error)
 
 	GetAllEventsReader(
 		ctx context.Context,
 		direction ReadRequestDirection,
-		position IsReadRequestOptionsAllPosition,
+		position IsReadPositionAll,
 		count uint64,
 		resolveLinks bool,
 	) (StreamReader, errors.Error)
@@ -75,20 +75,20 @@ type Client interface {
 	SubscribeToStream(
 		ctx context.Context,
 		streamID string,
-		revision IsSubscribeRequestStreamOptionsStreamRevision,
+		revision IsReadStreamRevision,
 		resolveLinks bool,
 	) (StreamReader, errors.Error)
 
 	SubscribeToAllFiltered(
 		ctx context.Context,
-		position IsSubscribeRequestOptionsAllPosition,
+		position IsReadPositionAll,
 		resolveLinks bool,
 		filter SubscribeRequestFilter,
 	) (StreamReader, errors.Error)
 
 	SubscribeToAll(
 		ctx context.Context,
-		position IsSubscribeRequestOptionsAllPosition,
+		position IsReadPositionAll,
 		resolveLinks bool,
 	) (StreamReader, errors.Error)
 }

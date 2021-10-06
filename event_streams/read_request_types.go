@@ -64,19 +64,19 @@ func thisBuildStreamOptionAll(all ReadRequestStreamOptionsAll) *streams2.ReadReq
 	}
 
 	switch all.Position.(type) {
-	case ReadRequestOptionsAllPosition:
-		allPosition := all.Position.(ReadRequestOptionsAllPosition)
+	case ReadPositionAll:
+		allPosition := all.Position.(ReadPositionAll)
 		result.All.AllOption = &streams2.ReadReq_Options_AllOptions_Position{
 			Position: &streams2.ReadReq_Options_Position{
 				CommitPosition:  allPosition.CommitPosition,
 				PreparePosition: allPosition.PreparePosition,
 			},
 		}
-	case ReadRequestOptionsAllStartPosition:
+	case ReadPositionAllStart:
 		result.All.AllOption = &streams2.ReadReq_Options_AllOptions_Start{
 			Start: &shared.Empty{},
 		}
-	case ReadRequestOptionsAllEndPosition:
+	case ReadPositionAllEnd:
 		result.All.AllOption = &streams2.ReadReq_Options_AllOptions_End{
 			End: &shared.Empty{},
 		}
@@ -97,16 +97,16 @@ func (this ReadRequest) buildStreamOptions(
 	}
 
 	switch streamOptions.Revision.(type) {
-	case ReadRequestOptionsStreamRevision:
-		streamRevision := streamOptions.Revision.(ReadRequestOptionsStreamRevision)
+	case ReadStreamRevision:
+		streamRevision := streamOptions.Revision.(ReadStreamRevision)
 		result.Stream.RevisionOption = &streams2.ReadReq_Options_StreamOptions_Revision{
 			Revision: streamRevision.Revision,
 		}
-	case ReadRequestOptionsStreamRevisionStart:
+	case ReadStreamRevisionStart:
 		result.Stream.RevisionOption = &streams2.ReadReq_Options_StreamOptions_Start{
 			Start: &shared.Empty{},
 		}
-	case ReadRequestOptionsStreamRevisionEnd:
+	case ReadStreamRevisionEnd:
 		result.Stream.RevisionOption = &streams2.ReadReq_Options_StreamOptions_End{
 			End: &shared.Empty{},
 		}
@@ -230,59 +230,22 @@ type isReadRequestStreamOptions interface {
 
 type ReadRequestStreamOptions struct {
 	StreamIdentifier string
-	// ReadRequestOptionsStreamRevision
-	// ReadRequestOptionsStreamRevisionStart
-	// ReadRequestOptionsStreamRevisionEnd
-	Revision IsReadRequestStreamOptionsStreamRevision
+	// ReadStreamRevision
+	// ReadStreamRevisionStart
+	// ReadStreamRevisionEnd
+	Revision IsReadStreamRevision
 }
 
 func (this ReadRequestStreamOptions) isReadRequestStreamOptions() {}
 
-type IsReadRequestStreamOptionsStreamRevision interface {
-	isReadRequestStreamOptionsStreamRevision()
-}
-
-type ReadRequestOptionsStreamRevision struct {
-	Revision uint64
-}
-
-func (this ReadRequestOptionsStreamRevision) isReadRequestStreamOptionsStreamRevision() {}
-
-type ReadRequestOptionsStreamRevisionStart struct{}
-
-func (this ReadRequestOptionsStreamRevisionStart) isReadRequestStreamOptionsStreamRevision() {}
-
-type ReadRequestOptionsStreamRevisionEnd struct{}
-
-func (this ReadRequestOptionsStreamRevisionEnd) isReadRequestStreamOptionsStreamRevision() {}
-
 type ReadRequestStreamOptionsAll struct {
-	// ReadRequestOptionsAllPosition
-	// ReadRequestOptionsAllStartPosition
-	// ReadRequestOptionsAllEndPosition
-	Position IsReadRequestOptionsAllPosition
+	// ReadPositionAll
+	// ReadPositionAllStart
+	// ReadPositionAllEnd
+	Position IsReadPositionAll
 }
 
 func (this ReadRequestStreamOptionsAll) isReadRequestStreamOptions() {}
-
-type IsReadRequestOptionsAllPosition interface {
-	isReadRequestOptionsAllPosition()
-}
-
-type ReadRequestOptionsAllPosition struct {
-	CommitPosition  uint64
-	PreparePosition uint64
-}
-
-func (this ReadRequestOptionsAllPosition) isReadRequestOptionsAllPosition() {}
-
-type ReadRequestOptionsAllStartPosition struct{}
-
-func (this ReadRequestOptionsAllStartPosition) isReadRequestOptionsAllPosition() {}
-
-type ReadRequestOptionsAllEndPosition struct{}
-
-func (this ReadRequestOptionsAllEndPosition) isReadRequestOptionsAllPosition() {}
 
 type ReadRequestDirection string
 

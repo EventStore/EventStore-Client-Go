@@ -466,10 +466,10 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// append 1 event to StreamsClient.AppendToStreamAsync(Stream, new StreamRevision(9), event[10])
+		// append 1 event to StreamsClient.AppendToStreamAsync(Stream, new WriteStreamRevision(9), event[10])
 		_, err = eventStreamsClient.AppendToStream(context.Background(),
 			streamID,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 9},
+			event_streams.WriteStreamRevision{Revision: 9},
 			events[10:])
 		require.NoError(t, err)
 
@@ -563,11 +563,11 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// append 1 event to StreamsClient.AppendToStreamAsync(Stream, StreamRevision(9), events[10:)
+		// append 1 event to StreamsClient.AppendToStreamAsync(Stream, WriteStreamRevision(9), events[10:)
 		_, err = eventStreamsClient.AppendToStream(
 			context.Background(),
 			streamID,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 9},
+			event_streams.WriteStreamRevision{Revision: 9},
 			events[10:])
 		require.NoError(t, err)
 
@@ -607,11 +607,11 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// append 1 event to StreamsClient.AppendToStreamAsync(Stream, StreamRevision(9), events)
+		// append 1 event to StreamsClient.AppendToStreamAsync(Stream, WriteStreamRevision(9), events)
 		_, err = eventStreamsClient.AppendToStream(
 			context.Background(),
 			streamID,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 9},
+			event_streams.WriteStreamRevision{Revision: 9},
 			events[10:])
 		require.NoError(t, err)
 
@@ -652,11 +652,11 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// append event to StreamsClient.AppendToStreamAsync(Stream, StreamRevision(10), events[11:])
+		// append event to StreamsClient.AppendToStreamAsync(Stream, WriteStreamRevision(10), events[11:])
 		_, err = eventStreamsClient.AppendToStream(
 			context.Background(),
 			streamID,
-			event_streams.AppendRequestExpectedStreamRevision{Revision: 10},
+			event_streams.WriteStreamRevision{Revision: 10},
 			events[11:])
 		require.NoError(t, err)
 

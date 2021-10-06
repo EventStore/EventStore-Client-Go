@@ -56,23 +56,23 @@ func (this *appendRequest) buildExpectedStreamRevision(
 	options *streams2.AppendReq_Options_,
 	content AppendRequestContentOptions) {
 	switch content.ExpectedStreamRevision.(type) {
-	case AppendRequestExpectedStreamRevision:
-		revision := content.ExpectedStreamRevision.(AppendRequestExpectedStreamRevision)
+	case WriteStreamRevision:
+		revision := content.ExpectedStreamRevision.(WriteStreamRevision)
 
 		options.Options.ExpectedStreamRevision = &streams2.AppendReq_Options_Revision{
 			Revision: revision.Revision,
 		}
-	case AppendRequestExpectedStreamRevisionNoStream:
+	case WriteStreamRevisionNoStream:
 		options.Options.ExpectedStreamRevision = &streams2.AppendReq_Options_NoStream{
 			NoStream: &shared.Empty{},
 		}
 
-	case AppendRequestExpectedStreamRevisionAny:
+	case WriteStreamRevisionAny:
 		options.Options.ExpectedStreamRevision = &streams2.AppendReq_Options_Any{
 			Any: &shared.Empty{},
 		}
 
-	case AppendRequestExpectedStreamRevisionStreamExists:
+	case WriteStreamRevisionStreamExists:
 		options.Options.ExpectedStreamRevision = &streams2.AppendReq_Options_StreamExists{
 			StreamExists: &shared.Empty{},
 		}
@@ -85,36 +85,14 @@ type isAppendRequestContent interface {
 
 type AppendRequestContentOptions struct {
 	StreamIdentifier string
-	// AppendRequestExpectedStreamRevision
-	// AppendRequestExpectedStreamRevisionNoStream
-	// AppendRequestExpectedStreamRevisionAny
-	// AppendRequestExpectedStreamRevisionStreamExists
-	ExpectedStreamRevision IsAppendRequestExpectedStreamRevision
+	// WriteStreamRevision
+	// WriteStreamRevisionNoStream
+	// WriteStreamRevisionAny
+	// WriteStreamRevisionStreamExists
+	ExpectedStreamRevision IsWriteStreamRevision
 }
 
 func (this AppendRequestContentOptions) isAppendRequestContent() {}
-
-type IsAppendRequestExpectedStreamRevision interface {
-	isAppendRequestExpectedStreamRevision()
-}
-
-type AppendRequestExpectedStreamRevision struct {
-	Revision uint64
-}
-
-func (this AppendRequestExpectedStreamRevision) isAppendRequestExpectedStreamRevision() {}
-
-type AppendRequestExpectedStreamRevisionNoStream struct{}
-
-func (this AppendRequestExpectedStreamRevisionNoStream) isAppendRequestExpectedStreamRevision() {}
-
-type AppendRequestExpectedStreamRevisionAny struct{}
-
-func (this AppendRequestExpectedStreamRevisionAny) isAppendRequestExpectedStreamRevision() {}
-
-type AppendRequestExpectedStreamRevisionStreamExists struct{}
-
-func (this AppendRequestExpectedStreamRevisionStreamExists) isAppendRequestExpectedStreamRevision() {}
 
 type AppendRequestContentProposedMessage struct {
 	Id             uuid.UUID

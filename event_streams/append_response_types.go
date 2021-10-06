@@ -73,41 +73,41 @@ type AppendResponseSuccessCurrentRevisionNoStream struct{}
 func (this AppendResponseSuccessCurrentRevisionNoStream) isAppendResponseSuccessCurrentRevision() {
 }
 
-type isAppendResponseWrongCurrentRevision_20_6_0 interface {
-	isAppendResponseWrongCurrentRevision_20_6_0()
+type isAppendResponseWrongCurrentRevision2060 interface {
+	isAppendResponseWrongCurrentRevision2060()
 }
 
-type AppendResponseWrongCurrentRevision_20_6_0 struct {
+type AppendResponseWrongCurrentRevision2060 struct {
 	CurrentRevision uint64
 }
 
-func (this AppendResponseWrongCurrentRevision_20_6_0) isAppendResponseWrongCurrentRevision_20_6_0() {
+func (this AppendResponseWrongCurrentRevision2060) isAppendResponseWrongCurrentRevision2060() {
 }
 
-type AppendResponseWrongCurrentRevisionNoStream_20_6_0 struct{}
+type AppendResponseWrongCurrentRevisionNoStream2060 struct{}
 
-func (this AppendResponseWrongCurrentRevisionNoStream_20_6_0) isAppendResponseWrongCurrentRevision_20_6_0() {
+func (this AppendResponseWrongCurrentRevisionNoStream2060) isAppendResponseWrongCurrentRevision2060() {
 }
 
-type isAppendResponseWrongExpectedRevision_20_6_0 interface {
-	isAppendResponseWrongExpectedRevision_20_6_0()
+type isAppendResponseWrongExpectedRevision2060 interface {
+	isAppendResponseWrongExpectedRevision2060()
 }
 
-type AppendResponseWrongExpectedRevision_20_6_0 struct {
+type AppendResponseWrongExpectedRevision2060 struct {
 	ExpectedRevision uint64
 }
 
-func (this AppendResponseWrongExpectedRevision_20_6_0) isAppendResponseWrongExpectedRevision_20_6_0() {
+func (this AppendResponseWrongExpectedRevision2060) isAppendResponseWrongExpectedRevision2060() {
 }
 
-type AppendResponseWrongExpectedRevisionAny_20_6_0 struct{}
+type AppendResponseWrongExpectedRevisionAny2060 struct{}
 
-func (this AppendResponseWrongExpectedRevisionAny_20_6_0) isAppendResponseWrongExpectedRevision_20_6_0() {
+func (this AppendResponseWrongExpectedRevisionAny2060) isAppendResponseWrongExpectedRevision2060() {
 }
 
-type AppendResponseWrongExpectedRevisionStreamExists_20_6_0 struct{}
+type AppendResponseWrongExpectedRevisionStreamExists2060 struct{}
 
-func (this AppendResponseWrongExpectedRevisionStreamExists_20_6_0) isAppendResponseWrongExpectedRevision_20_6_0() {
+func (this AppendResponseWrongExpectedRevisionStreamExists2060) isAppendResponseWrongExpectedRevision2060() {
 }
 
 type isAppendResponseWrongCurrentRevision interface {
@@ -216,17 +216,17 @@ func (this appendResponseAdapterImpl) buildWrongExpectedVersionError(
 }
 
 func (this appendResponseAdapterImpl) buildCurrentRevision2060(
-	proto *streams2.AppendResp_WrongExpectedVersion) isAppendResponseWrongCurrentRevision_20_6_0 {
+	proto *streams2.AppendResp_WrongExpectedVersion) isAppendResponseWrongCurrentRevision2060 {
 
 	if proto.CurrentRevisionOption_20_6_0 != nil {
 		switch proto.CurrentRevisionOption_20_6_0.(type) {
 		case *streams2.AppendResp_WrongExpectedVersion_CurrentRevision_20_6_0:
 			protoWrongCurrentRevision := proto.CurrentRevisionOption_20_6_0.(*streams2.AppendResp_WrongExpectedVersion_CurrentRevision_20_6_0)
-			return AppendResponseWrongCurrentRevision_20_6_0{
+			return AppendResponseWrongCurrentRevision2060{
 				CurrentRevision: protoWrongCurrentRevision.CurrentRevision_20_6_0,
 			}
 		case *streams2.AppendResp_WrongExpectedVersion_NoStream_20_6_0:
-			return AppendResponseWrongCurrentRevisionNoStream_20_6_0{}
+			return AppendResponseWrongCurrentRevisionNoStream2060{}
 		}
 	}
 
@@ -234,19 +234,19 @@ func (this appendResponseAdapterImpl) buildCurrentRevision2060(
 }
 
 func (this appendResponseAdapterImpl) buildExpectedRevision2060(
-	proto *streams2.AppendResp_WrongExpectedVersion) isAppendResponseWrongExpectedRevision_20_6_0 {
+	proto *streams2.AppendResp_WrongExpectedVersion) isAppendResponseWrongExpectedRevision2060 {
 
 	if proto.ExpectedRevisionOption_20_6_0 != nil {
 		switch proto.ExpectedRevisionOption_20_6_0.(type) {
 		case *streams2.AppendResp_WrongExpectedVersion_ExpectedRevision_20_6_0:
 			protoExpectedRevision2060 := proto.ExpectedRevisionOption_20_6_0.(*streams2.AppendResp_WrongExpectedVersion_ExpectedRevision_20_6_0)
-			return AppendResponseWrongExpectedRevision_20_6_0{
+			return AppendResponseWrongExpectedRevision2060{
 				ExpectedRevision: protoExpectedRevision2060.ExpectedRevision_20_6_0,
 			}
 		case *streams2.AppendResp_WrongExpectedVersion_Any_20_6_0:
-			return AppendResponseWrongExpectedRevisionAny_20_6_0{}
+			return AppendResponseWrongExpectedRevisionAny2060{}
 		case *streams2.AppendResp_WrongExpectedVersion_StreamExists_20_6_0:
-			return AppendResponseWrongExpectedRevisionStreamExists_20_6_0{}
+			return AppendResponseWrongExpectedRevisionStreamExists2060{}
 		}
 	}
 

@@ -8,11 +8,11 @@ import (
 type TombstoneRequest struct {
 	StreamIdentifier string
 	// Types that are assignable to ExpectedStreamRevision:
-	//	TombstoneRequestExpectedStreamRevision
-	//	TombstoneRequestExpectedStreamRevisionNoStream
-	//	TombstoneRequestExpectedStreamRevisionAny
-	//	TombstoneRequestExpectedStreamRevisionStreamExists
-	ExpectedStreamRevision IsTombstoneRequestExpectedStreamRevision
+	// WriteStreamRevision
+	// WriteStreamRevisionNoStream
+	// WriteStreamRevisionAny
+	// WriteStreamRevisionStreamExists
+	ExpectedStreamRevision IsWriteStreamRevision
 }
 
 func (this TombstoneRequest) Build() *streams2.TombstoneReq {
@@ -26,50 +26,24 @@ func (this TombstoneRequest) Build() *streams2.TombstoneReq {
 	}
 
 	switch this.ExpectedStreamRevision.(type) {
-	case TombstoneRequestExpectedStreamRevision:
-		revision := this.ExpectedStreamRevision.(TombstoneRequestExpectedStreamRevision)
+	case WriteStreamRevision:
+		revision := this.ExpectedStreamRevision.(WriteStreamRevision)
 		result.Options.ExpectedStreamRevision = &streams2.TombstoneReq_Options_Revision{
 			Revision: revision.Revision,
 		}
-	case TombstoneRequestExpectedStreamRevisionNoStream:
+	case WriteStreamRevisionNoStream:
 		result.Options.ExpectedStreamRevision = &streams2.TombstoneReq_Options_NoStream{
 			NoStream: &shared.Empty{},
 		}
-	case TombstoneRequestExpectedStreamRevisionAny:
+	case WriteStreamRevisionAny:
 		result.Options.ExpectedStreamRevision = &streams2.TombstoneReq_Options_Any{
 			Any: &shared.Empty{},
 		}
-	case TombstoneRequestExpectedStreamRevisionStreamExists:
+	case WriteStreamRevisionStreamExists:
 		result.Options.ExpectedStreamRevision = &streams2.TombstoneReq_Options_StreamExists{
 			StreamExists: &shared.Empty{},
 		}
 	}
 
 	return result
-}
-
-type IsTombstoneRequestExpectedStreamRevision interface {
-	isTombstoneRequestExpectedStreamRevision()
-}
-
-type TombstoneRequestExpectedStreamRevision struct {
-	Revision uint64
-}
-
-func (this TombstoneRequestExpectedStreamRevision) isTombstoneRequestExpectedStreamRevision() {
-}
-
-type TombstoneRequestExpectedStreamRevisionNoStream struct{}
-
-func (this TombstoneRequestExpectedStreamRevisionNoStream) isTombstoneRequestExpectedStreamRevision() {
-}
-
-type TombstoneRequestExpectedStreamRevisionAny struct{}
-
-func (this TombstoneRequestExpectedStreamRevisionAny) isTombstoneRequestExpectedStreamRevision() {
-}
-
-type TombstoneRequestExpectedStreamRevisionStreamExists struct{}
-
-func (this TombstoneRequestExpectedStreamRevisionStreamExists) isTombstoneRequestExpectedStreamRevision() {
 }

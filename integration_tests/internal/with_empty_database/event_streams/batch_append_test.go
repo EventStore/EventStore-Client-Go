@@ -22,7 +22,7 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 			_, err := client.BatchAppendToStream(context.Background(),
 				event_streams.BatchAppendRequestOptions{
 					StreamIdentifier:       streamName,
-					ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionNoStream{},
+					ExpectedStreamRevision: event_streams.WriteStreamRevisionNoStream{},
 					Deadline:               time.Now().Add(time.Second * 10),
 				},
 				[]event_streams.ProposedEvent{},
@@ -32,7 +32,7 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 		_, err := client.ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
 		require.Equal(t, err.Code(), errors.StreamNotFoundErr)
@@ -46,7 +46,7 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 			writeResult, err := client.BatchAppendToStream(context.Background(),
 				event_streams.BatchAppendRequestOptions{
 					StreamIdentifier:       streamName,
-					ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionAny{},
+					ExpectedStreamRevision: event_streams.WriteStreamRevisionAny{},
 					Deadline:               time.Now().Add(time.Second * 10),
 				},
 				[]event_streams.ProposedEvent{},
@@ -58,7 +58,7 @@ func Test_BatchAppendZeroEvents_ToNonExistingStream(t *testing.T) {
 		_, err := client.ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
 		require.Equal(t, err.Code(), errors.StreamNotFoundErr)
@@ -77,7 +77,7 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		writeResult, err := client.BatchAppendToStream(context.Background(),
 			event_streams.BatchAppendRequestOptions{
 				StreamIdentifier:       streamName,
-				ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionAny{},
+				ExpectedStreamRevision: event_streams.WriteStreamRevisionAny{},
 				Deadline:               time.Now().Add(time.Second * 10),
 			},
 			[]event_streams.ProposedEvent{testEvent},
@@ -89,7 +89,7 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		events, err := client.ReadStreamEvents(context.Background(),
 			streamName,
 			event_streams.ReadRequestDirectionForward,
-			event_streams.ReadRequestOptionsStreamRevisionStart{},
+			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
 		require.NoError(t, err)
@@ -104,7 +104,7 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		writeResult, err := client.BatchAppendToStream(context.Background(),
 			event_streams.BatchAppendRequestOptions{
 				StreamIdentifier:       streamName,
-				ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionAny{},
+				ExpectedStreamRevision: event_streams.WriteStreamRevisionAny{},
 				Deadline:               time.Now().Add(time.Second * 10),
 			},
 			testEvents,
@@ -127,7 +127,7 @@ func Test_BatchAppend_WithIncorrectCredentials(t *testing.T) {
 	_, err := client.BatchAppendToStream(context.Background(),
 		event_streams.BatchAppendRequestOptions{
 			StreamIdentifier:       streamName,
-			ExpectedStreamPosition: event_streams.BatchAppendExpectedStreamPositionAny{},
+			ExpectedStreamRevision: event_streams.WriteStreamRevisionAny{},
 			Deadline:               time.Now().Add(time.Second * 10),
 		},
 		testEvents,

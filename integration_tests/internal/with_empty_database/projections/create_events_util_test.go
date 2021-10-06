@@ -31,7 +31,7 @@ func pushEventsToStream(t *testing.T,
 	_, err := eventStreamsClient.AppendToStream(
 		context.Background(),
 		streamID,
-		event_streams.AppendRequestExpectedStreamRevisionNoStream{},
+		event_streams.WriteStreamRevisionNoStream{},
 		events)
 
 	require.NoError(t, err)

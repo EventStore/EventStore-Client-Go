@@ -36,32 +36,32 @@ func (this BatchAppendRequest) Build() *streams2.BatchAppendReq {
 
 	this.buildExpectedStreamPosition(
 		result,
-		this.Options.ExpectedStreamPosition)
+		this.Options.ExpectedStreamRevision)
 
 	return result
 }
 
 func (this BatchAppendRequest) buildExpectedStreamPosition(
 	protoResult *streams2.BatchAppendReq,
-	position isBatchAppendExpectedStreamPosition) {
+	position IsWriteStreamRevision) {
 
 	switch position.(type) {
-	case BatchAppendExpectedStreamPosition:
-		streamPosition := position.(BatchAppendExpectedStreamPosition)
+	case WriteStreamRevision:
+		streamPosition := position.(WriteStreamRevision)
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_StreamPosition{
-			StreamPosition: streamPosition.StreamPosition,
+			StreamPosition: streamPosition.Revision,
 		}
-	case BatchAppendExpectedStreamPositionNoStream:
+	case WriteStreamRevisionNoStream:
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_NoStream{
 			NoStream: &emptypb.Empty{},
 		}
 
-	case BatchAppendExpectedStreamPositionAny:
+	case WriteStreamRevisionAny:
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_Any{
 			Any: &emptypb.Empty{},
 		}
 
-	case BatchAppendExpectedStreamPositionStreamExists:
+	case WriteStreamRevisionStreamExists:
 		protoResult.Options.ExpectedStreamPosition = &streams2.BatchAppendReq_Options_StreamExists{
 			StreamExists: &emptypb.Empty{},
 		}
@@ -96,36 +96,10 @@ type BatchAppendRequestProposedMessage struct {
 
 type BatchAppendRequestOptions struct {
 	StreamIdentifier string
-	//	BatchAppendExpectedStreamPosition
-	//	BatchAppendExpectedStreamPositionNoStream
-	//	BatchAppendExpectedStreamPositionAny
-	//	BatchAppendExpectedStreamPositionStreamExists
-	ExpectedStreamPosition isBatchAppendExpectedStreamPosition
+	// WriteStreamRevision
+	// WriteStreamRevisionNoStream
+	// WriteStreamRevisionAny
+	// WriteStreamRevisionStreamExists
+	ExpectedStreamRevision IsWriteStreamRevision
 	Deadline               time.Time
-}
-
-type isBatchAppendExpectedStreamPosition interface {
-	isBatchAppendExpectedStreamPosition()
-}
-
-type BatchAppendExpectedStreamPosition struct {
-	StreamPosition uint64
-}
-
-func (this BatchAppendExpectedStreamPosition) isBatchAppendExpectedStreamPosition() {
-}
-
-type BatchAppendExpectedStreamPositionNoStream struct{}
-
-func (this BatchAppendExpectedStreamPositionNoStream) isBatchAppendExpectedStreamPosition() {
-}
-
-type BatchAppendExpectedStreamPositionAny struct{}
-
-func (this BatchAppendExpectedStreamPositionAny) isBatchAppendExpectedStreamPosition() {
-}
-
-type BatchAppendExpectedStreamPositionStreamExists struct{}
-
-func (this BatchAppendExpectedStreamPositionStreamExists) isBatchAppendExpectedStreamPosition() {
 }

@@ -83,7 +83,7 @@ func (client *ClientImpl) appendToStreamWithError(
 func (client *ClientImpl) AppendToStream(
 	ctx context.Context,
 	streamID string,
-	expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+	expectedStreamRevision IsWriteStreamRevision,
 	events []ProposedEvent,
 ) (AppendResponse, errors.Error) {
 	return client.appendToStreamWithError(ctx, AppendRequestContentOptions{
@@ -151,7 +151,7 @@ func (client *ClientImpl) BatchAppendToStream(ctx context.Context,
 func (client *ClientImpl) SetStreamMetadata(
 	ctx context.Context,
 	streamID string,
-	expectedStreamRevision IsAppendRequestExpectedStreamRevision,
+	expectedStreamRevision IsWriteStreamRevision,
 	metadata StreamMetadata) (AppendResponse, errors.Error) {
 	streamMetadataEvent := NewMetadataEvent(metadata)
 
@@ -188,7 +188,7 @@ func (client *ClientImpl) deleteStream(
 func (client *ClientImpl) DeleteStream(
 	ctx context.Context,
 	streamID string,
-	revision IsDeleteRequestExpectedStreamRevision) (DeleteResponse, errors.Error) {
+	revision IsWriteStreamRevision) (DeleteResponse, errors.Error) {
 	return client.deleteStream(ctx, DeleteRequest{
 		StreamIdentifier:       streamID,
 		ExpectedStreamRevision: revision,
@@ -198,7 +198,7 @@ func (client *ClientImpl) DeleteStream(
 func (client *ClientImpl) TombstoneStream(
 	ctx context.Context,
 	streamID string,
-	revision IsTombstoneRequestExpectedStreamRevision) (TombstoneResponse, errors.Error) {
+	revision IsWriteStreamRevision) (TombstoneResponse, errors.Error) {
 	return client.tombstoneStream(ctx, TombstoneRequest{
 		StreamIdentifier:       streamID,
 		ExpectedStreamRevision: revision,
@@ -297,7 +297,7 @@ func (client *ClientImpl) GetStreamReader(
 	ctx context.Context,
 	streamID string,
 	direction ReadRequestDirection,
-	revision IsReadRequestStreamOptionsStreamRevision,
+	revision IsReadStreamRevision,
 	count uint64,
 	resolveLinks bool) (StreamReader, errors.Error) {
 	return client.getStreamEventsReader(ctx, ReadRequest{
@@ -315,7 +315,7 @@ func (client *ClientImpl) GetStreamReader(
 func (client *ClientImpl) GetAllEventsReader(
 	ctx context.Context,
 	direction ReadRequestDirection,
-	position IsReadRequestOptionsAllPosition,
+	position IsReadPositionAll,
 	count uint64,
 	resolveLinks bool,
 ) (StreamReader, errors.Error) {
@@ -359,7 +359,7 @@ func (client *ClientImpl) getStreamEventsReader(
 func (client *ClientImpl) SubscribeToStream(
 	ctx context.Context,
 	streamID string,
-	revision IsSubscribeRequestStreamOptionsStreamRevision,
+	revision IsReadStreamRevision,
 	resolveLinks bool,
 ) (StreamReader, errors.Error) {
 	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
@@ -375,7 +375,7 @@ func (client *ClientImpl) SubscribeToStream(
 
 func (client *ClientImpl) SubscribeToAllFiltered(
 	ctx context.Context,
-	position IsSubscribeRequestOptionsAllPosition,
+	position IsReadPositionAll,
 	resolveLinks bool,
 	filter SubscribeRequestFilter,
 ) (StreamReader, errors.Error) {
@@ -391,7 +391,7 @@ func (client *ClientImpl) SubscribeToAllFiltered(
 
 func (client *ClientImpl) SubscribeToAll(
 	ctx context.Context,
-	position IsSubscribeRequestOptionsAllPosition,
+	position IsReadPositionAll,
 	resolveLinks bool,
 ) (StreamReader, errors.Error) {
 	return client.subscribeToStream(ctx, SubscribeToStreamRequest{
@@ -463,7 +463,7 @@ func (client *ClientImpl) GetStreamMetadata(
 	events, err := client.readStreamEvents(ctx, ReadRequest{
 		StreamOption: ReadRequestStreamOptions{
 			StreamIdentifier: GetMetaStreamOf(streamID),
-			Revision:         ReadRequestOptionsStreamRevisionEnd{},
+			Revision:         ReadStreamRevisionEnd{},
 		},
 		Direction:    ReadRequestDirectionBackward,
 		ResolveLinks: false,
@@ -488,7 +488,7 @@ func (client *ClientImpl) ReadStreamEvents(
 	ctx context.Context,
 	streamID string,
 	direction ReadRequestDirection,
-	revision IsReadRequestStreamOptionsStreamRevision,
+	revision IsReadStreamRevision,
 	count uint64,
 	resolveLinks bool) (ResolvedEventList, errors.Error) {
 	return client.readStreamEvents(ctx, ReadRequest{
@@ -506,7 +506,7 @@ func (client *ClientImpl) ReadStreamEvents(
 func (client *ClientImpl) ReadAllEvents(
 	ctx context.Context,
 	direction ReadRequestDirection,
-	position IsReadRequestOptionsAllPosition,
+	position IsReadPositionAll,
 	count uint64,
 	resolveLinks bool,
 ) (ResolvedEventList, errors.Error) {
