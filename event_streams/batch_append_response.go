@@ -1,6 +1,8 @@
 package event_streams
 
 import (
+	"github.com/pivonroll/EventStore-Client-Go/protobuf_uuid"
+
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
@@ -186,11 +188,11 @@ func (this batchResponseAdapterImpl) CreateResponseWithError(
 
 	if protoResponse.Result != nil {
 		if protoError, ok := protoResponse.Result.(*streams2.BatchAppendResp_Error); ok {
-			return BatchAppendResponse{}, BatchError{
-				ProtoCode: protoError.Error.Code,
-				Message:   protoError.Error.Message,
-				Details:   buildErrorDetails(protoError.Error.Details),
-			}
+			errorResult := newBatchError()
+			errorResult.ProtoCode = protoError.Error.Code
+			errorResult.Message = protoError.Error.Message
+			errorResult.Details = buildErrorDetails(protoError.Error.Details)
+			return BatchAppendResponse{}, errorResult
 		} else {
 			return this.buildResult(protoResponse), nil
 		}
@@ -201,11 +203,8 @@ func (this batchResponseAdapterImpl) CreateResponseWithError(
 
 func (this batchResponseAdapterImpl) buildResult(
 	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
-	correlationId := protoResponse.GetCorrelationId()
-	correlationIdString := correlationId.GetString_()
-
 	result := BatchAppendResponse{
-		CorrelationId:    correlationIdString,
+		CorrelationId:    protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()).String(),
 		StreamIdentifier: string(protoResponse.StreamIdentifier.StreamName),
 	}
 
