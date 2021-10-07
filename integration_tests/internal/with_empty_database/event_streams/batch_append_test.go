@@ -2,8 +2,11 @@ package event_streams_integration_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
@@ -69,7 +72,7 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 	client, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
 
-	t.Run("With Expected Revision Any", func(t *testing.T) {
+	t.Run("Append To Non-Existing Stream With Any", func(t *testing.T) {
 		streamName := "batch_append_to_non_existing_stream_any"
 
 		testEvent := testCreateEvent()
@@ -96,7 +99,7 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		require.Len(t, events, 1)
 	})
 
-	t.Run("With Expected Revision NoStream, Append Multiple At Once", func(t *testing.T) {
+	t.Run("Append To Non-Existing Stream With NoStream", func(t *testing.T) {
 		streamName := "batch_append_to_non_existing_stream_no_stream_append_multiple_at_once"
 
 		testEvents := testCreateEvents(100)
@@ -112,6 +115,37 @@ func Test_BatchAppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, writeResult.GetRevisionNoStream())
 		require.EqualValues(t, 99, writeResult.GetRevision())
+	})
+
+	t.Run("Append To Existing Stream With Correct Revision", func(t *testing.T) {
+	})
+
+	t.Run("Append To Existing Stream With Incorrect Revision", func(t *testing.T) {
+		streamName := "batch_append_to_existing_stream_with_incorrect_revision"
+
+		testEvents := testCreateEvents(2)
+
+		writeResult, err := client.AppendToStream(context.Background(),
+			streamName,
+			event_streams.WriteStreamRevisionNoStream{},
+			testEvents)
+		require.NoError(t, err)
+		require.EqualValues(t, 1, writeResult.GetCurrentRevision())
+
+		batchTestEvents := testCreateEvents(100)
+
+		batchWriteResult, err := client.BatchAppendToStream(context.Background(),
+			event_streams.BatchAppendRequestOptions{
+				StreamIdentifier:       streamName,
+				ExpectedStreamRevision: event_streams.WriteStreamRevision{Revision: 2},
+				Deadline:               time.Now().Add(time.Second * 10),
+			},
+			batchTestEvents,
+			50)
+
+		fmt.Println(err)
+		require.Error(t, err)
+		fmt.Println(spew.Sdump(batchWriteResult))
 	})
 }
 
