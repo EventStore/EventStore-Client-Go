@@ -103,6 +103,16 @@ func (client *ClientImpl) BatchAppendToStream(ctx context.Context,
 	events ProposedEventList,
 	chunkSize uint64,
 ) (BatchAppendResponse, errors.Error) {
+	correlationId, _ := uuid.NewV4()
+	return client.BatchAppendToStreamWithCorrelationId(ctx, batchRequestOptions, correlationId, events, chunkSize)
+}
+
+func (client *ClientImpl) BatchAppendToStreamWithCorrelationId(ctx context.Context,
+	batchRequestOptions BatchAppendRequestOptions,
+	correlationId uuid.UUID,
+	events ProposedEventList,
+	chunkSize uint64,
+) (BatchAppendResponse, errors.Error) {
 	handle, err := client.grpcClient.GetConnectionHandle()
 	if err != nil {
 		return BatchAppendResponse{}, err
@@ -120,7 +130,6 @@ func (client *ClientImpl) BatchAppendToStream(ctx context.Context,
 	}
 
 	chunks := events.toBatchAppendRequestChunks(chunkSize)
-	correlationId, _ := uuid.NewV4()
 
 	for index, chunk := range chunks {
 		request := BatchAppendRequest{
