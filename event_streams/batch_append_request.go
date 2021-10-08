@@ -10,38 +10,38 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type BatchAppendRequest struct {
-	CorrelationId    uuid.UUID
-	Options          BatchAppendRequestOptions
-	ProposedMessages []BatchAppendRequestProposedMessage
-	IsFinal          bool
+type batchAppendRequest struct {
+	correlationId    uuid.UUID
+	options          batchAppendRequestOptions
+	proposedMessages []batchAppendRequestProposedMessage
+	isFinal          bool
 }
 
-func (this BatchAppendRequest) Build() *streams2.BatchAppendReq {
+func (this batchAppendRequest) build() *streams2.BatchAppendReq {
 	result := &streams2.BatchAppendReq{
 		CorrelationId: &shared.UUID{
 			Value: &shared.UUID_String_{
-				String_: this.CorrelationId.String(),
+				String_: this.correlationId.String(),
 			},
 		},
 		Options: &streams2.BatchAppendReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: []byte(this.Options.StreamIdentifier),
+				StreamName: []byte(this.options.streamId),
 			},
-			Deadline: timestamppb.New(this.Options.Deadline),
+			Deadline: timestamppb.New(this.options.deadline),
 		},
 		ProposedMessages: this.buildProposedMessages(),
-		IsFinal:          this.IsFinal,
+		IsFinal:          this.isFinal,
 	}
 
 	this.buildExpectedStreamPosition(
 		result,
-		this.Options.ExpectedStreamRevision)
+		this.options.expectedStreamRevision)
 
 	return result
 }
 
-func (this BatchAppendRequest) buildExpectedStreamPosition(
+func (this batchAppendRequest) buildExpectedStreamPosition(
 	protoResult *streams2.BatchAppendReq,
 	position IsWriteStreamRevision) {
 
@@ -68,10 +68,10 @@ func (this BatchAppendRequest) buildExpectedStreamPosition(
 	}
 }
 
-func (this BatchAppendRequest) buildProposedMessages() []*streams2.BatchAppendReq_ProposedMessage {
-	result := make([]*streams2.BatchAppendReq_ProposedMessage, len(this.ProposedMessages))
+func (this batchAppendRequest) buildProposedMessages() []*streams2.BatchAppendReq_ProposedMessage {
+	result := make([]*streams2.BatchAppendReq_ProposedMessage, len(this.proposedMessages))
 
-	for index, value := range this.ProposedMessages {
+	for index, value := range this.proposedMessages {
 		result[index] = &streams2.BatchAppendReq_ProposedMessage{
 			Id: &shared.UUID{
 				Value: &shared.UUID_String_{
@@ -87,19 +87,19 @@ func (this BatchAppendRequest) buildProposedMessages() []*streams2.BatchAppendRe
 	return result
 }
 
-type BatchAppendRequestProposedMessage struct {
+type batchAppendRequestProposedMessage struct {
 	Id             uuid.UUID
 	Metadata       map[string]string
 	CustomMetadata []byte
 	Data           []byte
 }
 
-type BatchAppendRequestOptions struct {
-	StreamIdentifier string
+type batchAppendRequestOptions struct {
+	streamId string
 	// WriteStreamRevision
 	// WriteStreamRevisionNoStream
 	// WriteStreamRevisionAny
 	// WriteStreamRevisionStreamExists
-	ExpectedStreamRevision IsWriteStreamRevision
-	Deadline               time.Time
+	expectedStreamRevision IsWriteStreamRevision
+	deadline               time.Time
 }

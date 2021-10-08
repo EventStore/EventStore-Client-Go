@@ -9,7 +9,7 @@ import (
 
 func createTestEventWithMetadataSize(metadataSize int) event_streams.ProposedEvent {
 	return event_streams.ProposedEvent{
-		EventID:      uuid.Must(uuid.NewRandom()),
+		EventId:      uuid.Must(uuid.NewRandom()),
 		EventType:    "TestEvent",
 		ContentType:  "application/octet-stream",
 		UserMetadata: []byte(strings.Repeat("$", metadataSize)),

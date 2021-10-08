@@ -9,51 +9,69 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
+// BatchAppendResponse is a response returned by EventStoreDB after an entire batch of events (all chunks) were appended
+// to a stream in EventStoreDB.
 type BatchAppendResponse struct {
-	CorrelationId uuid.UUID
-	// BatchAppendResponseResultSuccessPosition
-	// BatchAppendResponseResultSuccessNoPosition
-	Position         isBatchAppendResponseResultSuccessPosition
-	StreamIdentifier string
-	// BatchAppendResponseResultSuccessCurrentRevision
-	// BatchAppendResponseResultSuccessCurrentRevisionNoStream
-	CurrentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
+	correlationId uuid.UUID
+	// batchAppendResponseResultSuccessPosition
+	// batchAppendResponseResultSuccessNoPosition
+	position isBatchAppendResponseResultSuccessPosition
+	streamId string
+	// batchAppendResponseResultSuccessCurrentRevision
+	// batchAppendResponseResultSuccessCurrentRevisionNoStream
+	currentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
 	// Types that are assignable to ExpectedStreamPosition:
-	//	BatchAppendResponseExpectedStreamPosition
-	//	BatchAppendResponseExpectedStreamPositionNoStream
-	//	BatchAppendResponseExpectedStreamPositionAny
-	//	BatchAppendResponseExpectedStreamPositionStreamExists
-	ExpectedStreamPosition isBatchAppendResponseExpectedStreamPosition
+	//	batchAppendResponseExpectedStreamPosition
+	//	batchAppendResponseExpectedStreamPositionNoStream
+	//	batchAppendResponseExpectedStreamPositionAny
+	//	batchAppendResponseExpectedStreamPositionStreamExists
+	expectedStreamPosition isBatchAppendResponseExpectedStreamPosition
 }
 
-func (response BatchAppendResponse) GetRevisionNoStream() bool {
-	_, ok := response.CurrentRevisionOption.(BatchAppendResponseResultSuccessCurrentRevisionNoStream)
+// GetCorrelationId returns a correlation id the client has sent along with a
+// chunk of events to append to EventStoreDB stream.
+func (response BatchAppendResponse) GetCorrelationId() uuid.UUID {
+	return response.correlationId
+}
+
+// IsCurrentRevisionNoStream returns true if current revision of a stream returned by EventStore is NoStream.
+func (response BatchAppendResponse) IsCurrentRevisionNoStream() bool {
+	_, ok := response.currentRevisionOption.(batchAppendResponseResultSuccessCurrentRevisionNoStream)
 	return ok
 }
 
-func (response BatchAppendResponse) GetRevision() uint64 {
-	if revision, ok := response.CurrentRevisionOption.(BatchAppendResponseResultSuccessCurrentRevision); ok {
+// GetCurrentRevision returns a current revision of a stream after events were appended to a stream in EventStoreDB.
+func (response BatchAppendResponse) GetCurrentRevision() uint64 {
+	if revision, ok := response.currentRevisionOption.(batchAppendResponseResultSuccessCurrentRevision); ok {
 		return revision.CurrentRevision
 	}
 
 	return 0
 }
 
-func (response BatchAppendResponse) GetPosition() (BatchAppendResponseResultSuccessPosition, bool) {
-	if position, ok := response.Position.(BatchAppendResponseResultSuccessPosition); ok {
-		return position, true
+// GetPosition returns a position of the last appended event to a stream along with a boolean which
+// indicates if EventStoreDB has returned a position or if it has not returned a position.
+// If EventStoreDB has not returned a position, GetPosition returns a zero initialized Position and false.
+func (response BatchAppendResponse) GetPosition() (Position, bool) {
+	if position, ok := response.position.(batchAppendResponseResultSuccessPosition); ok {
+		return Position{
+			CommitPosition:  position.CommitPosition,
+			PreparePosition: position.PreparePosition,
+		}, true
 	}
 
-	return BatchAppendResponseResultSuccessPosition{}, false
+	return Position{}, false
 }
 
-func (response BatchAppendResponse) IsExpectedStreamPositionNil() bool {
-	return response.ExpectedStreamPosition == nil
+// HasExpectedStreamPosition returns true is response contains expected stream position.
+func (response BatchAppendResponse) HasExpectedStreamPosition() bool {
+	return response.expectedStreamPosition != nil
 }
 
-func (response BatchAppendResponse) GetExpectedPosition() (uint64, bool) {
-	if response.ExpectedStreamPosition != nil {
-		if position, ok := response.ExpectedStreamPosition.(BatchAppendResponseExpectedStreamPosition); ok {
+// GetExpectedStreamPosition returns true if response contains finite expected stream position.
+func (response BatchAppendResponse) GetExpectedStreamPosition() (uint64, bool) {
+	if response.expectedStreamPosition != nil {
+		if position, ok := response.expectedStreamPosition.(batchAppendResponseExpectedStreamPosition); ok {
 			return position.StreamPosition, true
 		}
 	}
@@ -61,28 +79,32 @@ func (response BatchAppendResponse) GetExpectedPosition() (uint64, bool) {
 	return 0, false
 }
 
-func (response BatchAppendResponse) IsExpectedNoStreamPosition() bool {
-	_, ok := response.ExpectedStreamPosition.(BatchAppendResponseExpectedStreamPositionNoStream)
+// IsExpectedStreamPositionNoStream returns true if expected stream position is NoStream.
+func (response BatchAppendResponse) IsExpectedStreamPositionNoStream() bool {
+	_, ok := response.expectedStreamPosition.(batchAppendResponseExpectedStreamPositionNoStream)
 	return ok
 }
 
-func (response BatchAppendResponse) IsExpectedAnyPosition() bool {
-	_, ok := response.ExpectedStreamPosition.(BatchAppendResponseExpectedStreamPositionAny)
+// IsExpectedStreamPositionAny returns true if expected stream position is Any.
+func (response BatchAppendResponse) IsExpectedStreamPositionAny() bool {
+	_, ok := response.expectedStreamPosition.(batchAppendResponseExpectedStreamPositionAny)
 	return ok
 }
 
-func (response BatchAppendResponse) IsExpectedStreamExistsPosition() bool {
-	_, ok := response.ExpectedStreamPosition.(BatchAppendResponseExpectedStreamPositionStreamExists)
+// IsExpectedStreamPositionStreamExists returns true if expected stream position is StreamExists.
+func (response BatchAppendResponse) IsExpectedStreamPositionStreamExists() bool {
+	_, ok := response.expectedStreamPosition.(batchAppendResponseExpectedStreamPositionStreamExists)
 	return ok
 }
 
+// BatchError is an error which can occur when chunks of events are appended to a stream in EventStoreDB.
 type BatchError struct {
 	err           errors.Error
-	ProtoCode     int32
-	Message       string
-	Details       []ErrorDetails
-	CorrelationId string
-	StreamId      string
+	ProtoCode     int32          // an error code returned by EventStoreDB
+	Message       string         // informative message of an error returned by EventStoreDB
+	Details       []ErrorDetails // various details about an error
+	CorrelationId uuid.UUID      // correlation id sent by a client when it tried to append a batch of events to a stream at EventStoreDB
+	StreamId      string         // stream to which we wanted to append events to
 }
 
 func newBatchError(errorCode errors.ErrorCode) BatchError {
@@ -91,25 +113,28 @@ func newBatchError(errorCode errors.ErrorCode) BatchError {
 	}
 }
 
+// Error returns a string representation of an error.
 func (b BatchError) Error() string {
 	return b.err.Error()
 }
 
+// Code returns a code of an error.
 func (b BatchError) Code() errors.ErrorCode {
 	return b.err.Code()
 }
 
+// ErrorDetails represents various details about an error EventStore might sent to us.
 type ErrorDetails struct {
 	TypeUrl string
 	Value   []byte
 }
 
 type batchAppendResponseResultSuccess struct {
-	// BatchAppendResponseResultSuccessCurrentRevision
-	// BatchAppendResponseResultSuccessCurrentRevisionNoStream
+	// batchAppendResponseResultSuccessCurrentRevision
+	// batchAppendResponseResultSuccessCurrentRevisionNoStream
 	CurrentRevisionOption isBatchAppendResponseResultSuccessCurrentRevision
-	// BatchAppendResponseResultSuccessPosition
-	// BatchAppendResponseResultSuccessNoPosition
+	// batchAppendResponseResultSuccessPosition
+	// batchAppendResponseResultSuccessNoPosition
 	Position isBatchAppendResponseResultSuccessPosition
 }
 
@@ -117,72 +142,61 @@ type isBatchAppendResponseResultSuccessCurrentRevision interface {
 	isBatchAppendResponseResultSuccessCurrentRevision()
 }
 
-type BatchAppendResponseResultSuccessCurrentRevision struct {
+type batchAppendResponseResultSuccessCurrentRevision struct {
 	CurrentRevision uint64
 }
 
-func (this BatchAppendResponseResultSuccessCurrentRevision) isBatchAppendResponseResultSuccessCurrentRevision() {
+func (this batchAppendResponseResultSuccessCurrentRevision) isBatchAppendResponseResultSuccessCurrentRevision() {
 }
 
-type BatchAppendResponseResultSuccessCurrentRevisionNoStream struct{}
+type batchAppendResponseResultSuccessCurrentRevisionNoStream struct{}
 
-func (this BatchAppendResponseResultSuccessCurrentRevisionNoStream) isBatchAppendResponseResultSuccessCurrentRevision() {
+func (this batchAppendResponseResultSuccessCurrentRevisionNoStream) isBatchAppendResponseResultSuccessCurrentRevision() {
 }
 
 type isBatchAppendResponseResultSuccessPosition interface {
 	isBatchAppendResponseResultSuccessPosition()
 }
 
-type BatchAppendResponseResultSuccessPosition struct {
+type batchAppendResponseResultSuccessPosition struct {
 	CommitPosition  uint64
 	PreparePosition uint64
 }
 
-func (this BatchAppendResponseResultSuccessPosition) isBatchAppendResponseResultSuccessPosition() {
-}
-
-type BatchAppendResponseResultSuccessNoPosition struct{}
-
-func (this BatchAppendResponseResultSuccessNoPosition) isBatchAppendResponseResultSuccessPosition() {
+func (this batchAppendResponseResultSuccessPosition) isBatchAppendResponseResultSuccessPosition() {
 }
 
 type isBatchAppendResponseExpectedStreamPosition interface {
 	isBatchAppendResponseExpectedStreamPosition()
 }
 
-type BatchAppendResponseExpectedStreamPosition struct {
+type batchAppendResponseExpectedStreamPosition struct {
 	StreamPosition uint64
 }
 
-func (this BatchAppendResponseExpectedStreamPosition) isBatchAppendResponseExpectedStreamPosition() {
+func (this batchAppendResponseExpectedStreamPosition) isBatchAppendResponseExpectedStreamPosition() {
 }
 
-type BatchAppendResponseExpectedStreamPositionNoStream struct{}
+type batchAppendResponseExpectedStreamPositionNoStream struct{}
 
-func (this BatchAppendResponseExpectedStreamPositionNoStream) isBatchAppendResponseExpectedStreamPosition() {
+func (this batchAppendResponseExpectedStreamPositionNoStream) isBatchAppendResponseExpectedStreamPosition() {
 }
 
-type BatchAppendResponseExpectedStreamPositionAny struct{}
+type batchAppendResponseExpectedStreamPositionAny struct{}
 
-func (this BatchAppendResponseExpectedStreamPositionAny) isBatchAppendResponseExpectedStreamPosition() {
+func (this batchAppendResponseExpectedStreamPositionAny) isBatchAppendResponseExpectedStreamPosition() {
 }
 
-type BatchAppendResponseExpectedStreamPositionStreamExists struct{}
+type batchAppendResponseExpectedStreamPositionStreamExists struct{}
 
-func (this BatchAppendResponseExpectedStreamPositionStreamExists) isBatchAppendResponseExpectedStreamPosition() {
+func (this batchAppendResponseExpectedStreamPositionStreamExists) isBatchAppendResponseExpectedStreamPosition() {
 }
 
 type batchResponseAdapter interface {
-	CreateResponse(protoResponse *streams2.BatchAppendResp) BatchAppendResponse
-	CreateResponseWithError(protoResponse *streams2.BatchAppendResp) (BatchAppendResponse, errors.Error)
+	createResponseWithError(protoResponse *streams2.BatchAppendResp) (BatchAppendResponse, errors.Error)
 }
 
 type batchResponseAdapterImpl struct{}
-
-func (this batchResponseAdapterImpl) CreateResponse(
-	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
-	return this.buildSuccess(protoResponse)
-}
 
 const (
 	protoWrongExpectedVersion = "WrongExpectedVersion"
@@ -192,7 +206,7 @@ const (
 	protoStreamDeleted        = "StreamDeleted"
 )
 
-func (this batchResponseAdapterImpl) CreateResponseWithError(
+func (this batchResponseAdapterImpl) createResponseWithError(
 	protoResponse *streams2.BatchAppendResp) (BatchAppendResponse, errors.Error) {
 
 	if protoResponse.Result != nil {
@@ -226,7 +240,7 @@ func (this batchResponseAdapterImpl) buildBatchError(
 	errorResult.ProtoCode = protoError.Error.Code
 	errorResult.Message = protoError.Error.Message
 	errorResult.Details = buildErrorDetails(protoError.Error.Details)
-	errorResult.CorrelationId = protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()).String()
+	errorResult.CorrelationId = protobuf_uuid.GetUUID(protoResponse.GetCorrelationId())
 	errorResult.StreamId = string(protoResponse.GetStreamIdentifier().GetStreamName())
 
 	return errorResult
@@ -235,15 +249,15 @@ func (this batchResponseAdapterImpl) buildBatchError(
 func (this batchResponseAdapterImpl) buildSuccess(
 	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
 	result := BatchAppendResponse{
-		CorrelationId:    protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()),
-		StreamIdentifier: string(protoResponse.StreamIdentifier.StreamName),
+		correlationId: protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()),
+		streamId:      string(protoResponse.StreamIdentifier.StreamName),
 	}
 
-	result.ExpectedStreamPosition = this.buildExpectedStreamPosition(protoResponse)
+	result.expectedStreamPosition = this.buildExpectedStreamPosition(protoResponse)
 	protoSuccess := protoResponse.Result.(*streams2.BatchAppendResp_Success_)
 	revisionAndPosition := this.buildSuccessRevisionAndPosition(protoSuccess)
-	result.CurrentRevisionOption = revisionAndPosition.CurrentRevisionOption
-	result.Position = revisionAndPosition.Position
+	result.currentRevisionOption = revisionAndPosition.CurrentRevisionOption
+	result.position = revisionAndPosition.Position
 
 	return result
 }
@@ -268,17 +282,17 @@ func (this batchResponseAdapterImpl) buildSuccessRevisionAndPosition(
 	switch protoSuccess.Success.CurrentRevisionOption.(type) {
 	case *streams2.BatchAppendResp_Success_CurrentRevision:
 		protoCurrentRevision := protoSuccess.Success.CurrentRevisionOption.(*streams2.BatchAppendResp_Success_CurrentRevision)
-		result.CurrentRevisionOption = BatchAppendResponseResultSuccessCurrentRevision{
+		result.CurrentRevisionOption = batchAppendResponseResultSuccessCurrentRevision{
 			CurrentRevision: protoCurrentRevision.CurrentRevision,
 		}
 	case *streams2.BatchAppendResp_Success_NoStream:
-		result.CurrentRevisionOption = BatchAppendResponseResultSuccessCurrentRevisionNoStream{}
+		result.CurrentRevisionOption = batchAppendResponseResultSuccessCurrentRevisionNoStream{}
 	}
 
 	switch protoSuccess.Success.PositionOption.(type) {
 	case *streams2.BatchAppendResp_Success_Position:
 		protoPosition := protoSuccess.Success.PositionOption.(*streams2.BatchAppendResp_Success_Position)
-		result.Position = BatchAppendResponseResultSuccessPosition{
+		result.Position = batchAppendResponseResultSuccessPosition{
 			CommitPosition:  protoPosition.Position.CommitPosition,
 			PreparePosition: protoPosition.Position.PreparePosition,
 		}
@@ -297,15 +311,15 @@ func (this batchResponseAdapterImpl) buildExpectedStreamPosition(
 	switch protoResponse.ExpectedStreamPosition.(type) {
 	case *streams2.BatchAppendResp_StreamPosition:
 		protoPosition := protoResponse.ExpectedStreamPosition.(*streams2.BatchAppendResp_StreamPosition)
-		return BatchAppendResponseExpectedStreamPosition{
+		return batchAppendResponseExpectedStreamPosition{
 			StreamPosition: protoPosition.StreamPosition,
 		}
 	case *streams2.BatchAppendResp_NoStream:
-		return BatchAppendResponseExpectedStreamPositionNoStream{}
+		return batchAppendResponseExpectedStreamPositionNoStream{}
 	case *streams2.BatchAppendResp_Any:
-		return BatchAppendResponseExpectedStreamPositionAny{}
+		return batchAppendResponseExpectedStreamPositionAny{}
 	case *streams2.BatchAppendResp_StreamExists:
-		return BatchAppendResponseExpectedStreamPositionStreamExists{}
+		return batchAppendResponseExpectedStreamPositionStreamExists{}
 	default:
 		panic("unsupported type")
 	}

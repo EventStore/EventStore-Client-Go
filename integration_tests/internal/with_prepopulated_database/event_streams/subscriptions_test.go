@@ -46,7 +46,7 @@ func Test_StreamSubscription_DeliversAllEventsInStreamAndListensForNewEvents(t *
 					continue
 				}
 
-				require.Equal(t, testEvent[0].EventID, event.GetOriginalEvent().EventID)
+				require.Equal(t, testEvent[0].EventId, event.GetOriginalEvent().EventID)
 				require.Equal(t, uint64(6_000), event.GetOriginalEvent().EventNumber)
 				require.Equal(t, streamID, event.GetOriginalEvent().StreamId)
 				require.Equal(t, testEvent[0].Data, event.GetOriginalEvent().Data)
@@ -67,7 +67,7 @@ func Test_StreamSubscription_DeliversAllEventsInStreamAndListensForNewEvents(t *
 		event_streams.WriteStreamRevision{Revision: 5999},
 		testEvent)
 	require.NoError(t, err)
-	require.False(t, writeResult.GetCurrentRevisionNoStream())
+	require.False(t, writeResult.IsCurrentRevisionNoStream())
 	require.Equal(t, uint64(6_000), writeResult.GetCurrentRevision())
 
 	// Assert event was forwarded to the subscription

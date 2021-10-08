@@ -7,24 +7,22 @@ import (
 )
 
 type appendRequest struct {
-	// AppendRequestContentOptions
-	// AppendRequestContentProposedMessage
-	Content isAppendRequestContent
+	content isAppendRequestContent
 }
 
-func (this *appendRequest) Build() *streams2.AppendReq {
+func (this *appendRequest) build() *streams2.AppendReq {
 	result := &streams2.AppendReq{
 		Content: nil,
 	}
 
-	switch this.Content.(type) {
-	case AppendRequestContentOptions:
-		content := this.Content.(AppendRequestContentOptions)
+	switch this.content.(type) {
+	case appendRequestContentOptions:
+		content := this.content.(appendRequestContentOptions)
 
 		result.Content = &streams2.AppendReq_Options_{
 			Options: &streams2.AppendReq_Options{
 				StreamIdentifier: &shared.StreamIdentifier{
-					StreamName: []byte(content.StreamIdentifier),
+					StreamName: []byte(content.streamId),
 				},
 				ExpectedStreamRevision: nil,
 			},
@@ -32,19 +30,19 @@ func (this *appendRequest) Build() *streams2.AppendReq {
 
 		this.buildExpectedStreamRevision(result.Content.(*streams2.AppendReq_Options_), content)
 
-	case AppendRequestContentProposedMessage:
-		content := this.Content.(AppendRequestContentProposedMessage)
+	case appendRequestContentProposedMessage:
+		content := this.content.(appendRequestContentProposedMessage)
 
 		result.Content = &streams2.AppendReq_ProposedMessage_{
 			ProposedMessage: &streams2.AppendReq_ProposedMessage{
 				Id: &shared.UUID{
 					Value: &shared.UUID_String_{
-						String_: content.Id.String(),
+						String_: content.eventId.String(),
 					},
 				},
-				Metadata:       content.Metadata,
-				CustomMetadata: content.CustomMetadata,
-				Data:           content.Data,
+				Metadata:       content.metadata,
+				CustomMetadata: content.customMetadata,
+				Data:           content.data,
 			},
 		}
 	}
@@ -54,10 +52,10 @@ func (this *appendRequest) Build() *streams2.AppendReq {
 
 func (this *appendRequest) buildExpectedStreamRevision(
 	options *streams2.AppendReq_Options_,
-	content AppendRequestContentOptions) {
-	switch content.ExpectedStreamRevision.(type) {
+	content appendRequestContentOptions) {
+	switch content.expectedStreamRevision.(type) {
 	case WriteStreamRevision:
-		revision := content.ExpectedStreamRevision.(WriteStreamRevision)
+		revision := content.expectedStreamRevision.(WriteStreamRevision)
 
 		options.Options.ExpectedStreamRevision = &streams2.AppendReq_Options_Revision{
 			Revision: revision.Revision,
@@ -83,22 +81,22 @@ type isAppendRequestContent interface {
 	isAppendRequestContent()
 }
 
-type AppendRequestContentOptions struct {
-	StreamIdentifier string
+type appendRequestContentOptions struct {
+	streamId string
 	// WriteStreamRevision
 	// WriteStreamRevisionNoStream
 	// WriteStreamRevisionAny
 	// WriteStreamRevisionStreamExists
-	ExpectedStreamRevision IsWriteStreamRevision
+	expectedStreamRevision IsWriteStreamRevision
 }
 
-func (this AppendRequestContentOptions) isAppendRequestContent() {}
+func (this appendRequestContentOptions) isAppendRequestContent() {}
 
-type AppendRequestContentProposedMessage struct {
-	Id             uuid.UUID
-	Metadata       map[string]string
-	CustomMetadata []byte
-	Data           []byte
+type appendRequestContentProposedMessage struct {
+	eventId        uuid.UUID
+	metadata       map[string]string
+	customMetadata []byte
+	data           []byte
 }
 
-func (this AppendRequestContentProposedMessage) isAppendRequestContent() {}
+func (this appendRequestContentProposedMessage) isAppendRequestContent() {}

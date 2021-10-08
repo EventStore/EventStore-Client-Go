@@ -25,16 +25,16 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 		wg.Add(1)
 
 		ctx, cancelFunc := context.WithCancel(context.Background())
-		streamReader, err := client.SubscribeToAllFiltered(ctx,
+		streamReader, err := client.SubscribeToFilteredStreamAll(ctx,
 			event_streams.ReadPositionAllStart{},
 			false,
-			event_streams.SubscribeRequestFilter{
-				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+			event_streams.Filter{
+				FilterBy: event_streams.FilterByStreamId{
 					Matcher: event_streams.PrefixFilterMatcher{
 						PrefixList: []string{"prefix", "my_prefix"},
 					},
 				},
-				Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+				Window:                       event_streams.FilterNoWindow{},
 				CheckpointIntervalMultiplier: 5,
 			})
 		require.NoError(t, err)
@@ -59,16 +59,16 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 		wg.Add(1)
 
 		ctx, cancelFunc := context.WithCancel(context.Background())
-		streamReader, err := client.SubscribeToAllFiltered(ctx,
+		streamReader, err := client.SubscribeToFilteredStreamAll(ctx,
 			event_streams.ReadPositionAllStart{},
 			false,
-			event_streams.SubscribeRequestFilter{
-				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+			event_streams.Filter{
+				FilterBy: event_streams.FilterByStreamId{
 					Matcher: event_streams.PrefixFilterMatcher{
 						PrefixList: []string{"prefix", "my_prefix"},
 					},
 				},
-				Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+				Window:                       event_streams.FilterNoWindow{},
 				CheckpointIntervalMultiplier: 5,
 			})
 		require.NoError(t, err)
@@ -92,16 +92,16 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
-		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
+		streamReader, err := client.SubscribeToFilteredStreamAll(context.Background(),
 			event_streams.ReadPositionAllStart{},
 			false,
-			event_streams.SubscribeRequestFilter{
-				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+			event_streams.Filter{
+				FilterBy: event_streams.FilterByStreamId{
 					Matcher: event_streams.PrefixFilterMatcher{
 						PrefixList: []string{"prefix", "my_prefix"},
 					},
 				},
-				Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+				Window:                       event_streams.FilterNoWindow{},
 				CheckpointIntervalMultiplier: 5,
 			})
 		require.NoError(t, err)
@@ -125,16 +125,16 @@ func Test_SubscribeToAll_Filtered_ReturnsCancelled(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
-		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
+		streamReader, err := client.SubscribeToFilteredStreamAll(context.Background(),
 			event_streams.ReadPositionAllEnd{},
 			false,
-			event_streams.SubscribeRequestFilter{
-				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+			event_streams.Filter{
+				FilterBy: event_streams.FilterByStreamId{
 					Matcher: event_streams.PrefixFilterMatcher{
 						PrefixList: []string{"prefix", "my_prefix"},
 					},
 				},
-				Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+				Window:                       event_streams.FilterNoWindow{},
 				CheckpointIntervalMultiplier: 5,
 			})
 		require.NoError(t, err)
@@ -193,16 +193,16 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 
 		appPrefixEvents := append(prefixStreamEvents, prefixStreamEvents2...)
 
-		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
+		streamReader, err := client.SubscribeToFilteredStreamAll(context.Background(),
 			event_streams.ReadPositionAllStart{},
 			false,
-			event_streams.SubscribeRequestFilter{
-				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+			event_streams.Filter{
+				FilterBy: event_streams.FilterByStreamId{
 					Matcher: event_streams.PrefixFilterMatcher{
 						PrefixList: []string{prefix1, prefix2},
 					},
 				},
-				Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+				Window:                       event_streams.FilterNoWindow{},
 				CheckpointIntervalMultiplier: 5,
 			})
 		require.NoError(t, err)
@@ -253,16 +253,16 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 			prefixStreamEvents)
 		require.NoError(t, err)
 
-		streamReader, err := client.SubscribeToAllFiltered(context.Background(),
+		streamReader, err := client.SubscribeToFilteredStreamAll(context.Background(),
 			event_streams.ReadPositionAllStart{},
 			false,
-			event_streams.SubscribeRequestFilter{
-				FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+			event_streams.Filter{
+				FilterBy: event_streams.FilterByStreamId{
 					Matcher: event_streams.PrefixFilterMatcher{
 						PrefixList: []string{prefix1, prefix2},
 					},
 				},
-				Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+				Window:                       event_streams.FilterNoWindow{},
 				CheckpointIntervalMultiplier: 5,
 			})
 		require.NoError(t, err)
@@ -318,9 +318,7 @@ func Test_SubscribeToAll_Filtered_ReadAllEventsWithPrefix(t *testing.T) {
 				require.NoError(t, err)
 
 				if event, isEvent := readResult.GetEvent(); isEvent {
-					if !systemmetadata.IsSystemStream(event.Event.StreamId) {
-						result = append(result, event.ToProposedEvent())
-					}
+					result = append(result, event.ToProposedEvent())
 				}
 
 				return reflect.DeepEqual(newPrefixStreamEvents, result)
@@ -336,16 +334,16 @@ func Test_SubscribeToAll_Filtered_WithIncorrectCredentials(t *testing.T) {
 		"wrong_user_name", "wrong_password", nil)
 	defer closeFunc()
 
-	_, err := client.SubscribeToAllFiltered(context.Background(),
+	_, err := client.SubscribeToFilteredStreamAll(context.Background(),
 		event_streams.ReadPositionAllStart{},
 		false,
-		event_streams.SubscribeRequestFilter{
-			FilterBy: event_streams.SubscribeRequestFilterByStreamIdentifier{
+		event_streams.Filter{
+			FilterBy: event_streams.FilterByStreamId{
 				Matcher: event_streams.PrefixFilterMatcher{
 					PrefixList: []string{"aaa"},
 				},
 			},
-			Window:                       event_streams.SubscribeRequestFilterWindowCount{},
+			Window:                       event_streams.FilterNoWindow{},
 			CheckpointIntervalMultiplier: 5,
 		})
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())

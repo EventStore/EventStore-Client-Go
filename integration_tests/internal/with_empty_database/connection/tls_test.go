@@ -20,8 +20,8 @@ func TestTLSDefaults(t *testing.T) {
 	_, eventStreamsClient, closeFunc := initializeContainerAndClientWithTLS(t, nil)
 	defer closeFunc()
 
-	_, err := eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err := eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		false)
@@ -54,8 +54,8 @@ func TestTLSDefaultsWithCertificate(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		false)
@@ -73,8 +73,8 @@ func TestTLSWithoutCertificateAndVerify(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		false)
@@ -91,8 +91,8 @@ func TestTLSWithoutCertificate(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		false)
@@ -115,8 +115,8 @@ func TestTLSWithCertificate(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		true)
@@ -137,8 +137,8 @@ func TestTLSWithCertificateFromAbsoluteFile(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		true)
@@ -157,8 +157,8 @@ func TestTLSWithCertificateFromRelativeFile(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		true)
@@ -179,8 +179,8 @@ func TestTLSWithInvalidCertificate(t *testing.T) {
 	grpcClient := connection.NewGrpcClient(*config)
 	eventStreamsClient := initializeEventStreamsWithGrpcClient(grpcClient)
 
-	_, err = eventStreamsClient.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionBackward,
+	_, err = eventStreamsClient.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionBackward,
 		event_streams.ReadPositionAllStart{},
 		1,
 		true)

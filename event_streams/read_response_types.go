@@ -17,19 +17,25 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
+// ReadResponse represents a response received when reading a stream.
+// When reading a stream we can receive either an event or a checkpoint.
+// Use #GetEvent and GetCheckpoint to determine the result stored in a response.
 type ReadResponse struct {
-	// ResolvedEvent
-	// ReadResponseCheckpoint
-	Result isReadResponseResult
+	result isReadResponseResult
 }
 
+// GetEvent returns an event and a boolean which indicates if received value was actually an event.
+// If returned boolean is false then returned event is a zero initialized ResolvedEvent.
 func (response ReadResponse) GetEvent() (ResolvedEvent, bool) {
-	event, isEvent := response.Result.(ResolvedEvent)
+	event, isEvent := response.result.(ResolvedEvent)
 	return event, isEvent
 }
 
+// GetCheckpoint returns a checkpoint and a boolean which indicates if received value was actually a
+// checkpoint. If returned boolean is false then returned checkpoint is a zero
+// initialized ReadResponseCheckpoint.
 func (response ReadResponse) GetCheckpoint() (ReadResponseCheckpoint, bool) {
-	checkpoint, isCheckpoint := response.Result.(ReadResponseCheckpoint)
+	checkpoint, isCheckpoint := response.result.(ReadResponseCheckpoint)
 	return checkpoint, isCheckpoint
 }
 
@@ -37,23 +43,30 @@ type isReadResponseResult interface {
 	isReadResponseResult()
 }
 
+// StreamNotFoundError is an error returned if we tried to read a stream which does not exist.
 type StreamNotFoundError struct {
 	err      errors.Error
 	streamId string
 }
 
+// Error returns a string representation of an error.
 func (streamNotFound StreamNotFoundError) Error() string {
 	return streamNotFound.err.Error()
 }
 
+// Code returns a code of an error. Use this to determine the error type.
 func (streamNotFound StreamNotFoundError) Code() errors.ErrorCode {
 	return streamNotFound.err.Code()
 }
 
+// GetStreamId returns a stream identifier of a stream which does not exist.
+// This identifier was set in a read request set to EventStoreDB.
 func (streamNotFound StreamNotFoundError) GetStreamId() string {
 	return streamNotFound.streamId
 }
 
+// ReadResponseCheckpoint represents a checkpoint stored in a stream.
+// Checkpoints are used to mark certain positions of interest in a stream.
 type ReadResponseCheckpoint struct {
 	CommitPosition  uint64
 	PreparePosition uint64
@@ -61,13 +74,14 @@ type ReadResponseCheckpoint struct {
 
 func (this ReadResponseCheckpoint) isReadResponseResult() {}
 
+// readResponseAdapter is used to construct read response from received protobuf message.
 type readResponseAdapter interface {
-	Create(response *streams2.ReadResp) (ReadResponse, errors.Error)
+	create(response *streams2.ReadResp) (ReadResponse, errors.Error)
 }
 
 type readResponseAdapterImpl struct{}
 
-func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) (ReadResponse, errors.Error) {
+func (this readResponseAdapterImpl) create(protoResponse *streams2.ReadResp) (ReadResponse, errors.Error) {
 	result := ReadResponse{}
 
 	switch protoResponse.Content.(type) {
@@ -86,10 +100,10 @@ func (this readResponseAdapterImpl) Create(protoResponse *streams2.ReadResp) (Re
 			event.CommitPosition = nil
 		}
 
-		result.Result = event
+		result.result = event
 	case *streams2.ReadResp_Checkpoint_:
 		protoCheckpointResponse := protoResponse.Content.(*streams2.ReadResp_Checkpoint_).Checkpoint
-		result.Result = ReadResponseCheckpoint{
+		result.result = ReadResponseCheckpoint{
 			CommitPosition:  protoCheckpointResponse.CommitPosition,
 			PreparePosition: protoCheckpointResponse.PreparePosition,
 		}

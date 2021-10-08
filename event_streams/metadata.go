@@ -9,63 +9,76 @@ import (
 	"github.com/google/uuid"
 )
 
-type StreamMetadataResult interface {
-	IsNone() bool
-	GetStreamId() string
-	GetStreamMetadata() StreamMetadata
-	GetMetaStreamRevision() uint64
+// StreamMetadataResult is stream's metadata read by Client.GetStreamMetadata.
+//
+// Streams metadata hold information about a stream. Some of that information is an
+// access control list (acl) for a stream. See StreamMetadata for more info.
+//
+// Stream does not need to have metadata set. If stream has no metadata set than IsEmpty returns false.
+type StreamMetadataResult struct {
+	streamId string
+	result   isStreamMetadataResult
 }
 
-type StreamMetadataNone struct{}
-
-func (metadataNone StreamMetadataNone) IsNone() bool {
-	return true
+// IsEmpty returns true if stream's metadata stream has nothing stored in it.
+func (result StreamMetadataResult) IsEmpty() bool {
+	return result.result == nil
 }
 
-func (metadataNone StreamMetadataNone) GetStreamId() string {
-	return ""
+// GetStreamId returns a stream's identifier to which metadata relates to.
+func (result StreamMetadataResult) GetStreamId() string {
+	return result.streamId
 }
 
-func (metadataNone StreamMetadataNone) GetStreamMetadata() StreamMetadata {
+// GetStreamMetadata returns stream's latest metadata.
+// If stream has no metadata set it returns a zero initialized StreamMetadata.
+func (result StreamMetadataResult) GetStreamMetadata() StreamMetadata {
+	if result.result != nil {
+		if result, ok := result.result.(metadataResult); ok {
+			return result.streamMetadata
+		}
+	}
+
 	return StreamMetadata{}
 }
 
-func (metadataNone StreamMetadataNone) GetMetaStreamRevision() uint64 {
+// GetMetaStreamRevision returns a current revision of stream's metadata stream if stream has metadata set.
+// If stream has no metadata set it returns 0. Use IsEmpty to determine if stream has any metadata set.
+func (result StreamMetadataResult) GetMetaStreamRevision() uint64 {
+	if result.result != nil {
+		if result, ok := result.result.(metadataResult); ok {
+			return result.metaStreamRevision
+		}
+	}
+
 	return 0
 }
 
-type StreamMetadataResultImpl struct {
-	StreamId           string
-	StreamMetadata     StreamMetadata
-	MetaStreamRevision uint64
+type isStreamMetadataResult interface {
+	isStreamMetadataResult()
 }
 
-func (result StreamMetadataResultImpl) GetStreamId() string {
-	return result.StreamId
+// metadataResult is stream's metadata together with stream ID and current revision of
+// stream's metadata stream.
+type metadataResult struct {
+	streamMetadata     StreamMetadata
+	metaStreamRevision uint64
 }
 
-func (result StreamMetadataResultImpl) IsNone() bool {
-	return false
-}
+func (result metadataResult) isStreamMetadataResult() {}
 
-func (result StreamMetadataResultImpl) GetStreamMetadata() StreamMetadata {
-	return result.StreamMetadata
-}
-
-func (result StreamMetadataResultImpl) GetMetaStreamRevision() uint64 {
-	return result.MetaStreamRevision
-}
-
-func NewStreamMetadataResultImpl(streamId string, event ResolvedEvent) StreamMetadataResultImpl {
+func newStreamMetadataResultImpl(streamId string, event ResolvedEvent) StreamMetadataResult {
 	var metaData StreamMetadata
 	if err := json.Unmarshal(event.Event.Data, &metaData); err != nil {
 		panic(err)
 	}
 
-	return StreamMetadataResultImpl{
-		StreamId:           streamId,
-		StreamMetadata:     metaData,
-		MetaStreamRevision: event.Event.EventNumber,
+	return StreamMetadataResult{
+		streamId: streamId,
+		result: metadataResult{
+			streamMetadata:     metaData,
+			metaStreamRevision: event.Event.EventNumber,
+		},
 	}
 }
 
@@ -79,17 +92,42 @@ const (
 	maxCountJsonProperty       = "$maxCount"
 )
 
+// CustomMetadataType is shorthand type for user defined metadata of a stream.
 type CustomMetadataType map[string]interface{}
 
+// StreamMetadata is the metadata of a stream.
+// You can read more about stream metadata at
+// https://developers.eventstore.com/server/v21.6/streams/metadata-and-reserved-names.html#reserved-names
 type StreamMetadata struct {
-	MaxAgeInSeconds       *uint64    `json:"$maxAge"`
-	TruncateBefore        *uint64    `json:"$tb"`
-	CacheControlInSeconds *uint64    `json:"$cacheControl"`
-	Acl                   *StreamAcl `json:"$acl"`
-	MaxCount              *int       `json:"$maxCount"`
-	CustomMetadata        CustomMetadataType
+	// MaxAgeInSeconds Sets a sliding window based on dates.
+	// When data reaches a certain age it disappears automatically from the stream and is
+	// considered eligible for scavenging.
+	// This value is set as an integer representing the number of seconds. This value must be >= 1.
+	MaxAgeInSeconds *uint64 `json:"$maxAge"`
+	// TruncateBefore indicates a stream's revision before all events in a stream are truncated from
+	// stream read operations.
+	// If TruncateBefore is 4 that means that all events before revision 4 are truncated from stream
+	// read operation.
+	// Truncation naturally occurs when a soft-delete is performed on a stream with Client.DeleteStream.
+	TruncateBefore *uint64 `json:"$tb"`
+	// This controls the cache of the head of a stream.
+	// Most URIs in a stream are infinitely cacheable but the head by default will not cache.
+	// It may be preferable in some situations to set a small amount of caching on the head to
+	// allow intermediaries to handle polls (say 10 seconds).
+	// The argument is an integer representing the seconds to cache. This value must be >= 1.
+	CacheControlInSeconds *uint64 `json:"$cacheControl"`
+	// Access Control List for a stream.
+	Acl *StreamAcl `json:"$acl"`
+	// Sets a sliding window based on the number of items in the stream.
+	// When data reaches a certain length it disappears automatically from the stream and is
+	// considered eligible for scavenging.
+	// This value is set as an integer representing the count of items. This value must be >= 1.
+	MaxCount *int `json:"$maxCount"`
+	// User defined metadata for a stream.
+	CustomMetadata CustomMetadataType
 }
 
+// MarshalJSON implements JSON marshaller interface
 func (b StreamMetadata) MarshalJSON() ([]byte, error) {
 	dat := map[string]interface{}{}
 
@@ -109,6 +147,7 @@ func (b StreamMetadata) MarshalJSON() ([]byte, error) {
 	return json.Marshal(dat)
 }
 
+// UnmarshalJSON implements JSON marshaller interface
 func (b *StreamMetadata) UnmarshalJSON(data []byte) error {
 	var rawDataMap map[string]*json.RawMessage
 	if err := json.Unmarshal(data, &rawDataMap); err != nil {
@@ -235,11 +274,11 @@ func isCustomMetaValueAllowed(value interface{}) bool {
 	}
 }
 
-func GetMetaStreamOf(streamName string) string {
+func getMetaStreamOf(streamName string) string {
 	return "$$" + streamName
 }
 
-func NewMetadataEvent(metadata StreamMetadata) ProposedEvent {
+func newMetadataEvent(metadata StreamMetadata) ProposedEvent {
 	eventId, _ := uuid.NewRandom()
 
 	jsonBytes, stdErr := json.Marshal(metadata)
@@ -249,7 +288,7 @@ func NewMetadataEvent(metadata StreamMetadata) ProposedEvent {
 	}
 
 	return ProposedEvent{
-		EventID:      eventId,
+		EventId:      eventId,
 		EventType:    StreamMetadataType,
 		ContentType:  ContentTypeJson,
 		Data:         jsonBytes,

@@ -40,8 +40,8 @@ func Test_ReadAll_Backwards(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Return Empty If Reading From Start", func(t *testing.T) {
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionBackward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionBackward,
 			event_streams.ReadPositionAllStart{},
 			1,
 			false)
@@ -53,8 +53,8 @@ func Test_ReadAll_Backwards(t *testing.T) {
 		ctx := context.Background()
 		timeoutCtx, cancelFunc := context.WithTimeout(ctx, 0)
 		defer cancelFunc()
-		_, err = client.ReadAllEvents(timeoutCtx,
-			event_streams.ReadRequestDirectionBackward,
+		_, err = client.ReadEventsFromStreamAll(timeoutCtx,
+			event_streams.ReadDirectionBackward,
 			event_streams.ReadPositionAllStart{},
 			1,
 			false)
@@ -63,8 +63,8 @@ func Test_ReadAll_Backwards(t *testing.T) {
 
 	t.Run("Return Partial Slice If Not Enough Events", func(t *testing.T) {
 		count := uint64(len(events)) * 2
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionBackward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionBackward,
 			event_streams.ReadPositionAllEnd{},
 			count,
 			false)
@@ -74,8 +74,8 @@ func Test_ReadAll_Backwards(t *testing.T) {
 
 	t.Run("Return Events In Reversed Order Compared To Written", func(t *testing.T) {
 		count := uint64(len(events))
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionBackward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionBackward,
 			event_streams.ReadPositionAllEnd{},
 			count,
 			false)
@@ -87,8 +87,8 @@ func Test_ReadAll_Backwards(t *testing.T) {
 	})
 
 	t.Run("Return Single Event", func(t *testing.T) {
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionBackward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionBackward,
 			event_streams.ReadPositionAllEnd{},
 			1,
 			false)
@@ -101,8 +101,8 @@ func Test_ReadAll_Backwards(t *testing.T) {
 
 	t.Run("Max Count Is Respected", func(t *testing.T) {
 		maxCount := len(events) / 2
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionBackward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionBackward,
 			event_streams.ReadPositionAllEnd{},
 			uint64(maxCount),
 			false)
@@ -139,8 +139,8 @@ func Test_ReadAll_Forwards(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Return Empty If Reading From End", func(t *testing.T) {
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionForward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionForward,
 			event_streams.ReadPositionAllEnd{},
 			1,
 			false)
@@ -150,8 +150,8 @@ func Test_ReadAll_Forwards(t *testing.T) {
 
 	t.Run("Return Partial Slice If Not Enough Events", func(t *testing.T) {
 		count := uint64(len(events)) * 2
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionForward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionForward,
 			event_streams.ReadPositionAllStart{},
 			count,
 			false)
@@ -161,8 +161,8 @@ func Test_ReadAll_Forwards(t *testing.T) {
 
 	t.Run("Return Events In Correct Order Compared To Written", func(t *testing.T) {
 		count := uint64(len(events)) * 2
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionForward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionForward,
 			event_streams.ReadPositionAllStart{},
 			count,
 			false)
@@ -175,8 +175,8 @@ func Test_ReadAll_Forwards(t *testing.T) {
 	})
 
 	t.Run("Return Single Event", func(t *testing.T) {
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionForward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionForward,
 			event_streams.ReadPositionAllStart{},
 			1,
 			false)
@@ -186,8 +186,8 @@ func Test_ReadAll_Forwards(t *testing.T) {
 
 	t.Run("Max Count Is Respected", func(t *testing.T) {
 		maxCount := len(events) / 2
-		readEvents, err := client.ReadAllEvents(context.Background(),
-			event_streams.ReadRequestDirectionForward,
+		readEvents, err := client.ReadEventsFromStreamAll(context.Background(),
+			event_streams.ReadDirectionForward,
 			event_streams.ReadPositionAllStart{},
 			uint64(maxCount),
 			false)
@@ -201,8 +201,8 @@ func Test_ReadAll_WithIncorrectCredentials(t *testing.T) {
 		"wrong_user_name", "wrong_password", nil)
 	defer closeFunc()
 
-	_, err := client.ReadAllEvents(context.Background(),
-		event_streams.ReadRequestDirectionForward,
+	_, err := client.ReadEventsFromStreamAll(context.Background(),
+		event_streams.ReadDirectionForward,
 		event_streams.ReadPositionAllEnd{},
 		1,
 		false)

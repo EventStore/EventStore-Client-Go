@@ -18,7 +18,7 @@ func Test_CloseConnection(t *testing.T) {
 	defer container.Close()
 
 	testEvent := event_streams.ProposedEvent{
-		EventID:      uuid.MustParse("38fffbc2-339e-11ea-8c7b-784f43837872"),
+		EventId:      uuid.MustParse("38fffbc2-339e-11ea-8c7b-784f43837872"),
 		EventType:    "TestEvent",
 		ContentType:  "application/octet-stream",
 		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},

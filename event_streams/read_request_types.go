@@ -7,22 +7,20 @@ import (
 
 const ReadCountMax = ^uint64(0)
 
-type ReadRequest struct {
-	// ReadRequestStreamOptions
-	// ReadRequestStreamOptionsAll
-	StreamOption isReadRequestStreamOptions
-	Direction    ReadRequestDirection
-	ResolveLinks bool
-	Count        uint64
-	// ReadRequestFilter
-	// ReadRequestNoFilter
-	Filter isReadRequestFilterOption
+type readRequest struct {
+	streamOption isReadRequestStreamOptions
+	direction    ReadDirection
+	resolveLinks bool
+	count        uint64
+	// Filter
+	// noFilter
+	filter isFilter
 }
 
-func (this ReadRequest) Build() *streams2.ReadReq {
+func (this readRequest) build() *streams2.ReadReq {
 	result := &streams2.ReadReq{
 		Options: &streams2.ReadReq_Options{
-			ResolveLinks: this.ResolveLinks,
+			ResolveLinks: this.resolveLinks,
 			FilterOption: nil,
 			UuidOption: &streams2.ReadReq_Options_UUIDOption{
 				Content: &streams2.ReadReq_Options_UUIDOption_String_{
@@ -30,12 +28,12 @@ func (this ReadRequest) Build() *streams2.ReadReq {
 				},
 			},
 			CountOption: &streams2.ReadReq_Options_Count{
-				Count: this.Count,
+				Count: this.count,
 			},
 		},
 	}
 
-	if this.Direction == ReadRequestDirectionForward {
+	if this.direction == ReadDirectionForward {
 		result.Options.ReadDirection = streams2.ReadReq_Options_Forwards
 	} else {
 		result.Options.ReadDirection = streams2.ReadReq_Options_Backwards
@@ -47,18 +45,18 @@ func (this ReadRequest) Build() *streams2.ReadReq {
 	return result
 }
 
-func (this ReadRequest) buildStreamOption(options *streams2.ReadReq_Options) {
-	switch this.StreamOption.(type) {
-	case ReadRequestStreamOptions:
+func (this readRequest) buildStreamOption(options *streams2.ReadReq_Options) {
+	switch this.streamOption.(type) {
+	case readRequestStreamOptions:
 		options.StreamOption = this.buildStreamOptions(
-			this.StreamOption.(ReadRequestStreamOptions))
-	case ReadRequestStreamOptionsAll:
+			this.streamOption.(readRequestStreamOptions))
+	case readRequestStreamOptionsAll:
 		options.StreamOption = thisBuildStreamOptionAll(
-			this.StreamOption.(ReadRequestStreamOptionsAll))
+			this.streamOption.(readRequestStreamOptionsAll))
 	}
 }
 
-func thisBuildStreamOptionAll(all ReadRequestStreamOptionsAll) *streams2.ReadReq_Options_All {
+func thisBuildStreamOptionAll(all readRequestStreamOptionsAll) *streams2.ReadReq_Options_All {
 	result := &streams2.ReadReq_Options_All{
 		All: &streams2.ReadReq_Options_AllOptions{},
 	}
@@ -85,8 +83,8 @@ func thisBuildStreamOptionAll(all ReadRequestStreamOptionsAll) *streams2.ReadReq
 	return result
 }
 
-func (this ReadRequest) buildStreamOptions(
-	streamOptions ReadRequestStreamOptions) *streams2.ReadReq_Options_Stream {
+func (this readRequest) buildStreamOptions(
+	streamOptions readRequestStreamOptions) *streams2.ReadReq_Options_Stream {
 	result := &streams2.ReadReq_Options_Stream{
 		Stream: &streams2.ReadReq_Options_StreamOptions{
 			StreamIdentifier: &shared.StreamIdentifier{
@@ -115,120 +113,21 @@ func (this ReadRequest) buildStreamOptions(
 	return result
 }
 
-func (this ReadRequest) buildFilterOption(options *streams2.ReadReq_Options) {
-	switch this.Filter.(type) {
-	case ReadRequestFilter:
-		options.FilterOption = this.buildFilter()
+func (this readRequest) buildFilterOption(options *streams2.ReadReq_Options) {
+	switch this.filter.(type) {
+	case Filter:
+		options.FilterOption = buildProtoFilter(this.filter)
 
-	case ReadRequestNoFilter:
+	case noFilter:
 		options.FilterOption = &streams2.ReadReq_Options_NoFilter{NoFilter: &shared.Empty{}}
 	}
 }
-
-func (this ReadRequest) buildFilter() *streams2.ReadReq_Options_Filter {
-	filter := this.Filter.(ReadRequestFilter)
-	result := &streams2.ReadReq_Options_Filter{
-		Filter: &streams2.ReadReq_Options_FilterOptions{
-			CheckpointIntervalMultiplier: filter.CheckpointIntervalMultiplier,
-		},
-	}
-
-	switch filter.FilterBy.(type) {
-	case ReadRequestFilterByEventType:
-		eventTypeFilter := filter.FilterBy.(ReadRequestFilterByEventType)
-
-		result.Filter.Filter = &streams2.ReadReq_Options_FilterOptions_EventType{
-			EventType: &streams2.ReadReq_Options_FilterOptions_Expression{
-				Regex:  eventTypeFilter.Regex,
-				Prefix: eventTypeFilter.Prefix,
-			},
-		}
-
-	case ReadRequestFilterByStreamIdentifier:
-		streamIdentifierFilter := filter.FilterBy.(ReadRequestFilterByStreamIdentifier)
-
-		result.Filter.Filter = &streams2.ReadReq_Options_FilterOptions_StreamIdentifier{
-			StreamIdentifier: &streams2.ReadReq_Options_FilterOptions_Expression{
-				Regex:  streamIdentifierFilter.Regex,
-				Prefix: streamIdentifierFilter.Prefix,
-			},
-		}
-	}
-
-	switch filter.Window.(type) {
-	case ReadRequestFilterWindowMax:
-		maxWindow := filter.Window.(ReadRequestFilterWindowMax)
-
-		result.Filter.Window = &streams2.ReadReq_Options_FilterOptions_Max{
-			Max: maxWindow.Max,
-		}
-
-	case ReadRequestFilterWindowCount:
-		result.Filter.Window = &streams2.ReadReq_Options_FilterOptions_Count{
-			Count: &shared.Empty{},
-		}
-	}
-
-	return result
-}
-
-type isReadRequestFilterOption interface {
-	isReadRequestFilterOption()
-}
-
-type ReadRequestFilter struct {
-	// ReadRequestFilterByEventType
-	// ReadRequestFilterByStreamIdentifier
-	FilterBy isReadRequestFilterBy
-	// ReadRequestFilterWindowMax
-	// ReadRequestFilterWindowCount
-	Window                       isReadRequestFilterWindow
-	CheckpointIntervalMultiplier uint32
-}
-
-func (this ReadRequestFilter) isReadRequestFilterOption() {}
-
-type isReadRequestFilterBy interface {
-	isReadRequestFilterBy()
-}
-
-type ReadRequestFilterByEventType struct {
-	Regex  string
-	Prefix []string
-}
-
-func (this ReadRequestFilterByEventType) isReadRequestFilterBy() {}
-
-type ReadRequestFilterByStreamIdentifier struct {
-	Regex  string
-	Prefix []string
-}
-
-func (this ReadRequestFilterByStreamIdentifier) isReadRequestFilterBy() {}
-
-type isReadRequestFilterWindow interface {
-	isReadRequestFilterWindow()
-}
-
-type ReadRequestFilterWindowMax struct {
-	Max uint32
-}
-
-func (this ReadRequestFilterWindowMax) isReadRequestFilterWindow() {}
-
-type ReadRequestFilterWindowCount struct{}
-
-func (this ReadRequestFilterWindowCount) isReadRequestFilterWindow() {}
-
-type ReadRequestNoFilter struct{}
-
-func (this ReadRequestNoFilter) isReadRequestFilterOption() {}
 
 type isReadRequestStreamOptions interface {
 	isReadRequestStreamOptions()
 }
 
-type ReadRequestStreamOptions struct {
+type readRequestStreamOptions struct {
 	StreamIdentifier string
 	// ReadStreamRevision
 	// ReadStreamRevisionStart
@@ -236,20 +135,13 @@ type ReadRequestStreamOptions struct {
 	Revision IsReadStreamRevision
 }
 
-func (this ReadRequestStreamOptions) isReadRequestStreamOptions() {}
+func (this readRequestStreamOptions) isReadRequestStreamOptions() {}
 
-type ReadRequestStreamOptionsAll struct {
+type readRequestStreamOptionsAll struct {
 	// ReadPositionAll
 	// ReadPositionAllStart
 	// ReadPositionAllEnd
 	Position IsReadPositionAll
 }
 
-func (this ReadRequestStreamOptionsAll) isReadRequestStreamOptions() {}
-
-type ReadRequestDirection string
-
-const (
-	ReadRequestDirectionForward  ReadRequestDirection = "ReadRequestDirectionForward"
-	ReadRequestDirectionBackward ReadRequestDirection = "ReadRequestDirectionBackward"
-)
+func (this readRequestStreamOptionsAll) isReadRequestStreamOptions() {}

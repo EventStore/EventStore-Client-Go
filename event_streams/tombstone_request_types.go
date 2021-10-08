@@ -5,29 +5,29 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
-type TombstoneRequest struct {
-	StreamIdentifier string
-	// Types that are assignable to ExpectedStreamRevision:
+type tombstoneRequest struct {
+	streamId string
+	// Types that are assignable to expectedStreamRevision:
 	// WriteStreamRevision
 	// WriteStreamRevisionNoStream
 	// WriteStreamRevisionAny
 	// WriteStreamRevisionStreamExists
-	ExpectedStreamRevision IsWriteStreamRevision
+	expectedStreamRevision IsWriteStreamRevision
 }
 
-func (this TombstoneRequest) Build() *streams2.TombstoneReq {
+func (this tombstoneRequest) build() *streams2.TombstoneReq {
 	result := &streams2.TombstoneReq{
 		Options: &streams2.TombstoneReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: []byte(this.StreamIdentifier),
+				StreamName: []byte(this.streamId),
 			},
 			ExpectedStreamRevision: nil,
 		},
 	}
 
-	switch this.ExpectedStreamRevision.(type) {
+	switch this.expectedStreamRevision.(type) {
 	case WriteStreamRevision:
-		revision := this.ExpectedStreamRevision.(WriteStreamRevision)
+		revision := this.expectedStreamRevision.(WriteStreamRevision)
 		result.Options.ExpectedStreamRevision = &streams2.TombstoneReq_Options_Revision{
 			Revision: revision.Revision,
 		}

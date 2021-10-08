@@ -5,21 +5,19 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
-type SubscribeToStreamRequest struct {
-	// SubscribeRequestStreamOptions
-	// SubscribeRequestStreamOptionsAll
-	StreamOption isSubscribeRequestStreamOptions
-	Direction    SubscribeRequestDirection
-	ResolveLinks bool
-	// SubscribeRequestFilter
-	// SubscribeRequestNoFilter
-	Filter IsSubscribeRequestFilterOption
+type subscribeToStreamRequest struct {
+	streamOption isSubscribeRequestStreamOptions
+	direction    subscribeRequestDirection
+	resolveLinks bool
+	// Filter
+	// noFilter
+	filter isFilter
 }
 
-func (this SubscribeToStreamRequest) Build() *streams2.ReadReq {
+func (this subscribeToStreamRequest) build() *streams2.ReadReq {
 	result := &streams2.ReadReq{
 		Options: &streams2.ReadReq_Options{
-			ResolveLinks: this.ResolveLinks,
+			ResolveLinks: this.resolveLinks,
 			FilterOption: nil,
 			CountOption: &streams2.ReadReq_Options_Subscription{
 				Subscription: &streams2.ReadReq_Options_SubscriptionOptions{},
@@ -32,7 +30,7 @@ func (this SubscribeToStreamRequest) Build() *streams2.ReadReq {
 		},
 	}
 
-	if this.Direction == SubscribeRequestDirectionForward {
+	if this.direction == subscribeRequestDirectionForward {
 		result.Options.ReadDirection = streams2.ReadReq_Options_Forwards
 	} else {
 		result.Options.ReadDirection = streams2.ReadReq_Options_Backwards
@@ -44,18 +42,18 @@ func (this SubscribeToStreamRequest) Build() *streams2.ReadReq {
 	return result
 }
 
-func (this SubscribeToStreamRequest) buildStreamOption(options *streams2.ReadReq_Options) {
-	switch this.StreamOption.(type) {
-	case SubscribeRequestStreamOptions:
+func (this subscribeToStreamRequest) buildStreamOption(options *streams2.ReadReq_Options) {
+	switch this.streamOption.(type) {
+	case subscribeRequestStreamOptions:
 		options.StreamOption = this.buildStreamOptions(
-			this.StreamOption.(SubscribeRequestStreamOptions))
-	case SubscribeRequestStreamOptionsAll:
+			this.streamOption.(subscribeRequestStreamOptions))
+	case subscribeRequestStreamOptionsAll:
 		options.StreamOption = this.buildStreamOptionAll(
-			this.StreamOption.(SubscribeRequestStreamOptionsAll))
+			this.streamOption.(subscribeRequestStreamOptionsAll))
 	}
 }
 
-func (this SubscribeToStreamRequest) buildStreamOptionAll(all SubscribeRequestStreamOptionsAll) *streams2.ReadReq_Options_All {
+func (this subscribeToStreamRequest) buildStreamOptionAll(all subscribeRequestStreamOptionsAll) *streams2.ReadReq_Options_All {
 	result := &streams2.ReadReq_Options_All{
 		All: &streams2.ReadReq_Options_AllOptions{},
 	}
@@ -82,8 +80,8 @@ func (this SubscribeToStreamRequest) buildStreamOptionAll(all SubscribeRequestSt
 	return result
 }
 
-func (this SubscribeToStreamRequest) buildStreamOptions(
-	streamOptions SubscribeRequestStreamOptions) *streams2.ReadReq_Options_Stream {
+func (this subscribeToStreamRequest) buildStreamOptions(
+	streamOptions subscribeRequestStreamOptions) *streams2.ReadReq_Options_Stream {
 	result := &streams2.ReadReq_Options_Stream{
 		Stream: &streams2.ReadReq_Options_StreamOptions{
 			StreamIdentifier: &shared.StreamIdentifier{
@@ -112,125 +110,21 @@ func (this SubscribeToStreamRequest) buildStreamOptions(
 	return result
 }
 
-func (this SubscribeToStreamRequest) buildFilterOption(options *streams2.ReadReq_Options) {
-	switch this.Filter.(type) {
-	case SubscribeRequestFilter:
-		options.FilterOption = this.buildFilter()
+func (this subscribeToStreamRequest) buildFilterOption(options *streams2.ReadReq_Options) {
+	switch this.filter.(type) {
+	case Filter:
+		options.FilterOption = buildProtoFilter(this.filter)
 
-	case SubscribeRequestNoFilter:
+	case noFilter:
 		options.FilterOption = &streams2.ReadReq_Options_NoFilter{NoFilter: &shared.Empty{}}
 	}
 }
-
-func (this SubscribeToStreamRequest) buildFilter() *streams2.ReadReq_Options_Filter {
-	filter := this.Filter.(SubscribeRequestFilter)
-	result := &streams2.ReadReq_Options_Filter{
-		Filter: &streams2.ReadReq_Options_FilterOptions{
-			CheckpointIntervalMultiplier: filter.CheckpointIntervalMultiplier,
-		},
-	}
-
-	switch filter.FilterBy.(type) {
-	case SubscribeRequestFilterByEventType:
-		eventTypeFilter := filter.FilterBy.(SubscribeRequestFilterByEventType)
-		filterExpression := this.buildFilterExpression(eventTypeFilter.Matcher)
-		result.Filter.Filter = &streams2.ReadReq_Options_FilterOptions_EventType{
-			EventType: filterExpression,
-		}
-
-	case SubscribeRequestFilterByStreamIdentifier:
-		streamIdentifierFilter := filter.FilterBy.(SubscribeRequestFilterByStreamIdentifier)
-		filterExpression := this.buildFilterExpression(streamIdentifierFilter.Matcher)
-		result.Filter.Filter = &streams2.ReadReq_Options_FilterOptions_StreamIdentifier{
-			StreamIdentifier: filterExpression,
-		}
-	}
-
-	switch filter.Window.(type) {
-	case SubscribeRequestFilterWindowMax:
-		maxWindow := filter.Window.(SubscribeRequestFilterWindowMax)
-
-		result.Filter.Window = &streams2.ReadReq_Options_FilterOptions_Max{
-			Max: maxWindow.Max,
-		}
-
-	case SubscribeRequestFilterWindowCount:
-		result.Filter.Window = &streams2.ReadReq_Options_FilterOptions_Count{
-			Count: &shared.Empty{},
-		}
-	}
-
-	return result
-}
-
-func (this SubscribeToStreamRequest) buildFilterExpression(
-	matcher filterMatcher) *streams2.ReadReq_Options_FilterOptions_Expression {
-	result := &streams2.ReadReq_Options_FilterOptions_Expression{}
-	if regexMatcher, ok := matcher.(RegexFilterMatcher); ok {
-		result.Regex = regexMatcher.Regex
-	} else if prefixMatcher, ok := matcher.(PrefixFilterMatcher); ok {
-		result.Prefix = prefixMatcher.PrefixList
-	} else {
-		panic("Invalid type received")
-	}
-	return result
-}
-
-type IsSubscribeRequestFilterOption interface {
-	isSubscribeRequestFilterOption()
-}
-
-type SubscribeRequestFilter struct {
-	// SubscribeRequestFilterByEventType
-	// SubscribeRequestFilterByStreamIdentifier
-	FilterBy isSubscribeRequestFilterBy
-	// SubscribeRequestFilterWindowMax
-	// SubscribeRequestFilterWindowCount
-	Window                       isSubscribeRequestFilterWindow
-	CheckpointIntervalMultiplier uint32
-}
-
-func (this SubscribeRequestFilter) isSubscribeRequestFilterOption() {}
-
-type isSubscribeRequestFilterBy interface {
-	isSubscribeRequestFilterBy()
-}
-
-type SubscribeRequestFilterByEventType struct {
-	Matcher filterMatcher
-}
-
-func (this SubscribeRequestFilterByEventType) isSubscribeRequestFilterBy() {}
-
-type SubscribeRequestFilterByStreamIdentifier struct {
-	Matcher filterMatcher
-}
-
-func (this SubscribeRequestFilterByStreamIdentifier) isSubscribeRequestFilterBy() {}
-
-type isSubscribeRequestFilterWindow interface {
-	isSubscribeRequestFilterWindow()
-}
-
-type SubscribeRequestFilterWindowMax struct {
-	Max uint32
-}
-
-func (this SubscribeRequestFilterWindowMax) isSubscribeRequestFilterWindow() {}
-
-type SubscribeRequestFilterWindowCount struct{}
-
-func (this SubscribeRequestFilterWindowCount) isSubscribeRequestFilterWindow() {}
-
-type SubscribeRequestNoFilter struct{}
-
-func (this SubscribeRequestNoFilter) isSubscribeRequestFilterOption() {}
 
 type isSubscribeRequestStreamOptions interface {
 	isSubscribeRequestStreamOptions()
 }
 
-type SubscribeRequestStreamOptions struct {
+type subscribeRequestStreamOptions struct {
 	StreamIdentifier string
 	// ReadStreamRevision
 	// ReadStreamRevisionStart
@@ -238,38 +132,20 @@ type SubscribeRequestStreamOptions struct {
 	Revision IsReadStreamRevision
 }
 
-func (this SubscribeRequestStreamOptions) isSubscribeRequestStreamOptions() {}
+func (this subscribeRequestStreamOptions) isSubscribeRequestStreamOptions() {}
 
-type SubscribeRequestStreamOptionsAll struct {
+type subscribeRequestStreamOptionsAll struct {
 	// ReadPositionAll
 	// ReadPositionAllStart
 	// ReadPositionAllEnd
 	Position IsReadPositionAll
 }
 
-func (this SubscribeRequestStreamOptionsAll) isSubscribeRequestStreamOptions() {}
+func (this subscribeRequestStreamOptionsAll) isSubscribeRequestStreamOptions() {}
 
-type SubscribeRequestDirection string
+type subscribeRequestDirection string
 
 const (
-	SubscribeRequestDirectionForward SubscribeRequestDirection = "SubscribeRequestDirectionForward"
-	SubscribeRequestDirectionEnd     SubscribeRequestDirection = "SubscribeRequestDirectionEnd"
+	subscribeRequestDirectionForward subscribeRequestDirection = "subscribeRequestDirectionForward"
+	subscribeRequestDirectionEnd     subscribeRequestDirection = "subscribeRequestDirectionEnd"
 )
-
-type filterMatcher interface {
-	isFilterMatcher()
-}
-
-type RegexFilterMatcher struct {
-	Regex string
-}
-
-func (regex RegexFilterMatcher) isFilterMatcher() {
-}
-
-type PrefixFilterMatcher struct {
-	PrefixList []string
-}
-
-func (prefix PrefixFilterMatcher) isFilterMatcher() {
-}

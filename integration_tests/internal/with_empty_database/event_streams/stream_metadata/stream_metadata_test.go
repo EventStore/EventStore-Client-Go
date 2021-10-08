@@ -25,7 +25,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
-		require.True(t, metaData.IsNone())
+		require.True(t, metaData.IsEmpty())
 	})
 
 	t.Run("empty_metadata", func(t *testing.T) {
@@ -39,7 +39,7 @@ func Test_StreamMetaData(t *testing.T) {
 
 		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
-		require.False(t, metaData.IsNone())
+		require.False(t, metaData.IsEmpty())
 		require.Equal(t, streamId, metaData.GetStreamId())
 		require.EqualValues(t, 0, metaData.GetMetaStreamRevision())
 		require.Equal(t, event_streams.StreamMetadata{}, metaData.GetStreamMetadata())
@@ -63,7 +63,7 @@ func Test_StreamMetaData(t *testing.T) {
 		require.NoError(t, err)
 		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
-		require.False(t, metaData.IsNone())
+		require.False(t, metaData.IsEmpty())
 		require.EqualValues(t, 0, metaData.GetMetaStreamRevision())
 		require.Equal(t, expectedStreamMetadata, metaData.GetStreamMetadata())
 
@@ -82,7 +82,7 @@ func Test_StreamMetaData(t *testing.T) {
 		require.NoError(t, err)
 		metaData, err = client.GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
-		require.False(t, metaData.IsNone())
+		require.False(t, metaData.IsEmpty())
 		require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
 		require.Equal(t, expectedStreamMetadata, metaData.GetStreamMetadata())
 	})
@@ -116,7 +116,7 @@ func Test_StreamMetaData(t *testing.T) {
 		require.NoError(t, err)
 		metaData, err := client.GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
-		require.False(t, metaData.IsNone())
+		require.False(t, metaData.IsEmpty())
 		require.EqualValues(t, 0, metaData.GetMetaStreamRevision())
 		require.Equal(t, expectedStreamMetadata, metaData.GetStreamMetadata())
 
@@ -135,7 +135,7 @@ func Test_StreamMetaData(t *testing.T) {
 		require.NoError(t, err)
 		metaData, err = client.GetStreamMetadata(context.Background(), streamId)
 		require.NoError(t, err)
-		require.False(t, metaData.IsNone())
+		require.False(t, metaData.IsEmpty())
 		require.EqualValues(t, 1, metaData.GetMetaStreamRevision())
 		require.Equal(t, expectedStreamMetadata, metaData.GetStreamMetadata())
 	})

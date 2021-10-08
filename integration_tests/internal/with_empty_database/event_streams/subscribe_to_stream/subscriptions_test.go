@@ -207,7 +207,7 @@ func Test_SubscribeToStream(t *testing.T) {
 				}
 			}
 
-			require.Equal(t, append(beforeEvents, afterEvents...), result)
+			require.Equal(t, totalEvents, result)
 		}()
 
 		_, err = client.AppendToStream(context.Background(),
@@ -241,10 +241,8 @@ func Test_SubscribeToStream(t *testing.T) {
 			defer wg.Done()
 			_, err := streamReader.ReadOne()
 			require.Equal(t, errors.StreamDeletedErr, err.Code())
-			// release lock when timeout expires
 		}()
 
-		time.Sleep(2 * time.Second)
 		_, err = client.TombstoneStream(context.Background(),
 			streamId,
 			event_streams.WriteStreamRevisionNoStream{})

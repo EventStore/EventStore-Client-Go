@@ -24,12 +24,12 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 				event_streams.WriteStreamRevisionNoStream{},
 				[]event_streams.ProposedEvent{})
 			require.NoError(t, err)
-			require.True(t, writeResult.GetCurrentRevisionNoStream())
+			require.True(t, writeResult.IsCurrentRevisionNoStream())
 		}
 
 		_, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
@@ -46,12 +46,12 @@ func Test_AppendZeroEvents_ToNonExistingStream(t *testing.T) {
 				event_streams.WriteStreamRevisionAny{},
 				[]event_streams.ProposedEvent{})
 			require.NoError(t, err)
-			require.True(t, writeResult.GetCurrentRevisionNoStream())
+			require.True(t, writeResult.IsCurrentRevisionNoStream())
 		}
 
 		_, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
@@ -77,7 +77,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 
 		events, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
@@ -99,7 +99,7 @@ func Test_AppendToNonExistingStream_WithExpectedRevision(t *testing.T) {
 
 		events, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			2,
 			false)
@@ -316,7 +316,7 @@ func Test_AppendToExistingStream(t *testing.T) {
 	client, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
 
-	t.Run("First Append With NoStream, Append With Expected Revision Finite", func(t *testing.T) {
+	t.Run("First Append With NoStream, Append With Finite Expected Revision ", func(t *testing.T) {
 		expectedStreamRevision := event_streams.WriteStreamRevisionNoStream{}
 		streamName := "stream_first_append_no_stream_and_expected_revision_finite"
 
@@ -605,7 +605,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -632,7 +632,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -661,7 +661,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+2),
 			false)
@@ -730,7 +730,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+2),
 			false)
@@ -757,7 +757,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -784,7 +784,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -817,7 +817,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -844,7 +844,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -871,7 +871,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -900,7 +900,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)
@@ -927,7 +927,7 @@ func Test_AppendMultipleEvents(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamName,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			uint64(len(events)+1),
 			false)

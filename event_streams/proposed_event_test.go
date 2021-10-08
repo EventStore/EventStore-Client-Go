@@ -11,16 +11,16 @@ import (
 func TestProposedEvent_ToBatchMessage(t *testing.T) {
 	eventId, _ := uuid.NewRandom()
 	event := ProposedEvent{
-		EventID:      eventId,
+		EventId:      eventId,
 		EventType:    "some type",
 		ContentType:  "content type",
 		Data:         []byte("some data"),
 		UserMetadata: []byte("some user metadata"),
 	}
 
-	result := event.ToBatchMessage()
+	result := event.toBatchMessage()
 
-	expectedBatchMessage := BatchAppendRequestProposedMessage{
+	expectedBatchMessage := batchAppendRequestProposedMessage{
 		Id: eventId,
 		Metadata: map[string]string{
 			system_metadata.SystemMetadataKeysContentType: "content type",
@@ -37,14 +37,14 @@ func TestProposedEvent_toBatchAppendRequestList(t *testing.T) {
 	eventId2, _ := uuid.NewRandom()
 	eventList := ProposedEventList{
 		{
-			EventID:      eventId,
+			EventId:      eventId,
 			EventType:    "some type",
 			ContentType:  "content type",
 			Data:         []byte("some data"),
 			UserMetadata: []byte("some user metadata"),
 		},
 		{
-			EventID:      eventId2,
+			EventId:      eventId2,
 			EventType:    "some type 2",
 			ContentType:  "content type 2",
 			Data:         []byte("some data 2"),
@@ -54,7 +54,7 @@ func TestProposedEvent_toBatchAppendRequestList(t *testing.T) {
 
 	result := eventList.toBatchAppendRequestList()
 
-	expectedBatchMessages := []BatchAppendRequestProposedMessage{
+	expectedBatchMessages := []batchAppendRequestProposedMessage{
 		{
 			Id: eventId,
 			Metadata: map[string]string{
@@ -87,42 +87,42 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	eventId6, _ := uuid.NewRandom()
 	eventList := ProposedEventList{
 		{
-			EventID:      eventId,
+			EventId:      eventId,
 			EventType:    "some type",
 			ContentType:  "content type",
 			Data:         []byte("some data"),
 			UserMetadata: []byte("some user metadata"),
 		},
 		{
-			EventID:      eventId2,
+			EventId:      eventId2,
 			EventType:    "some type 2",
 			ContentType:  "content type 2",
 			Data:         []byte("some data 2"),
 			UserMetadata: []byte("some user metadata 2"),
 		},
 		{
-			EventID:      eventId3,
+			EventId:      eventId3,
 			EventType:    "some type 3",
 			ContentType:  "content type 3",
 			Data:         []byte("some data 3"),
 			UserMetadata: []byte("some user metadata 3"),
 		},
 		{
-			EventID:      eventId4,
+			EventId:      eventId4,
 			EventType:    "some type 4",
 			ContentType:  "content type 4",
 			Data:         []byte("some data 4"),
 			UserMetadata: []byte("some user metadata 4"),
 		},
 		{
-			EventID:      eventId5,
+			EventId:      eventId5,
 			EventType:    "some type 5",
 			ContentType:  "content type 5",
 			Data:         []byte("some data 5"),
 			UserMetadata: []byte("some user metadata 5"),
 		},
 		{
-			EventID:      eventId6,
+			EventId:      eventId6,
 			EventType:    "some type 6",
 			ContentType:  "content type 6",
 			Data:         []byte("some data 6"),
@@ -137,7 +137,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 1", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -211,7 +211,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 2", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -279,7 +279,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 3", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -345,7 +345,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 4", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -411,7 +411,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 5", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -477,7 +477,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 6", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -541,7 +541,7 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	})
 
 	t.Run("Chunk size 6", func(t *testing.T) {
-		expectedBatchMessages := [][]BatchAppendRequestProposedMessage{
+		expectedBatchMessages := [][]batchAppendRequestProposedMessage{
 			{
 				{
 					Id: eventId,
@@ -607,6 +607,6 @@ func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
 	t.Run("Input slice is empty", func(t *testing.T) {
 		result := ProposedEventList{}.toBatchAppendRequestChunks(1)
 		require.Len(t, result, 1)
-		require.Equal(t, []BatchAppendRequestProposedMessage{}, result[0])
+		require.Equal(t, []batchAppendRequestProposedMessage{}, result[0])
 	})
 }

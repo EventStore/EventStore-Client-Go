@@ -144,7 +144,7 @@ func Test_DeleteStream(t *testing.T) {
 
 			readEvents, err := client.ReadStreamEvents(context.Background(),
 				streamId,
-				event_streams.ReadRequestDirectionForward,
+				event_streams.ReadDirectionForward,
 				event_streams.ReadStreamRevisionStart{},
 				event_streams.ReadCountMax,
 				false)
@@ -190,7 +190,7 @@ func Test_DeleteStream(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamId,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			event_streams.ReadCountMax,
 			false)
@@ -251,7 +251,7 @@ func Test_DeleteStream(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamId,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			event_streams.ReadCountMax,
 			false)
@@ -289,7 +289,7 @@ func Test_DeleteStream(t *testing.T) {
 
 		_, err = client.ReadStreamEvents(context.Background(),
 			streamId,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			event_streams.ReadCountMax,
 			false)
@@ -366,7 +366,7 @@ func Test_DeleteStream(t *testing.T) {
 
 		readEvents, err := client.ReadStreamEvents(context.Background(),
 			streamId,
-			event_streams.ReadRequestDirectionForward,
+			event_streams.ReadDirectionForward,
 			event_streams.ReadStreamRevisionStart{},
 			event_streams.ReadCountMax,
 			false)
@@ -414,7 +414,7 @@ func Test_DeleteStream(t *testing.T) {
 		require.Eventually(t, func() bool {
 			_, err = client.ReadStreamEvents(context.Background(),
 				streamId,
-				event_streams.ReadRequestDirectionForward,
+				event_streams.ReadDirectionForward,
 				event_streams.ReadStreamRevisionStart{},
 				event_streams.ReadCountMax,
 				false)
@@ -470,7 +470,7 @@ func Test_DeleteStream(t *testing.T) {
 		require.Eventually(t, func() bool {
 			readEvents, err := client.ReadStreamEvents(context.Background(),
 				streamId,
-				event_streams.ReadRequestDirectionForward,
+				event_streams.ReadDirectionForward,
 				event_streams.ReadStreamRevisionStart{},
 				event_streams.ReadCountMax,
 				false)

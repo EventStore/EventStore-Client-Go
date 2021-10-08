@@ -5,29 +5,29 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
-type DeleteRequest struct {
-	StreamIdentifier string
-	// Types that are assignable to ExpectedStreamRevision:
+type deleteRequest struct {
+	streamId string
+	// Types that are assignable to expectedStreamRevision:
 	// WriteStreamRevision
 	// WriteStreamRevisionNoStream
 	// WriteStreamRevisionAny
 	// WriteStreamRevisionStreamExists
-	ExpectedStreamRevision IsWriteStreamRevision
+	expectedStreamRevision IsWriteStreamRevision
 }
 
-func (this DeleteRequest) Build() *streams2.DeleteReq {
+func (this deleteRequest) build() *streams2.DeleteReq {
 	result := &streams2.DeleteReq{
 		Options: &streams2.DeleteReq_Options{
 			StreamIdentifier: &shared.StreamIdentifier{
-				StreamName: []byte(this.StreamIdentifier),
+				StreamName: []byte(this.streamId),
 			},
 			ExpectedStreamRevision: nil,
 		},
 	}
 
-	switch this.ExpectedStreamRevision.(type) {
+	switch this.expectedStreamRevision.(type) {
 	case WriteStreamRevision:
-		revision := this.ExpectedStreamRevision.(WriteStreamRevision)
+		revision := this.expectedStreamRevision.(WriteStreamRevision)
 		result.Options.ExpectedStreamRevision = &streams2.DeleteReq_Options_Revision{
 			Revision: revision.Revision,
 		}

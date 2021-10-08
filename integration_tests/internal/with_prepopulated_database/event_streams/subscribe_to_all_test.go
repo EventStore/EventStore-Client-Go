@@ -30,18 +30,18 @@ func TestSubscribeToAll_WithFilterDeliversCorrectEvents(t *testing.T) {
 	receivedEvents := sync.WaitGroup{}
 	receivedEvents.Add(len(positions))
 
-	reader, err := client.SubscribeToAllFiltered(
+	reader, err := client.SubscribeToFilteredStreamAll(
 		context.Background(),
 		event_streams.ReadPositionAllStart{},
 		false,
-		event_streams.SubscribeRequestFilter{
-			FilterBy: event_streams.SubscribeRequestFilterByEventType{
+		event_streams.Filter{
+			FilterBy: event_streams.FilterByEventType{
 				Matcher: event_streams.PrefixFilterMatcher{
 					PrefixList: []string{"eventType-194"},
 				},
 			},
-			Window:                       event_streams.SubscribeRequestFilterWindowMax{Max: 32},
-			CheckpointIntervalMultiplier: 1,
+			Window:                       event_streams.DefaultFilterWindowMax(),
+			CheckpointIntervalMultiplier: event_streams.DefaultCheckpointIntervalMultiplier,
 		})
 	require.NoError(t, err)
 

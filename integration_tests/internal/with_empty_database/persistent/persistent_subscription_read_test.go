@@ -258,12 +258,12 @@ func Test_PersistentSubscription_AckToReceiveNewEventsStartFromSamePositionWithR
 	firstReadEvent, err = readConnectionClient.ReadOne()
 	require.NoError(t, err)
 	require.NotNil(t, firstReadEvent.Event)
-	require.Equal(t, secondEvent.EventID, firstReadEvent.Event.EventID)
+	require.Equal(t, secondEvent.EventId, firstReadEvent.Event.EventID)
 
 	secondReadEvent, err = readConnectionClient.ReadOne()
 	require.NoError(t, err)
 	require.NotNil(t, secondReadEvent)
-	require.Equal(t, thirdEvent.EventID, secondReadEvent.Event.EventID)
+	require.Equal(t, thirdEvent.EventId, secondReadEvent.Event.EventID)
 }
 
 func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect_Bug_ReceivesFirstEvent(t *testing.T) {
@@ -329,7 +329,7 @@ func Test_PersistentSubscription_AckToReceiveNewEventsWithReconnect_Bug_Receives
 	require.NoError(t, err)
 
 	require.NotNil(t, thirdReadEvent.Event)
-	require.Equal(t, thirdEvent.EventID, thirdReadEvent.Event.EventID)
+	require.Equal(t, thirdEvent.EventId, thirdReadEvent.Event.EventID)
 }
 
 func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
@@ -364,9 +364,9 @@ func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, readEvent.Event)
 		// assert Event Number == stream Start
-		// assert Event.ID == first event ID (readEvent.EventID == events[0].EventID)
+		// assert Event.ID == first event ID (readEvent.EventId == events[0].EventId)
 		require.EqualValues(t, 0, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[0].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[0].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 
 	t.Run("StartFromTwo_AppendEventsAfterwards", func(t *testing.T) {
@@ -398,9 +398,9 @@ func Test_PersistentSubscription_ToNonExistingStream(t *testing.T) {
 		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 2
-		// assert readEvent.ID == events[2].EventID
+		// assert readEvent.ID == events[2].EventId
 		require.EqualValues(t, 2, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[2].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[2].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 }
 
@@ -439,9 +439,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		require.NotNil(t, readEvent.Event)
 
 		// assert Event Number == stream Start
-		// assert Event.ID == first event ID (readEvent.EventID == events[0].EventID)
+		// assert Event.ID == first event ID (readEvent.EventId == events[0].EventId)
 		require.EqualValues(t, 0, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[0].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[0].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 
 	t.Run("StartFromEnd_EventsInItAndAppendEventsAfterwards", func(t *testing.T) {
@@ -482,9 +482,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 		// assert readEvent.EventNumber == stream position 10
-		// assert readEvent.ID == events[10].EventID
+		// assert readEvent.ID == events[10].EventId
 		require.EqualValues(t, 10, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[10].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[10].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 
 	t.Run("StartFromEnd_EventsInIt", func(t *testing.T) {
@@ -580,9 +580,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 10
-		// assert readEvent.ID == events[10].EventID
+		// assert readEvent.ID == events[10].EventId
 		require.EqualValues(t, 10, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[10].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[10].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 
 	t.Run("StartFrom4_EventsInIt", func(t *testing.T) {
@@ -624,9 +624,9 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 4
-		// assert readEvent.ID == events[4].EventID
+		// assert readEvent.ID == events[4].EventId
 		require.EqualValues(t, 4, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[4].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[4].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 
 	t.Run("StartFromHigherRevisionThenEventsInStream_EventsInItAppendEventsAfterwards", func(t *testing.T) {
@@ -669,8 +669,8 @@ func Test_PersistentSubscription_ToExistingStream(t *testing.T) {
 		require.NotNil(t, readEvent.Event)
 
 		// assert readEvent.EventNumber == stream position 11
-		// assert readEvent.ID == events[11].EventID
+		// assert readEvent.ID == events[11].EventId
 		require.EqualValues(t, 11, readEvent.GetOriginalEvent().EventNumber)
-		require.Equal(t, events[11].EventID, readEvent.GetOriginalEvent().EventID)
+		require.Equal(t, events[11].EventId, readEvent.GetOriginalEvent().EventID)
 	})
 }

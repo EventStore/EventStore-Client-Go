@@ -5,36 +5,40 @@ import (
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
+// AppendResponse is returned from Client.AppendToStream when events are written successfully.
 type AppendResponse struct {
-	// Types that are assignable to CurrentRevisionOption:
-	//	AppendResponseSuccessCurrentRevision
-	//	AppendResponseSuccessCurrentRevisionNoStream
-	CurrentRevision isAppendResponseSuccessCurrentRevision
-	// Types that are assignable to PositionOption:
-	//	AppendResponseSuccessPosition
-	//	AppendResponseSuccessNoPosition
-	Position isAppendResponseSuccessPosition
+	currentRevision isAppendResponseSuccessCurrentRevision
+	position        isAppendResponseSuccessPosition
 }
 
-func (this AppendResponse) GetCurrentRevisionNoStream() bool {
-	if _, ok := this.CurrentRevision.(AppendResponseSuccessCurrentRevisionNoStream); ok {
+// IsCurrentRevisionNoStream returns true if current revision in append response was set to NoStream.
+// Current revision in response can be NoStream if no events are appended to a non-existing stream.
+func (this AppendResponse) IsCurrentRevisionNoStream() bool {
+	if _, ok := this.currentRevision.(appendResponseSuccessCurrentRevisionNoStream); ok {
 		return true
 	}
 	return false
 }
 
+// GetCurrentRevision returns stream's current revision if current revision is not NoStream.
+// If currentRevision is NoStream, it returns 0.
+// Note that stream can have a valid revision 0 if it contains only one event.
+// Use IsCurrentRevisionNoStream to check if current revision of a stream is NoStream.
 func (this AppendResponse) GetCurrentRevision() uint64 {
-	if revision, ok := this.CurrentRevision.(AppendResponseSuccessCurrentRevision); ok {
+	if revision, ok := this.currentRevision.(appendResponseSuccessCurrentRevision); ok {
 		return revision.CurrentRevision
 	}
 	return 0
 }
 
+// GetPosition returns a position of last appended event in a stream and a boolean value
+// which indicates if position for last written event was received.
+// If no position was received a zero initialized Position and a false will be returned.
 func (this AppendResponse) GetPosition() (Position, bool) {
-	if revision, ok := this.Position.(AppendResponseSuccessPosition); ok {
+	if revision, ok := this.position.(appendResponseSuccessPosition); ok {
 		return Position{
-			CommitPosition:  revision.CommitPosition,
-			PreparePosition: revision.PreparePosition,
+			CommitPosition:  revision.commitPosition,
+			PreparePosition: revision.preparePosition,
 		}, true
 	}
 	return Position{}, false
@@ -44,112 +48,112 @@ type isAppendResponseSuccessPosition interface {
 	isAppendResponseSuccessPosition()
 }
 
-type AppendResponseSuccessPosition struct {
-	CommitPosition  uint64
-	PreparePosition uint64
+type appendResponseSuccessPosition struct {
+	commitPosition  uint64
+	preparePosition uint64
 }
 
-func (this AppendResponseSuccessPosition) isAppendResponseSuccessPosition() {
+func (this appendResponseSuccessPosition) isAppendResponseSuccessPosition() {
 }
 
-type AppendResponseSuccessNoPosition struct{}
+type appendResponseSuccessNoPosition struct{}
 
-func (this AppendResponseSuccessNoPosition) isAppendResponseSuccessPosition() {
+func (this appendResponseSuccessNoPosition) isAppendResponseSuccessPosition() {
 }
 
 type isAppendResponseSuccessCurrentRevision interface {
 	isAppendResponseSuccessCurrentRevision()
 }
 
-type AppendResponseSuccessCurrentRevision struct {
+type appendResponseSuccessCurrentRevision struct {
 	CurrentRevision uint64
 }
 
-func (this AppendResponseSuccessCurrentRevision) isAppendResponseSuccessCurrentRevision() {
+func (this appendResponseSuccessCurrentRevision) isAppendResponseSuccessCurrentRevision() {
 }
 
-type AppendResponseSuccessCurrentRevisionNoStream struct{}
+type appendResponseSuccessCurrentRevisionNoStream struct{}
 
-func (this AppendResponseSuccessCurrentRevisionNoStream) isAppendResponseSuccessCurrentRevision() {
+func (this appendResponseSuccessCurrentRevisionNoStream) isAppendResponseSuccessCurrentRevision() {
 }
 
 type isAppendResponseWrongCurrentRevision2060 interface {
 	isAppendResponseWrongCurrentRevision2060()
 }
 
-type AppendResponseWrongCurrentRevision2060 struct {
-	CurrentRevision uint64
+type appendResponseWrongCurrentRevision2060 struct {
+	currentRevision uint64
 }
 
-func (this AppendResponseWrongCurrentRevision2060) isAppendResponseWrongCurrentRevision2060() {
+func (this appendResponseWrongCurrentRevision2060) isAppendResponseWrongCurrentRevision2060() {
 }
 
-type AppendResponseWrongCurrentRevisionNoStream2060 struct{}
+type appendResponseWrongCurrentRevisionNoStream2060 struct{}
 
-func (this AppendResponseWrongCurrentRevisionNoStream2060) isAppendResponseWrongCurrentRevision2060() {
+func (this appendResponseWrongCurrentRevisionNoStream2060) isAppendResponseWrongCurrentRevision2060() {
 }
 
 type isAppendResponseWrongExpectedRevision2060 interface {
 	isAppendResponseWrongExpectedRevision2060()
 }
 
-type AppendResponseWrongExpectedRevision2060 struct {
-	ExpectedRevision uint64
+type appendResponseWrongExpectedRevision2060 struct {
+	expectedRevision uint64
 }
 
-func (this AppendResponseWrongExpectedRevision2060) isAppendResponseWrongExpectedRevision2060() {
+func (this appendResponseWrongExpectedRevision2060) isAppendResponseWrongExpectedRevision2060() {
 }
 
-type AppendResponseWrongExpectedRevisionAny2060 struct{}
+type appendResponseWrongExpectedRevisionAny2060 struct{}
 
-func (this AppendResponseWrongExpectedRevisionAny2060) isAppendResponseWrongExpectedRevision2060() {
+func (this appendResponseWrongExpectedRevisionAny2060) isAppendResponseWrongExpectedRevision2060() {
 }
 
-type AppendResponseWrongExpectedRevisionStreamExists2060 struct{}
+type appendResponseWrongExpectedRevisionStreamExists2060 struct{}
 
-func (this AppendResponseWrongExpectedRevisionStreamExists2060) isAppendResponseWrongExpectedRevision2060() {
+func (this appendResponseWrongExpectedRevisionStreamExists2060) isAppendResponseWrongExpectedRevision2060() {
 }
 
 type isAppendResponseWrongCurrentRevision interface {
 	isAppendResponseCurrentRevision()
 }
 
-type AppendResponseWrongCurrentRevision struct {
-	CurrentRevision uint64
+type appendResponseWrongCurrentRevision struct {
+	currentRevision uint64
 }
 
-func (this AppendResponseWrongCurrentRevision) isAppendResponseCurrentRevision() {
+func (this appendResponseWrongCurrentRevision) isAppendResponseCurrentRevision() {
 }
 
-type AppendResponseWrongCurrentRevisionNoStream struct{}
+type appendResponseWrongCurrentRevisionNoStream struct{}
 
-func (this AppendResponseWrongCurrentRevisionNoStream) isAppendResponseCurrentRevision() {
+func (this appendResponseWrongCurrentRevisionNoStream) isAppendResponseCurrentRevision() {
 }
 
 type isAppendResponseWrongExpectedRevision interface {
 	isAppendResponseWrongExpectedRevision()
 }
 
-type AppendResponseWrongExpectedRevision struct {
-	ExpectedRevision uint64
+type appendResponseWrongExpectedRevision struct {
+	expectedRevision uint64
 }
 
-func (this AppendResponseWrongExpectedRevision) isAppendResponseWrongExpectedRevision() {
+func (this appendResponseWrongExpectedRevision) isAppendResponseWrongExpectedRevision() {
 }
 
-type AppendResponseWrongExpectedRevisionAny struct{}
+type appendResponseWrongExpectedRevisionAny struct{}
 
-func (this AppendResponseWrongExpectedRevisionAny) isAppendResponseWrongExpectedRevision() {
+func (this appendResponseWrongExpectedRevisionAny) isAppendResponseWrongExpectedRevision() {
 }
 
-type AppendResponseWrongExpectedRevisionStreamExists struct{}
+type appendResponseWrongExpectedRevisionStreamExists struct{}
 
-func (this AppendResponseWrongExpectedRevisionStreamExists) isAppendResponseWrongExpectedRevision() {
+func (this appendResponseWrongExpectedRevisionStreamExists) isAppendResponseWrongExpectedRevision() {
 }
 
-type AppendResponseWrongExpectedRevisionNoStream struct{}
+type appendResponseWrongExpectedRevisionNoStream struct{}
 
-func (this AppendResponseWrongExpectedRevisionNoStream) isAppendResponseWrongExpectedRevision() {
+func (this appendResponseWrongExpectedRevisionNoStream) isAppendResponseWrongExpectedRevision() {
 }
 
 type appendResponseAdapter interface {
@@ -181,23 +185,23 @@ func (this appendResponseAdapterImpl) buildSuccessResponse(
 	switch protoSuccessResult.Success.CurrentRevisionOption.(type) {
 	case *streams2.AppendResp_Success_CurrentRevision:
 		protoCurrentRevision := protoSuccessResult.Success.CurrentRevisionOption.(*streams2.AppendResp_Success_CurrentRevision)
-		result.CurrentRevision = AppendResponseSuccessCurrentRevision{
+		result.currentRevision = appendResponseSuccessCurrentRevision{
 			CurrentRevision: protoCurrentRevision.CurrentRevision,
 		}
 
 	case *streams2.AppendResp_Success_NoStream:
-		result.CurrentRevision = AppendResponseSuccessCurrentRevisionNoStream{}
+		result.currentRevision = appendResponseSuccessCurrentRevisionNoStream{}
 	}
 
 	switch protoSuccessResult.Success.PositionOption.(type) {
 	case *streams2.AppendResp_Success_Position:
 		protoPosition := protoSuccessResult.Success.PositionOption.(*streams2.AppendResp_Success_Position)
-		result.Position = AppendResponseSuccessPosition{
-			CommitPosition:  protoPosition.Position.CommitPosition,
-			PreparePosition: protoPosition.Position.PreparePosition,
+		result.position = appendResponseSuccessPosition{
+			commitPosition:  protoPosition.Position.CommitPosition,
+			preparePosition: protoPosition.Position.PreparePosition,
 		}
 	case *streams2.AppendResp_Success_NoPosition:
-		result.Position = AppendResponseSuccessNoPosition{}
+		result.position = appendResponseSuccessNoPosition{}
 	}
 
 	return result
@@ -207,10 +211,10 @@ func (this appendResponseAdapterImpl) buildWrongExpectedVersionError(
 	proto *streams2.AppendResp_WrongExpectedVersion_) WrongExpectedVersion {
 	result := newWrongExpectedVersionError()
 
-	result.CurrentRevision_20_6_0 = this.buildCurrentRevision2060(proto.WrongExpectedVersion)
-	result.ExpectedRevision_20_6_0 = this.buildExpectedRevision2060(proto.WrongExpectedVersion)
-	result.CurrentRevision = this.buildCurrentRevision(proto.WrongExpectedVersion)
-	result.ExpectedRevision = this.buildExpectedRevision(proto.WrongExpectedVersion)
+	result.currentRevision2060 = this.buildCurrentRevision2060(proto.WrongExpectedVersion)
+	result.expectedRevision2060 = this.buildExpectedRevision2060(proto.WrongExpectedVersion)
+	result.currentRevision = this.buildCurrentRevision(proto.WrongExpectedVersion)
+	result.expectedRevision = this.buildExpectedRevision(proto.WrongExpectedVersion)
 
 	return result
 }
@@ -222,11 +226,11 @@ func (this appendResponseAdapterImpl) buildCurrentRevision2060(
 		switch proto.CurrentRevisionOption_20_6_0.(type) {
 		case *streams2.AppendResp_WrongExpectedVersion_CurrentRevision_20_6_0:
 			protoWrongCurrentRevision := proto.CurrentRevisionOption_20_6_0.(*streams2.AppendResp_WrongExpectedVersion_CurrentRevision_20_6_0)
-			return AppendResponseWrongCurrentRevision2060{
-				CurrentRevision: protoWrongCurrentRevision.CurrentRevision_20_6_0,
+			return appendResponseWrongCurrentRevision2060{
+				currentRevision: protoWrongCurrentRevision.CurrentRevision_20_6_0,
 			}
 		case *streams2.AppendResp_WrongExpectedVersion_NoStream_20_6_0:
-			return AppendResponseWrongCurrentRevisionNoStream2060{}
+			return appendResponseWrongCurrentRevisionNoStream2060{}
 		}
 	}
 
@@ -240,13 +244,13 @@ func (this appendResponseAdapterImpl) buildExpectedRevision2060(
 		switch proto.ExpectedRevisionOption_20_6_0.(type) {
 		case *streams2.AppendResp_WrongExpectedVersion_ExpectedRevision_20_6_0:
 			protoExpectedRevision2060 := proto.ExpectedRevisionOption_20_6_0.(*streams2.AppendResp_WrongExpectedVersion_ExpectedRevision_20_6_0)
-			return AppendResponseWrongExpectedRevision2060{
-				ExpectedRevision: protoExpectedRevision2060.ExpectedRevision_20_6_0,
+			return appendResponseWrongExpectedRevision2060{
+				expectedRevision: protoExpectedRevision2060.ExpectedRevision_20_6_0,
 			}
 		case *streams2.AppendResp_WrongExpectedVersion_Any_20_6_0:
-			return AppendResponseWrongExpectedRevisionAny2060{}
+			return appendResponseWrongExpectedRevisionAny2060{}
 		case *streams2.AppendResp_WrongExpectedVersion_StreamExists_20_6_0:
-			return AppendResponseWrongExpectedRevisionStreamExists2060{}
+			return appendResponseWrongExpectedRevisionStreamExists2060{}
 		}
 	}
 
@@ -260,11 +264,11 @@ func (this appendResponseAdapterImpl) buildCurrentRevision(
 		switch proto.CurrentRevisionOption.(type) {
 		case *streams2.AppendResp_WrongExpectedVersion_CurrentRevision:
 			protoWrongCurrentRevision := proto.CurrentRevisionOption.(*streams2.AppendResp_WrongExpectedVersion_CurrentRevision)
-			return AppendResponseWrongCurrentRevision{
-				CurrentRevision: protoWrongCurrentRevision.CurrentRevision,
+			return appendResponseWrongCurrentRevision{
+				currentRevision: protoWrongCurrentRevision.CurrentRevision,
 			}
 		case *streams2.AppendResp_WrongExpectedVersion_CurrentNoStream:
-			return AppendResponseWrongCurrentRevisionNoStream{}
+			return appendResponseWrongCurrentRevisionNoStream{}
 		}
 	}
 
@@ -278,15 +282,15 @@ func (this appendResponseAdapterImpl) buildExpectedRevision(
 		switch proto.ExpectedRevisionOption.(type) {
 		case *streams2.AppendResp_WrongExpectedVersion_ExpectedRevision:
 			protoExpectedRevision := proto.ExpectedRevisionOption.(*streams2.AppendResp_WrongExpectedVersion_ExpectedRevision)
-			return AppendResponseWrongExpectedRevision{
-				ExpectedRevision: protoExpectedRevision.ExpectedRevision,
+			return appendResponseWrongExpectedRevision{
+				expectedRevision: protoExpectedRevision.ExpectedRevision,
 			}
 		case *streams2.AppendResp_WrongExpectedVersion_ExpectedAny:
-			return AppendResponseWrongExpectedRevisionAny{}
+			return appendResponseWrongExpectedRevisionAny{}
 		case *streams2.AppendResp_WrongExpectedVersion_ExpectedStreamExists:
-			return AppendResponseWrongExpectedRevisionStreamExists{}
+			return appendResponseWrongExpectedRevisionStreamExists{}
 		case *streams2.AppendResp_WrongExpectedVersion_ExpectedNoStream:
-			return AppendResponseWrongExpectedRevisionNoStream{}
+			return appendResponseWrongExpectedRevisionNoStream{}
 		}
 	}
 

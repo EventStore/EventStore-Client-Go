@@ -24,7 +24,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenCancelled(t *te
 	wg.Add(1)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	streamReader, err := client.SubscribeToAll(ctx,
+	streamReader, err := client.SubscribeToStreamAll(ctx,
 		event_streams.ReadPositionAllStart{},
 		false)
 	require.NoError(t, err)
@@ -52,7 +52,7 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenCancelled(t *test
 	wg.Add(1)
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	streamReader, err := client.SubscribeToAll(ctx,
+	streamReader, err := client.SubscribeToStreamAll(ctx,
 		event_streams.ReadPositionAllEnd{},
 		false)
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func Test_SubscribeToAll_FromStart_ReturnsSubscriptionDroppedWhenReaderClosed(t 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	streamReader, err := client.SubscribeToAll(context.Background(),
+	streamReader, err := client.SubscribeToStreamAll(context.Background(),
 		event_streams.ReadPositionAllStart{},
 		false)
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func Test_SubscribeToAll_FromEnd_ReturnsSubscriptionDroppedWhenReaderClosed(t *t
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	streamReader, err := client.SubscribeToAll(context.Background(),
+	streamReader, err := client.SubscribeToStreamAll(context.Background(),
 		event_streams.ReadPositionAllEnd{},
 		false)
 	require.NoError(t, err)
@@ -133,7 +133,7 @@ func Test_SubscribeToAll_FromStart_ToEmptyDatabase(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	streamReader, err := client.SubscribeToAll(context.Background(),
+	streamReader, err := client.SubscribeToStreamAll(context.Background(),
 		event_streams.ReadPositionAllEnd{},
 		false)
 	require.NoError(t, err)
@@ -180,7 +180,7 @@ func Test_SubscribeToAll_FromStart_ReadAllExistingEventsAndKeepListeningForNewOn
 		beforeEvents)
 	require.NoError(t, err)
 
-	streamReader, err := client.SubscribeToAll(context.Background(),
+	streamReader, err := client.SubscribeToStreamAll(context.Background(),
 		event_streams.ReadPositionAllStart{},
 		false)
 	require.NoError(t, err)
@@ -219,7 +219,7 @@ func Test_Test_SubscribeToAll_WithIncorrectCredentials(t *testing.T) {
 		"wrong_user_name", "wrong_password", nil)
 	defer closeFunc()
 
-	_, err := client.SubscribeToAll(context.Background(),
+	_, err := client.SubscribeToStreamAll(context.Background(),
 		event_streams.ReadPositionAllStart{},
 		false)
 	require.Equal(t, errors.UnauthenticatedErr, err.Code())
