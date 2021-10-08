@@ -75,18 +75,18 @@ func (response BatchAppendResponse) IsExpectedStreamExistsPosition() bool {
 	return ok
 }
 
-const BatchAppendErr errors.ErrorCode = "BatchAppendErr"
-
 type BatchError struct {
-	err       errors.Error
-	ProtoCode int32
-	Message   string
-	Details   []ErrorDetails
+	err           errors.Error
+	ProtoCode     int32
+	Message       string
+	Details       []ErrorDetails
+	CorrelationId string
+	StreamId      string
 }
 
-func newBatchError() BatchError {
+func newBatchError(errorCode errors.ErrorCode) BatchError {
 	return BatchError{
-		err: errors.NewErrorCode(BatchAppendErr),
+		err: errors.NewErrorCode(errorCode),
 	}
 }
 
@@ -180,28 +180,58 @@ type batchResponseAdapterImpl struct{}
 
 func (this batchResponseAdapterImpl) CreateResponse(
 	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
-	return this.buildResult(protoResponse)
+	return this.buildSuccess(protoResponse)
 }
+
+const (
+	protoWrongExpectedVersion = "WrongExpectedVersion"
+	protoAccessDenied         = "AccessDenied"
+	protoTimeout              = "Timeout"
+	protoBadRequest           = "BadRequest"
+	protoStreamDeleted        = "StreamDeleted"
+)
 
 func (this batchResponseAdapterImpl) CreateResponseWithError(
 	protoResponse *streams2.BatchAppendResp) (BatchAppendResponse, errors.Error) {
 
 	if protoResponse.Result != nil {
-		if protoError, ok := protoResponse.Result.(*streams2.BatchAppendResp_Error); ok {
-			errorResult := newBatchError()
-			errorResult.ProtoCode = protoError.Error.Code
-			errorResult.Message = protoError.Error.Message
-			errorResult.Details = buildErrorDetails(protoError.Error.Details)
-			return BatchAppendResponse{}, errorResult
+		if protoResponse.GetError() != nil {
+			return BatchAppendResponse{}, this.buildBatchError(protoResponse)
 		} else {
-			return this.buildResult(protoResponse), nil
+			return this.buildSuccess(protoResponse), nil
 		}
 	}
 
 	panic("Unsupported result type")
 }
 
-func (this batchResponseAdapterImpl) buildResult(
+func (this batchResponseAdapterImpl) buildBatchError(
+	protoResponse *streams2.BatchAppendResp) BatchError {
+	protoError := protoResponse.Result.(*streams2.BatchAppendResp_Error)
+	errorCode := errors.UnknownErr
+	if protoError.Error.Message == protoWrongExpectedVersion {
+		errorCode = errors.WrongExpectedStreamRevisionErr
+	} else if protoError.Error.Message == protoAccessDenied {
+		errorCode = errors.PermissionDeniedErr
+	} else if protoError.Error.Message == protoTimeout {
+		errorCode = errors.DeadlineExceededErr
+	} else if protoError.Error.Message == protoBadRequest {
+		errorCode = errors.InvalidArgumentErr
+	} else if protoError.Error.Message == protoStreamDeleted {
+		errorCode = errors.StreamDeletedErr
+	}
+
+	errorResult := newBatchError(errorCode)
+	errorResult.ProtoCode = protoError.Error.Code
+	errorResult.Message = protoError.Error.Message
+	errorResult.Details = buildErrorDetails(protoError.Error.Details)
+	errorResult.CorrelationId = protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()).String()
+	errorResult.StreamId = string(protoResponse.GetStreamIdentifier().GetStreamName())
+
+	return errorResult
+}
+
+func (this batchResponseAdapterImpl) buildSuccess(
 	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
 	result := BatchAppendResponse{
 		CorrelationId:    protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()).String(),
@@ -209,13 +239,10 @@ func (this batchResponseAdapterImpl) buildResult(
 	}
 
 	result.ExpectedStreamPosition = this.buildExpectedStreamPosition(protoResponse)
-	if protoResponse.Result != nil {
-		if protoSuccess, ok := protoResponse.Result.(*streams2.BatchAppendResp_Success_); ok {
-			success := this.buildResultSuccess(protoSuccess)
-			result.CurrentRevisionOption = success.CurrentRevisionOption
-			result.Position = success.Position
-		}
-	}
+	protoSuccess := protoResponse.Result.(*streams2.BatchAppendResp_Success_)
+	revisionAndPosition := this.buildSuccessRevisionAndPosition(protoSuccess)
+	result.CurrentRevisionOption = revisionAndPosition.CurrentRevisionOption
+	result.Position = revisionAndPosition.Position
 
 	return result
 }
@@ -233,7 +260,7 @@ func buildErrorDetails(protoDetails []*any.Any) []ErrorDetails {
 	return result
 }
 
-func (this batchResponseAdapterImpl) buildResultSuccess(
+func (this batchResponseAdapterImpl) buildSuccessRevisionAndPosition(
 	protoSuccess *streams2.BatchAppendResp_Success_) batchAppendResponseResultSuccess {
 	result := batchAppendResponseResultSuccess{}
 
