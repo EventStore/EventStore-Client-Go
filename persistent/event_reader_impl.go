@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"

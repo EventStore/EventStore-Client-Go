@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/position"
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
@@ -14,7 +14,7 @@ import (
 )
 
 func Test_MessageAdapter(t *testing.T) {
-	id, _ := uuid.NewV1()
+	id := uuid.New()
 	createdTime := time.Now().UTC()
 	// truncate last two nanosecond digits since server delivers time in 100th nanosecond increments
 	// use universal UTC time because different developers operate in different time zones

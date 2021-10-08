@@ -6,7 +6,7 @@ import (
 	"log"
 	"math/bits"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 )
 
@@ -15,7 +15,7 @@ func GetUUID(protoUUID *shared.UUID) uuid.UUID {
 		return ReconstructUUID(structured.MostSignificantBits, structured.LeastSignificantBits)
 	}
 
-	return uuid.FromStringOrNil(protoUUID.GetString_())
+	return uuid.MustParse(protoUUID.GetString_())
 }
 
 func ReconstructUUID(mostSignificantBits, leasSignificantBits int64) uuid.UUID {
@@ -44,7 +44,7 @@ func reconstructUUIDHalfBytes(halfBits int64) []byte {
 }
 
 func ConstructLeastAndMostSignificantBits(id uuid.UUID) (mostSignificantBits, leastSignificantBits int64) {
-	idBytes := id.Bytes()
+	idBytes, _ := id.MarshalBinary()
 
 	byteBuffer := bytes.NewBuffer(idBytes[:8])
 	err := binary.Read(byteBuffer, binary.LittleEndian, &mostSignificantBits)

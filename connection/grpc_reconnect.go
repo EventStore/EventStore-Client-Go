@@ -3,7 +3,7 @@ package connection
 import (
 	"log"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type reconnect struct {
@@ -28,7 +28,7 @@ func (msg reconnect) handle(state *connectionState) {
 			return
 		}
 
-		id, err := uuid.NewV4()
+		id, err := uuid.NewRandom()
 		if err != nil {
 			log.Printf("[error] exception when generating a correlation id after reconnected to %s : %v", msg.endpoint.String(), err)
 			state.correlation = uuid.Nil

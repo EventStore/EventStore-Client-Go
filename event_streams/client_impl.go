@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
@@ -103,7 +103,7 @@ func (client *ClientImpl) BatchAppendToStream(ctx context.Context,
 	events ProposedEventList,
 	chunkSize uint64,
 ) (BatchAppendResponse, errors.Error) {
-	correlationId, _ := uuid.NewV4()
+	correlationId, _ := uuid.NewRandom()
 	return client.BatchAppendToStreamWithCorrelationId(ctx, batchRequestOptions, correlationId, events, chunkSize)
 }
 

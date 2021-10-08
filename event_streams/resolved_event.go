@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/position"
 )
 

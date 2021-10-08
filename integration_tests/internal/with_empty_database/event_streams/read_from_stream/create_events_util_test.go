@@ -3,13 +3,13 @@ package read_from_stream
 import (
 	"strings"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 )
 
 func createTestEventWithMetadataSize(metadataSize int) event_streams.ProposedEvent {
 	return event_streams.ProposedEvent{
-		EventID:      uuid.Must(uuid.NewV4()),
+		EventID:      uuid.Must(uuid.NewRandom()),
 		EventType:    "TestEvent",
 		ContentType:  "application/octet-stream",
 		UserMetadata: []byte(strings.Repeat("$", metadataSize)),

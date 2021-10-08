@@ -1,7 +1,7 @@
 package event_streams
 
 import (
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )

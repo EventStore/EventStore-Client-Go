@@ -3,13 +3,13 @@ package event_streams
 import (
 	"testing"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProposedEvent_ToBatchMessage(t *testing.T) {
-	eventId, _ := uuid.NewV4()
+	eventId, _ := uuid.NewRandom()
 	event := ProposedEvent{
 		EventID:      eventId,
 		EventType:    "some type",
@@ -33,8 +33,8 @@ func TestProposedEvent_ToBatchMessage(t *testing.T) {
 }
 
 func TestProposedEvent_toBatchAppendRequestList(t *testing.T) {
-	eventId, _ := uuid.NewV4()
-	eventId2, _ := uuid.NewV4()
+	eventId, _ := uuid.NewRandom()
+	eventId2, _ := uuid.NewRandom()
 	eventList := ProposedEventList{
 		{
 			EventID:      eventId,
@@ -79,12 +79,12 @@ func TestProposedEvent_toBatchAppendRequestList(t *testing.T) {
 }
 
 func TestProposedEvent_toBatchAppendRequestChunks(t *testing.T) {
-	eventId, _ := uuid.NewV4()
-	eventId2, _ := uuid.NewV4()
-	eventId3, _ := uuid.NewV4()
-	eventId4, _ := uuid.NewV4()
-	eventId5, _ := uuid.NewV4()
-	eventId6, _ := uuid.NewV4()
+	eventId, _ := uuid.NewRandom()
+	eventId2, _ := uuid.NewRandom()
+	eventId3, _ := uuid.NewRandom()
+	eventId4, _ := uuid.NewRandom()
+	eventId5, _ := uuid.NewRandom()
+	eventId6, _ := uuid.NewRandom()
 	eventList := ProposedEventList{
 		{
 			EventID:      eventId,
