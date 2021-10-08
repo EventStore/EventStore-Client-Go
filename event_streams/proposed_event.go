@@ -1,7 +1,7 @@
 package event_streams
 
 import (
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 )
 

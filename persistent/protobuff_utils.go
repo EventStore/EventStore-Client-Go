@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/position"
 	"github.com/pivonroll/EventStore-Client-Go/protos/persistent"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
@@ -15,7 +15,7 @@ import (
 func eventIDFromProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
 	id := recordedEvent.GetId()
 	idString := id.GetString_()
-	return uuid.FromStringOrNil(idString)
+	return uuid.MustParse(idString)
 }
 
 func toProtoUUID(id uuid.UUID) *shared.UUID {

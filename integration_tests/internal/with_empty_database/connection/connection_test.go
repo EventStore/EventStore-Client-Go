@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/connection"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ func Test_CloseConnection(t *testing.T) {
 	defer container.Close()
 
 	testEvent := event_streams.ProposedEvent{
-		EventID:      uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872"),
+		EventID:      uuid.MustParse("38fffbc2-339e-11ea-8c7b-784f43837872"),
 		EventType:    "TestEvent",
 		ContentType:  "application/octet-stream",
 		UserMetadata: []byte{0xd, 0xe, 0xa, 0xd},
@@ -28,7 +28,7 @@ func Test_CloseConnection(t *testing.T) {
 		testEvent,
 	}
 
-	streamID, _ := uuid.NewV4()
+	streamID, _ := uuid.NewRandom()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancel()
 	_, err := eventStreamClient.AppendToStream(ctx,

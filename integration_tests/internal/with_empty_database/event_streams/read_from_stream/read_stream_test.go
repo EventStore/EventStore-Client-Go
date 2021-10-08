@@ -6,7 +6,7 @@ import (
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/event_streams"
 	"github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 	"github.com/stretchr/testify/require"
@@ -49,7 +49,7 @@ func Test_Read_Forwards_Linked_Stream_Big_Count(t *testing.T) {
 		testCreateEvents(1))
 	require.NoError(t, err)
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	linkedEvent := event_streams.ProposedEvent{
 		EventID:      newUUID,
 		EventType:    string(systemmetadata.SystemEventLinkTo),
@@ -86,7 +86,7 @@ func Test_Read_Forwards_Linked_Stream(t *testing.T) {
 		testCreateEvents(1))
 	require.NoError(t, err)
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	linkedEvent := event_streams.ProposedEvent{
 		EventID:      newUUID,
 		EventType:    string(systemmetadata.SystemEventLinkTo),
@@ -140,7 +140,7 @@ func Test_Read_Backwards_Linked_Stream(t *testing.T) {
 		testCreateEvents(1))
 	require.NoError(t, err)
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	linkedEvent := event_streams.ProposedEvent{
 		EventID:      newUUID,
 		EventType:    string(systemmetadata.SystemEventLinkTo),

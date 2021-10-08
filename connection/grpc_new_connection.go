@@ -3,7 +3,7 @@ package connection
 import (
 	"fmt"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
@@ -26,7 +26,7 @@ func (msg getConnection) handle(state *connectionState) {
 			return
 		}
 
-		id, stdErr := uuid.NewV4()
+		id, stdErr := uuid.NewRandom()
 		if stdErr != nil {
 			state.lastError = errors.NewErrorCodeMsg(UUIDGeneratingError,
 				fmt.Sprintf("error when trying to generate a random UUID: %v", err))

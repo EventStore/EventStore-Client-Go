@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/user_management"
 	"github.com/stretchr/testify/require"
@@ -15,7 +15,7 @@ func Test_CreateNewUser(t *testing.T) {
 	client, closeFunc := initializeContainerAndClient(t, nil)
 	defer closeFunc()
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 
 	err := client.CreateUser(context.Background(), user_management.CreateOrUpdateRequest{
@@ -40,7 +40,7 @@ func Test_UpdateUser(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("Existing user", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -67,7 +67,7 @@ func Test_UpdateUser(t *testing.T) {
 	})
 
 	t.Run("Fails for non-existing user", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -86,7 +86,7 @@ func Test_DeleteUser(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("Delete Existing User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -102,7 +102,7 @@ func Test_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Delete Updated User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -125,7 +125,7 @@ func Test_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Fetching Deleted User Fails", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -144,7 +144,7 @@ func Test_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("Deleting Non-Existing User Fails", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		err := client.DeleteUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
@@ -156,7 +156,7 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("Disable Existing User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -176,14 +176,14 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	})
 
 	t.Run("Disable Non-Existing User Fails", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		err := client.DisableUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
 	t.Run("Disable Deleted User Fails", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -202,7 +202,7 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	})
 
 	t.Run("Disable Already Disabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -225,7 +225,7 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	})
 
 	t.Run("Disable Enabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -255,14 +255,14 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	})
 
 	t.Run("Enable Non-Existing User Fails", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		err := client.EnableUser(context.Background(), loginName)
 		require.Equal(t, errors.UserNotFoundErr, err.Code())
 	})
 
 	t.Run("Enable Deleted User Fails", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -281,7 +281,7 @@ func Test_EnableAndDisableUser(t *testing.T) {
 	})
 
 	t.Run("Enable Already Enabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -312,7 +312,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("Succeeds For Existing User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -333,7 +333,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Fails For Wrong Current Password", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -354,7 +354,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Fails For Non-Existing User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 
 		err := client.ChangeUserPassword(context.Background(),
@@ -367,7 +367,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Is Idempotent", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -388,7 +388,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Can Be Executed Multiple Times", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -417,7 +417,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Fails For Deleted User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -441,7 +441,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Succeeds For Disabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -465,7 +465,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Succeeds For Re-Enabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -492,7 +492,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Succeeds After Reset User Password With Latest Current Password", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -517,7 +517,7 @@ func Test_ChangeUserPassword(t *testing.T) {
 	})
 
 	t.Run("Fails After Reset User Password With Wrong Latest Current Password", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -547,7 +547,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("Succeeds For Existing User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -564,7 +564,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	})
 
 	t.Run("Fails For Non-Existing User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 
 		err := client.ResetUserPassword(context.Background(),
@@ -573,7 +573,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	})
 
 	t.Run("Fails For Deleted User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -593,7 +593,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	})
 
 	t.Run("Succeeds For Disabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -613,7 +613,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	})
 
 	t.Run("Succeeds For Re-Enabled User", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -636,7 +636,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	})
 
 	t.Run("Succeeds After Change User Password", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -661,7 +661,7 @@ func Test_ResetUserPassword(t *testing.T) {
 	})
 
 	t.Run("Can Be Called Multiple Times", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -745,7 +745,7 @@ func Test_ListUsers_ListDefaultAndNewUsers(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 	request := user_management.CreateOrUpdateRequest{
 		LoginName: loginName,
@@ -800,7 +800,7 @@ func Test_ListUsers_DoNotListDeletedUser(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 	request := user_management.CreateOrUpdateRequest{
 		LoginName: loginName,
@@ -852,7 +852,7 @@ func Test_ListUsers_ListDisabledUser(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 	request := user_management.CreateOrUpdateRequest{
 		LoginName: loginName,
@@ -910,7 +910,7 @@ func Test_ListUsers_ListReEnabledUser(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 	request := user_management.CreateOrUpdateRequest{
 		LoginName: loginName,
@@ -972,7 +972,7 @@ func Test_ListUsers_ListsUserWithChangedPassword(t *testing.T) {
 	}
 
 	t.Run("Lists User With Changed Password", func(t *testing.T) {
-		newUUID, _ := uuid.NewV4()
+		newUUID, _ := uuid.NewRandom()
 		loginName := newUUID.String()
 		request := user_management.CreateOrUpdateRequest{
 			LoginName: loginName,
@@ -1036,7 +1036,7 @@ func Test_ListUsers_ListsUserWithResetPassword(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 	request := user_management.CreateOrUpdateRequest{
 		LoginName: loginName,
@@ -1095,7 +1095,7 @@ func Test_ListUsers_ListsUpdatedUser(t *testing.T) {
 		defaultAdminUser, defaultOpsUser,
 	}
 
-	newUUID, _ := uuid.NewV4()
+	newUUID, _ := uuid.NewRandom()
 	loginName := newUUID.String()
 	request := user_management.CreateOrUpdateRequest{
 		LoginName: loginName,

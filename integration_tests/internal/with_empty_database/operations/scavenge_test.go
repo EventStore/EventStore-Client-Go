@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	"github.com/pivonroll/EventStore-Client-Go/operations"
 	"github.com/stretchr/testify/require"
@@ -89,7 +89,7 @@ func Test_StopScavenge_WhenNoScavengeIsRunning(t *testing.T) {
 	defer closeFunc()
 
 	t.Run("Stop Scavenge WhenNoScavengeIsRunning", func(t *testing.T) {
-		scavengeId, _ := uuid.NewV4()
+		scavengeId, _ := uuid.NewRandom()
 		_, err := client.StopScavenge(context.Background(), scavengeId.String())
 		require.Equal(t, errors.ScavengeNotFoundErr, err.Code())
 	})

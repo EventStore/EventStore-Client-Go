@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 	gossipApi "github.com/pivonroll/EventStore-Client-Go/protos/gossip"
 	"github.com/pivonroll/EventStore-Client-Go/protos/shared"

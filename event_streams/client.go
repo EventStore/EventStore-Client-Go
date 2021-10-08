@@ -3,7 +3,7 @@ package event_streams
 import (
 	"context"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 )

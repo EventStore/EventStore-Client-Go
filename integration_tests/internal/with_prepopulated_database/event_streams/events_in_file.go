@@ -1,6 +1,6 @@
 package event_streams_with_prepopulated_database
 
-import "github.com/gofrs/uuid"
+import "github.com/google/uuid"
 
 type TestEvent struct {
 	Event Event `json:"event"`

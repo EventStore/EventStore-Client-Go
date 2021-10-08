@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 type StreamMetadataResult interface {
@@ -240,7 +240,7 @@ func GetMetaStreamOf(streamName string) string {
 }
 
 func NewMetadataEvent(metadata StreamMetadata) ProposedEvent {
-	eventId, _ := uuid.NewV4()
+	eventId, _ := uuid.NewRandom()
 
 	jsonBytes, stdErr := json.Marshal(metadata)
 

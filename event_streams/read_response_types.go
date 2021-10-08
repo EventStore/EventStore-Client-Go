@@ -13,7 +13,7 @@ import (
 
 	system_metadata "github.com/pivonroll/EventStore-Client-Go/systemmetadata"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/protos/streams2"
 )
 
@@ -138,7 +138,7 @@ func createRecordedEvent(protoEvent *streams2.ReadResp_ReadEvent_RecordedEvent) 
 	delete(systemMetadata, system_metadata.SystemMetadataKeysContentType)
 
 	return &RecordedEvent{
-		EventID:     uuid.FromStringOrNil(protoEventId),
+		EventID:     uuid.MustParse(protoEventId),
 		EventType:   eventType,
 		ContentType: ContentType(contentType),
 		StreamId:    string(protoEvent.StreamIdentifier.StreamName),
