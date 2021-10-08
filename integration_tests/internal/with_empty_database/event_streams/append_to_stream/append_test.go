@@ -1,4 +1,4 @@
-package event_streams_integration_test
+package append_test
 
 import (
 	"context"

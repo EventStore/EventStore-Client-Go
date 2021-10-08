@@ -1,4 +1,4 @@
-package event_streams_integration_test
+package subscribe_to_stream
 
 import (
 	"context"

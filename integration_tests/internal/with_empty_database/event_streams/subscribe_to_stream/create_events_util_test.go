@@ -1,4 +1,4 @@
-package event_streams_integration_test
+package subscribe_to_stream
 
 import (
 	"strings"
@@ -27,31 +27,5 @@ func testCreateEvents(count uint32) event_streams.ProposedEventList {
 	for ; i < count; i++ {
 		result[i] = testCreateEvent()
 	}
-	return result
-}
-
-func testCreateEventsWithMetadata(count uint32, metadataSize int) event_streams.ProposedEventList {
-	result := make(event_streams.ProposedEventList, count)
-	var i uint32 = 0
-	for ; i < count; i++ {
-		result[i] = createTestEventWithMetadataSize(metadataSize)
-	}
-	return result
-}
-
-func testCreateEventsWithBytesCap(bytesCap uint) event_streams.ProposedEventList {
-	byteCount := uint(0)
-	result := make(event_streams.ProposedEventList, 0)
-
-	for {
-		newEvent := testCreateEvent()
-		byteCount += uint(len(newEvent.Data))
-
-		if byteCount > bytesCap {
-			break
-		}
-		result = append(result, newEvent)
-	}
-
 	return result
 }

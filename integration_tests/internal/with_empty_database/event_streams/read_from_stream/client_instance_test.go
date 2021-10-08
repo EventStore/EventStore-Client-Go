@@ -1,4 +1,4 @@
-package event_streams_integration_test
+package read_from_stream
 
 import (
 	"testing"
@@ -11,12 +11,6 @@ func initializeContainerAndClient(t *testing.T,
 	envVariableOverrides map[string]string) (event_streams.Client, test_utils.CloseFunc) {
 	grpcClient, closeFunc := test_utils.InitializeGrpcClient(t, envVariableOverrides)
 
-	client := event_streams.ClientFactoryImpl{}.Create(grpcClient)
-	return client, closeFunc
-}
-
-func initializeWithPrePopulatedDatabase(t *testing.T) (event_streams.Client, test_utils.CloseFunc) {
-	grpcClient, closeFunc := test_utils.InitializeGrpcClientWithPrePopulatedDatabase(t)
 	client := event_streams.ClientFactoryImpl{}.Create(grpcClient)
 	return client, closeFunc
 }
