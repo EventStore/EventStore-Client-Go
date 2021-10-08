@@ -11,7 +11,7 @@ import (
 )
 
 type BatchAppendRequest struct {
-	CorrelationId    string
+	CorrelationId    uuid.UUID
 	Options          BatchAppendRequestOptions
 	ProposedMessages []BatchAppendRequestProposedMessage
 	IsFinal          bool
@@ -21,7 +21,7 @@ func (this BatchAppendRequest) Build() *streams2.BatchAppendReq {
 	result := &streams2.BatchAppendReq{
 		CorrelationId: &shared.UUID{
 			Value: &shared.UUID_String_{
-				String_: this.CorrelationId,
+				String_: this.CorrelationId.String(),
 			},
 		},
 		Options: &streams2.BatchAppendReq_Options{

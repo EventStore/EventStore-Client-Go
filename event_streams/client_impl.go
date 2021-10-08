@@ -133,7 +133,7 @@ func (client *ClientImpl) BatchAppendToStreamWithCorrelationId(ctx context.Conte
 
 	for index, chunk := range chunks {
 		request := BatchAppendRequest{
-			CorrelationId:    correlationId.String(),
+			CorrelationId:    correlationId,
 			Options:          batchRequestOptions,
 			ProposedMessages: chunk,
 			IsFinal:          index == len(chunks)-1,

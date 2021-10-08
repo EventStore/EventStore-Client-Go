@@ -1,6 +1,7 @@
 package event_streams
 
 import (
+	"github.com/google/uuid"
 	"github.com/pivonroll/EventStore-Client-Go/protobuf_uuid"
 
 	"github.com/golang/protobuf/ptypes/any"
@@ -9,7 +10,7 @@ import (
 )
 
 type BatchAppendResponse struct {
-	CorrelationId string
+	CorrelationId uuid.UUID
 	// BatchAppendResponseResultSuccessPosition
 	// BatchAppendResponseResultSuccessNoPosition
 	Position         isBatchAppendResponseResultSuccessPosition
@@ -234,7 +235,7 @@ func (this batchResponseAdapterImpl) buildBatchError(
 func (this batchResponseAdapterImpl) buildSuccess(
 	protoResponse *streams2.BatchAppendResp) BatchAppendResponse {
 	result := BatchAppendResponse{
-		CorrelationId:    protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()).String(),
+		CorrelationId:    protobuf_uuid.GetUUID(protoResponse.GetCorrelationId()),
 		StreamIdentifier: string(protoResponse.StreamIdentifier.StreamName),
 	}
 
