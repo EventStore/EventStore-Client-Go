@@ -18,4 +18,5 @@ const (
 	MaximumSubscriberCountReached    ErrorCode = "MaximumSubscriberCountReached"
 	PersistentSubscriptionDroppedErr ErrorCode = "PersistentSubscriptionDroppedErr"
 	ScavengeNotFoundErr              ErrorCode = "ScavengeNotFoundErr"
+	InvalidArgumentErr               ErrorCode = "InvalidArgumentErr"
 )

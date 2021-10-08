@@ -3,6 +3,8 @@ package event_streams
 import (
 	"context"
 
+	"github.com/gofrs/uuid"
+
 	"github.com/pivonroll/EventStore-Client-Go/errors"
 )
 
@@ -16,6 +18,13 @@ type Client interface {
 
 	BatchAppendToStream(ctx context.Context,
 		batchRequestOptions BatchAppendRequestOptions,
+		events ProposedEventList,
+		chunkSize uint64,
+	) (BatchAppendResponse, errors.Error)
+
+	BatchAppendToStreamWithCorrelationId(ctx context.Context,
+		batchRequestOptions BatchAppendRequestOptions,
+		correlationId uuid.UUID,
 		events ProposedEventList,
 		chunkSize uint64,
 	) (BatchAppendResponse, errors.Error)

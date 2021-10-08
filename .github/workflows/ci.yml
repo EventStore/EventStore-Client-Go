@@ -79,7 +79,18 @@ jobs:
     name: Integration Tests With Empty Database
     strategy:
       matrix:
-        domain: [ connection, persistent, projections, operations, event_streams, user_management ]
+        domain:
+          - connection
+          - event_streams/append_to_stream
+          - event_streams/batch_append_to_stream
+          - event_streams/delete_stream
+          - event_streams/read_from_stream
+          - event_streams/stream_metadata
+          - event_streams/subscribe_to_stream
+          - operations
+          - persistent
+          - projections
+          - user_management
       fail-fast: false
     runs-on: ubuntu-18.04
 
