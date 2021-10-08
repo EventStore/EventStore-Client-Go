@@ -6,9 +6,8 @@ import (
 	"log"
 	"math/bits"
 
-	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
-
 	"github.com/gofrs/uuid"
+	"github.com/pivonroll/EventStore-Client-Go/protos/shared"
 )
 
 func GetUUID(protoUUID *shared.UUID) uuid.UUID {
@@ -19,24 +18,9 @@ func GetUUID(protoUUID *shared.UUID) uuid.UUID {
 	return uuid.FromStringOrNil(protoUUID.GetString_())
 }
 
-func ReconstructUUID(mostSignificant, leasSignificant int64) uuid.UUID {
-	lowBuffer := new(bytes.Buffer)
-	highBuffer := new(bytes.Buffer)
-
-	mostSignificantRes := bits.ReverseBytes64(uint64(mostSignificant))
-	err := binary.Write(lowBuffer, binary.LittleEndian, mostSignificantRes)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	leasSignificantRes := bits.ReverseBytes64(uint64(leasSignificant))
-	err = binary.Write(highBuffer, binary.LittleEndian, leasSignificantRes)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	lowBytes := lowBuffer.Bytes()
-	topBytes := highBuffer.Bytes()
+func ReconstructUUID(mostSignificantBits, leasSignificantBits int64) uuid.UUID {
+	lowBytes := reconstructUUIDHalfBytes(mostSignificantBits)
+	topBytes := reconstructUUIDHalfBytes(leasSignificantBits)
 
 	resultBytes := append(lowBytes, topBytes...)
 	resultId, err := uuid.FromBytes(resultBytes)
@@ -45,4 +29,35 @@ func ReconstructUUID(mostSignificant, leasSignificant int64) uuid.UUID {
 	}
 
 	return resultId
+}
+
+func reconstructUUIDHalfBytes(halfBits int64) []byte {
+	byteBuffer := new(bytes.Buffer)
+
+	reversedBits := bits.ReverseBytes64(uint64(halfBits))
+	err := binary.Write(byteBuffer, binary.LittleEndian, reversedBits)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return byteBuffer.Bytes()
+}
+
+func ConstructLeastAndMostSignificantBits(id uuid.UUID) (mostSignificantBits, leastSignificantBits int64) {
+	idBytes := id.Bytes()
+
+	byteBuffer := bytes.NewBuffer(idBytes[:8])
+	err := binary.Read(byteBuffer, binary.LittleEndian, &mostSignificantBits)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	mostSignificantBits = int64(bits.ReverseBytes64(uint64(mostSignificantBits)))
+
+	byteBuffer = bytes.NewBuffer(idBytes[8:])
+	err = binary.Read(byteBuffer, binary.LittleEndian, &leastSignificantBits)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	leastSignificantBits = int64(bits.ReverseBytes64(uint64(leastSignificantBits)))
+	return
 }
