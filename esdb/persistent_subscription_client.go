@@ -2,6 +2,8 @@ package esdb
 
 import (
 	"context"
+	"math"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	"google.golang.org/grpc"
@@ -29,7 +31,9 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 			password: auth.Password,
 		}))
 	}
-	ctx, cancel := context.WithCancel(ctx)
+
+	deadline := time.Now().Add(time.Duration(math.MaxInt64))
+	ctx, cancel := context.WithDeadline(ctx, deadline)
 	readClient, err := client.persistentSubscriptionClient.Read(ctx, callOptions...)
 	if err != nil {
 		defer cancel()

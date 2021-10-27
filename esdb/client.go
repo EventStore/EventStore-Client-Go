@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"time"
 
 	"errors"
 
@@ -325,7 +327,8 @@ func (client *Client) SubscribeToStream(
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct subscription. Reason: %w", err)
 	}
-	ctx, cancel := context.WithCancel(ctx)
+	deadline := time.Now().Add(time.Duration(math.MaxInt64))
+	ctx, cancel := context.WithDeadline(ctx, deadline)
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, callOptions...)
 	if err != nil {
 		defer cancel()
@@ -382,7 +385,8 @@ func (client *Client) SubscribeToAll(
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct subscription. Reason: %w", err)
 	}
-	ctx, cancel := context.WithCancel(ctx)
+	deadline := time.Now().Add(time.Duration(math.MaxInt64))
+	ctx, cancel := context.WithDeadline(ctx, deadline)
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, callOptions...)
 	if err != nil {
 		defer cancel()
