@@ -28,6 +28,9 @@ jobs:
   tests:
     needs: build
     name: Tests
+    strategy:
+      matrix:
+        version: [ 20.10.4-buster-slim, 21.6.0-buster-slim, ci ]
     runs-on: ubuntu-18.04
 
     steps:
@@ -47,6 +50,8 @@ jobs:
           go test -v ./...
           docker-compose down
           docker-compose --file=cluster-docker-compose.yml down
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ matrix.version }}
 
   linting:
     needs: tests
