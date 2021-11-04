@@ -748,7 +748,7 @@ func createPersistentRequestAllOptionsProto(
 		Options: &persistent.CreateReq_Options{
 			StreamOption: options,
 			GroupName:    groupName,
-			Settings:     createPersistentSubscriptionSettingsProto(settings),
+			Settings:     createPersistentSubscriptionSettingsProto(nil, settings),
 		},
 	}, nil
 }
@@ -805,7 +805,7 @@ func createPersistentSubscriptionStreamConfigProto(
 			StreamName: []byte(streamName),
 		},
 		GroupName: groupName,
-		Settings:  createPersistentSubscriptionSettingsProto(settings),
+		Settings:  createPersistentSubscriptionSettingsProto(position, settings),
 	}
 }
 
@@ -840,9 +840,29 @@ func createPersistentSubscriptionStreamSettingsProto(
 }
 
 func createPersistentSubscriptionSettingsProto(
+	position StreamPosition,
 	settings SubscriptionSettings,
 ) *persistent.CreateReq_Settings {
+	var revision uint64 = 0
+
+	// We only do this to be compatible with pre-21.* servers. On recent servers, that field is deprecated and simply
+	// ignored by the server.
+	if position != nil {
+		switch value := position.(type) {
+		case Start:
+			revision = 0
+			break
+		case End:
+			revision = ^uint64(0)
+			break
+		case StreamRevision:
+			revision = value.Value
+			break;
+		}
+	}
+
 	return &persistent.CreateReq_Settings{
+		Revision: revision,
 		ResolveLinks:          settings.ResolveLinkTos,
 		ExtraStatistics:       settings.ExtraStatistics,
 		MaxRetryCount:         settings.MaxRetryCount,
