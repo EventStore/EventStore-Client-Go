@@ -11,9 +11,6 @@ var ErrWrongExpectedStreamRevision = errors.New("WrongExpectedStreamRevision")
 // ErrPermissionDenied ...
 var ErrPermissionDenied = errors.New("PermissionDenied")
 
-// ErrUnAuthenticated
-var ErrUnauthenticated = errors.New("Unauthenticated")
-
 // ErrStreamNotFound is returned when a read requests gets a stream not found response
 // from the EventStore.
 // Example usage:

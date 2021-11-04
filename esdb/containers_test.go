@@ -1,7 +1,9 @@
 package esdb_test
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,16 +11,24 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/esdb"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/goombaio/namegenerator"
 	"github.com/ory/dockertest/v3"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
 	EVENTSTORE_DOCKER_REPOSITORY_ENV = "EVENTSTORE_DOCKER_REPOSITORY"
 	EVENTSTORE_DOCKER_TAG_ENV        = "EVENTSTORE_DOCKER_TAG"
 	EVENTSTORE_DOCKER_PORT_ENV       = "EVENTSTORE_DOCKER_PORT"
+)
+
+var (
+	NAME_GENERATOR = namegenerator.NewNameGenerator(0)
 )
 
 // Container ...
@@ -34,8 +44,8 @@ type EventStoreDockerConfig struct {
 }
 
 const (
-	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "ghcr.io/eventstore/eventstore-client-grpc-testdata/eventstore-client-grpc-testdata"
-	DEFAULT_EVENTSTORE_DOCKER_TAG        = "21.6.0-buster-slim"
+	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "ghcr.io/eventstore/testdata"
+	DEFAULT_EVENTSTORE_DOCKER_TAG        = "ci"
 	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2113"
 )
 
@@ -92,6 +102,7 @@ func GetPrePopulatedDatabase() *Container {
 	return getDatabase(options)
 }
 
+// TODO - Keep retrying when the healthcheck failed. We should try creating a new container instead of failing the test.
 func getDatabase(options *dockertest.RunOptions) *Container {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -105,41 +116,58 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 
 	fmt.Println("Starting docker container...")
 
-	resource, err := pool.RunWithOptions(options)
-	if err != nil {
-		log.Fatalf("Could not start resource. Reason: %v", err)
-	}
+	var resource *dockertest.Resource
+	var endpoint string
+	retries := 0
+	retryLimit := 5
 
-	fmt.Printf("Started container with id: %v, name: %s\n",
-		resource.Container.ID,
-		resource.Container.Name)
+	for retries < retryLimit {
+		retries += 1
+		resource, err = pool.RunWithOptions(options)
+		if err != nil {
+			log.Fatalf("Could not start resource. Reason: %v", err)
+		}
 
-	endpoint := fmt.Sprintf("localhost:%s", resource.GetPort("2113/tcp"))
+		fmt.Printf("Started container with id: %v, name: %s\n",
+			resource.Container.ID,
+			resource.Container.Name)
 
-	// Disable certificate verification
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	err = pool.Retry(func() error {
-		if resource != nil && resource.Container != nil {
-			containerInfo, containerError := pool.Client.InspectContainer(resource.Container.ID)
-			if containerError == nil && containerInfo.State.Running == false {
-				return fmt.Errorf("unexpected exit of container check the container logs for more information, container ID: %v", resource.Container.ID)
+		endpoint = fmt.Sprintf("localhost:%s", resource.GetPort("2113/tcp"))
+
+		// Disable certificate verification
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		err = pool.Retry(func() error {
+			if resource != nil && resource.Container != nil {
+				containerInfo, containerError := pool.Client.InspectContainer(resource.Container.ID)
+				if containerError == nil && containerInfo.State.Running == false {
+					return fmt.Errorf("unexpected exit of container check the container logs for more information, container ID: %v", resource.Container.ID)
+				}
 			}
+
+			healthCheckEndpoint := fmt.Sprintf("https://%s/health/alive", endpoint)
+			_, err := http.Get(healthCheckEndpoint)
+			return err
+		})
+
+		if err != nil {
+			log.Printf("[debug] healthCheck failed. Reason: %v\n", err)
+
+			closeErr := resource.Close()
+
+			if closeErr != nil && retries >= retryLimit {
+				log.Fatalf("Failed to closeConnection docker resource. Reason: %v", err)
+			}
+
+			if retries < retryLimit {
+				log.Printf("[debug] heatlhCheck failed retrying...%v/%v", retries, retryLimit)
+				continue
+			}
+
+			log.Fatalln("[debug] stopping docker resource")
+		} else {
+			log.Print("[debug] healthCheck succeeded!")
+			break
 		}
-
-		healthCheckEndpoint := fmt.Sprintf("https://%s/health/alive", endpoint)
-		_, err := http.Get(healthCheckEndpoint)
-		return err
-	})
-
-	if err != nil {
-		log.Printf("HealthCheck failed. Reason: %v\n", err)
-
-		closeErr := resource.Close()
-
-		if closeErr != nil {
-			log.Fatalf("Failed to closeConnection docker resource. Reason: %v", err)
-		}
-		log.Fatalln("Stopping docker resource")
 	}
 
 	return &Container{
@@ -220,6 +248,77 @@ func CreateTestClient(container *Container, t *testing.T) *esdb.Client {
 	}
 
 	return client
+}
+
+func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
+	count := 0
+
+	for count < 50 {
+		count += 1
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
+		t.Logf("[debug] checking if admin user is available...%v/50", count)
+
+		stream, err := db.ReadStream(ctx, "$users",  esdb.ReadStreamOptions{}, 1)
+
+		if ctx.Err() != nil {
+			t.Log("[debug] request timed out, retrying...")
+			cancel()
+			continue
+		}
+
+		if err != nil {
+			code := status.Code(err)
+			if errors.Is(err, esdb.ErrStreamNotFound) || code == codes.Unauthenticated || code == codes.Unavailable {
+				time.Sleep(500 * time.Microsecond)
+				t.Logf("[debug] not available retrying...")
+				cancel()
+				continue
+			}
+
+			panic(err)
+		}
+
+		cancel()
+		stream.Close()
+		t.Log("[debug] admin is available!")
+		break
+	}
+}
+
+func WaitForLeaderToBeElected(t *testing.T, db *esdb.Client) {
+	count := 0
+	streamID := NAME_GENERATOR.Generate()
+
+	for count < 50 {
+		count += 1
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+		t.Logf("[debug] checking if a leader has been elected...%v/50", count)
+
+		err := db.CreatePersistentSubscription(ctx, streamID, "group", esdb.PersistentStreamSubscriptionOptions{})
+
+		if ctx.Err() != nil {
+			t.Log("[debug] request timed out, retrying...")
+			cancel()
+			continue
+		}
+
+		if err != nil {
+			if err.Error() == "not leader exception" {
+				time.Sleep(500 * time.Microsecond)
+				t.Logf("[debug] not available retrying...")
+				cancel()
+				continue
+			}
+
+			panic(err)
+		}
+
+		cancel()
+		t.Log("[debug] a leader has been elected!")
+		break
+	}
 }
 
 func CreateClient(connStr string, t *testing.T) *esdb.Client {

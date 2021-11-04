@@ -56,15 +56,12 @@ func (client *grpcClient) handleError(handle connectionHandle, headers metadata.
 
 	log.Printf("[error] unexpected exception: %v", err)
 
-	status, _ := status.FromError(err)
-	if status.Code() == codes.FailedPrecondition { // Precondition -> ErrWrongExpectedStreamRevision
+	code := status.Code(err)
+	if code == codes.FailedPrecondition { // Precondition -> ErrWrongExpectedStreamRevision
 		return fmt.Errorf("%w, reason: %s", ErrWrongExpectedStreamRevision, err.Error())
 	}
-	if status.Code() == codes.PermissionDenied { // PermissionDenied -> ErrPermissionDenied
+	if code == codes.PermissionDenied { // PermissionDenied -> ErrPermissionDenied
 		return fmt.Errorf("%w", ErrPermissionDenied)
-	}
-	if status.Code() == codes.Unauthenticated { // PermissionDenied -> ErrUnauthenticated
-		return fmt.Errorf("%w", ErrUnauthenticated)
 	}
 
 	msg := reconnect{
