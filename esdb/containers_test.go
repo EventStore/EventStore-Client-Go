@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +24,7 @@ import (
 
 const (
 	EVENTSTORE_DOCKER_REPOSITORY_ENV = "EVENTSTORE_DOCKER_REPOSITORY"
-	EVENTSTORE_DOCKER_TAG_ENV        = "EVENTSTORE_DOCKER_TAG"
+	EVENTSTORE_DOCKER_TAG_ENV        = "EVENTSTORE_DOCKER_TAG_ENV"
 	EVENTSTORE_DOCKER_PORT_ENV       = "EVENTSTORE_DOCKER_PORT"
 )
 
@@ -70,6 +71,55 @@ func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerCon
 
 	fmt.Println(spew.Sdump(config))
 	return config
+}
+
+type ESDBVersion struct {
+	Maj   int
+	Min   int
+	Patch int
+}
+
+type VersionPredicateFn = func(ESDBVersion) bool
+
+func IsESDB_Version(predicate VersionPredicateFn) bool {
+	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV); exists {
+		if value == "ci" {
+			return false
+		}
+
+		parts := strings.Split(value, "-")
+		versionNumbers := strings.Split(parts[0], ".")
+		maj, err := strconv.Atoi(versionNumbers[0])
+
+		if err != nil {
+			panic(err)
+		}
+
+		min, err := strconv.Atoi(versionNumbers[1])
+
+		if err != nil {
+			panic(err)
+		}
+
+		patch, err := strconv.Atoi(versionNumbers[2])
+
+		if err != nil {
+			panic(err)
+		}
+
+		version := ESDBVersion{
+			Maj:   maj,
+			Min:   min,
+			Patch: patch,
+		}
+		return predicate(version)
+	}
+
+	return false
+}
+
+func IsESDB_VersionBelow_21() bool {
+	return IsESDB_Version(func(v ESDBVersion) bool { return v.Maj < 21 })
 }
 
 func getDockerOptions() *dockertest.RunOptions {
@@ -256,10 +306,10 @@ func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
 	for count < 50 {
 		count += 1
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		t.Logf("[debug] checking if admin user is available...%v/50", count)
 
-		stream, err := db.ReadStream(ctx, "$users",  esdb.ReadStreamOptions{}, 1)
+		stream, err := db.ReadStream(ctx, "$users", esdb.ReadStreamOptions{}, 1)
 
 		if ctx.Err() != nil {
 			t.Log("[debug] request timed out, retrying...")
@@ -293,7 +343,7 @@ func WaitForLeaderToBeElected(t *testing.T, db *esdb.Client) {
 	for count < 50 {
 		count += 1
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		t.Logf("[debug] checking if a leader has been elected...%v/50", count)
 
 		err := db.CreatePersistentSubscription(ctx, streamID, "group", esdb.PersistentStreamSubscriptionOptions{})

@@ -30,7 +30,7 @@ jobs:
     name: Tests
     strategy:
       matrix:
-        version: [ 20.10.4-buster-slim, 21.6.0-buster-slim, ci ]
+        version: [ 20.10.4-buster-slim, 21.10.0-buster-slim, ci ]
     runs-on: ubuntu-18.04
 
     steps:

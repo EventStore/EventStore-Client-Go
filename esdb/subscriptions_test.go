@@ -34,6 +34,10 @@ func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.
 			From: esdb.Start{},
 		})
 
+		require.NoError(t, err)
+		receivedEvents.Add(6_000)
+		appendedEvents.Add(1)
+
 		go func() {
 			current := 0
 			for {
@@ -58,9 +62,6 @@ func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.
 			}
 		}()
 
-		require.NoError(t, err)
-		receivedEvents.Add(6_000)
-		appendedEvents.Add(1)
 		timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out waiting for initial set of events")
 

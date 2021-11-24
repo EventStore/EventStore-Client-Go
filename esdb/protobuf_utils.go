@@ -857,12 +857,12 @@ func createPersistentSubscriptionSettingsProto(
 			break
 		case StreamRevision:
 			revision = value.Value
-			break;
+			break
 		}
 	}
 
 	return &persistent.CreateReq_Settings{
-		Revision: revision,
+		Revision:              revision,
 		ResolveLinks:          settings.ResolveLinkTos,
 		ExtraStatistics:       settings.ExtraStatistics,
 		MaxRetryCount:         settings.MaxRetryCount,
@@ -985,22 +985,31 @@ func toPersistentReadRequest(
 	groupName string,
 	streamName []byte,
 ) *persistent.ReadReq {
+	options := &persistent.ReadReq_Options{
+		BufferSize: bufferSize,
+		GroupName:  groupName,
+		UuidOption: &persistent.ReadReq_Options_UUIDOption{
+			Content: &persistent.ReadReq_Options_UUIDOption_String_{
+				String_: nil,
+			},
+		},
+	}
+
+	if len(streamName) == 0 {
+		options.StreamOption = &persistent.ReadReq_Options_All{
+			All: &shared.Empty{},
+		}
+	} else {
+		options.StreamOption = &persistent.ReadReq_Options_StreamIdentifier{
+			StreamIdentifier: &shared.StreamIdentifier{
+				StreamName: streamName,
+			},
+		}
+	}
+
 	return &persistent.ReadReq{
 		Content: &persistent.ReadReq_Options_{
-			Options: &persistent.ReadReq_Options{
-				BufferSize: bufferSize,
-				GroupName:  groupName,
-				StreamOption: &persistent.ReadReq_Options_StreamIdentifier{
-					StreamIdentifier: &shared.StreamIdentifier{
-						StreamName: streamName,
-					},
-				},
-				UuidOption: &persistent.ReadReq_Options_UUIDOption{
-					Content: &persistent.ReadReq_Options_UUIDOption_String_{
-						String_: nil,
-					},
-				},
-			},
+			Options: options,
 		},
 	}
 }
