@@ -22,6 +22,9 @@ func PersistentSubTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBCli
 		t.Run("deletePersistentStreamSubscription", deletePersistentStreamSubscription(emptyDBClient))
 		t.Run("deletePersistentSubscription_ErrIfSubscriptionDoesNotExist", deletePersistentSubscription_ErrIfSubscriptionDoesNotExist(emptyDBClient))
 		t.Run("testPersistentSubscriptionClosing", testPersistentSubscriptionClosing(populatedDBClient))
+		t.Run("persistentAllCreate", persistentAllCreate(emptyDBClient))
+		t.Run("persistentAllUpdate", persistentAllUpdate(emptyDBClient))
+		t.Run("persistentAllDelete", persistentAllDelete(emptyDBClient))
 	})
 }
 
@@ -290,5 +293,72 @@ func testPersistentSubscriptionClosing(db *esdb.Client) TestCall {
 		subscription.Close()
 		timedOut = waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out waiting for dropped event")
+	}
+}
+
+func persistentAllCreate(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscriptionAll(
+			context.Background(),
+			groupName,
+			esdb.PersistentAllSubscriptionOptions{},
+		)
+
+		if err != nil && IsESDB_VersionBelow_21() {
+			t.Skip()
+		}
+
+		require.NoError(t, err)
+	}
+}
+
+func persistentAllUpdate(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscriptionAll(
+			context.Background(),
+			groupName,
+			esdb.PersistentAllSubscriptionOptions{},
+		)
+
+		if err != nil && IsESDB_VersionBelow_21() {
+			t.Skip()
+		}
+
+		require.NoError(t, err)
+
+		setts := esdb.SubscriptionSettingsDefault()
+		setts.ResolveLinkTos = true
+
+		err = client.UpdatePersistentSubscriptionAll(context.Background(), groupName, esdb.PersistentAllSubscriptionOptions{
+			Settings: &setts,
+		})
+
+		require.NoError(t, err)
+	}
+}
+
+func persistentAllDelete(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscriptionAll(
+			context.Background(),
+			groupName,
+			esdb.PersistentAllSubscriptionOptions{},
+		)
+
+		if err != nil && IsESDB_VersionBelow_21() {
+			t.Skip()
+		}
+
+		require.NoError(t, err)
+
+		err = client.DeletePersistentSubscriptionAll(context.Background(), groupName, esdb.DeletePersistentSubscriptionOptions{})
+
+		require.NoError(t, err)
 	}
 }

@@ -6,7 +6,7 @@ services:
     environment:
       PROVISION_DIRECTORIES: "1000:1000:0755:/tmp/certs"
     volumes:
-    - "./certs:/tmp/certs"
+      - "./certs:/tmp/certs"
     network_mode: none
   cert-gen:
     image: eventstore/es-gencert-cli:1.0.2
@@ -25,7 +25,7 @@ services:
     depends_on:
       - volumes-provisioner
   esdb-node1:
-    image: ghcr.io/eventstore/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-21.6.0-buster-slim}
+    image: ghcr.io/eventstore/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-ci}
     env_file:
       - shared.env
     environment:
@@ -49,7 +49,7 @@ services:
       - cert-gen
 
   esdb-node2:
-    image: ghcr.io/eventstore/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-21.6.0-buster-slim}
+    image: ghcr.io/eventstore/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-ci}
     env_file:
       - shared.env
     environment:
@@ -73,7 +73,7 @@ services:
       - cert-gen
 
   esdb-node3:
-    image: ghcr.io/eventstore/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-21.6.0-buster-slim}
+    image: ghcr.io/eventstore/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-ci}
     env_file:
       - shared.env
     environment:

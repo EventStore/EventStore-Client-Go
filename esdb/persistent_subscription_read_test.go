@@ -21,6 +21,7 @@ func PersistentSubReadTests(t *testing.T, emptyDBClient *esdb.Client) {
 		t.Run("ToExistingStream_StartFrom4_EventsInIt", persistentSubscription_ToExistingStream_StartFrom4_EventsInIt(emptyDBClient))
 		t.Run("ToExistingStream_StartFromHigherRevisionThenEventsInStream_EventsInItAppendEventsAfterwards", persistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsInStream_EventsInItAppendEventsAfterwards(emptyDBClient))
 		t.Run("ReadExistingStream_NackToReceiveNewEvents", persistentSubscription_ReadExistingStream_NackToReceiveNewEvents(emptyDBClient))
+		t.Run("persistentSubscriptionToAll_Read", persistentSubscriptionToAll_Read(emptyDBClient))
 	})
 }
 
@@ -472,6 +473,51 @@ func persistentSubscription_ReadExistingStream_NackToReceiveNewEvents(clientInst
 		thirdReadEvent := readConnectionClient.Recv()
 		require.NoError(t, err)
 		require.NotNil(t, thirdReadEvent)
+	}
+}
+
+func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := "Group 1"
+		err := clientInstance.CreatePersistentSubscriptionAll(
+			context.Background(),
+			groupName,
+			esdb.PersistentAllSubscriptionOptions{
+				From: esdb.Start{},
+			},
+		)
+
+		if err != nil && IsESDB_VersionBelow_21() {
+			t.Skip()
+		}
+
+		require.NoError(t, err)
+
+		readConnectionClient, err := clientInstance.ConnectToPersistentSubscriptionToAll(
+			context.Background(), groupName, esdb.ConnectToPersistentSubscriptionOptions{
+				BatchSize: 2,
+			},
+		)
+		require.NoError(t, err)
+
+		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, firstReadEvent)
+
+		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		require.NoError(t, err)
+		require.NotNil(t, secondReadEvent)
+
+		// since buffer size is two, after reading two outstanding messages
+		// we must acknowledge a message in order to receive third one
+		err = readConnectionClient.Ack(firstReadEvent)
+		require.NoError(t, err)
+
+		thirdReadEvent := readConnectionClient.Recv()
+		require.NoError(t, err)
+		require.NotNil(t, thirdReadEvent)
+		err = readConnectionClient.Ack(thirdReadEvent.EventAppeared)
+		require.NoError(t, err)
 	}
 }
 

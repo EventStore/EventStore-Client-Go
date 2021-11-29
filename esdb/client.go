@@ -434,6 +434,28 @@ func (client *Client) ConnectToPersistentSubscription(
 	)
 }
 
+func (client *Client) ConnectToPersistentSubscriptionToAll(
+	ctx context.Context,
+	groupName string,
+	options ConnectToPersistentSubscriptionOptions,
+) (*PersistentSubscription, error) {
+	options.setDefaults()
+	handle, err := client.grpcClient.getConnectionHandle()
+	if err != nil {
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+	}
+	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
+
+	return persistentSubscriptionClient.ConnectToPersistentSubscription(
+		ctx,
+		handle,
+		int32(options.BatchSize),
+		"",
+		groupName,
+		options.Authenticated,
+	)
+}
+
 func (client *Client) CreatePersistentSubscription(
 	ctx context.Context,
 	streamName string,
