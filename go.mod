@@ -10,6 +10,7 @@ require (
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/stretchr/testify v1.6.1
