@@ -187,6 +187,7 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 		require.NoError(t, err)
 		_, err = collectStreamEvents(stream)
 		require.NoError(t, err)
+		waitingForError.Add(1)
 
 		go func() {
 			_, err := stream.Recv()
@@ -196,7 +197,6 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 		}()
 
 		require.NoError(t, err)
-		waitingForError.Add(1)
 		timedOut := waitWithTimeout(&waitingForError, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out waiting for read stream to return io.EOF on completion")
 	}

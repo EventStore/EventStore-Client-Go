@@ -32,8 +32,8 @@ type PersistentSubscription struct {
 	once           *sync.Once
 }
 
-func (connection *PersistentSubscription) Recv() *SubscriptionEvent {
-	channel := make(chan *SubscriptionEvent)
+func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
+	channel := make(chan *PersistentSubscriptionEvent)
 	req := persistentRequest{
 		channel: channel,
 	}
@@ -116,7 +116,7 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 }
 
 type persistentRequest struct {
-	channel chan *SubscriptionEvent
+	channel chan *PersistentSubscriptionEvent
 }
 
 func NewPersistentSubscription(
@@ -141,7 +141,7 @@ func NewPersistentSubscription(
 			req := <-channel
 
 			if closed {
-				req.channel <- &SubscriptionEvent{
+				req.channel <- &PersistentSubscriptionEvent{
 					SubscriptionDropped: &SubscriptionDropped{
 						Error: fmt.Errorf("subscription has been dropped"),
 					},
@@ -158,7 +158,7 @@ func NewPersistentSubscription(
 					Error: err,
 				}
 
-				req.channel <- &SubscriptionEvent{
+				req.channel <- &PersistentSubscriptionEvent{
 					SubscriptionDropped: &dropped,
 				}
 
@@ -170,9 +170,12 @@ func NewPersistentSubscription(
 			switch result.Content.(type) {
 			case *persistent.ReadResp_Event:
 				{
-					resolvedEvent := fromPersistentProtoResponse(result)
-					req.channel <- &SubscriptionEvent{
-						EventAppeared: resolvedEvent,
+					resolvedEvent, retryCount := fromPersistentProtoResponse(result)
+					req.channel <- &PersistentSubscriptionEvent{
+						EventAppeared: &EventAppeared{
+							Event:      resolvedEvent,
+							RetryCount: retryCount,
+						},
 					}
 				}
 			}

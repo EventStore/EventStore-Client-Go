@@ -2,52 +2,60 @@ package esdb
 
 type PersistentStreamSubscriptionOptions struct {
 	Settings      *SubscriptionSettings
-	From          StreamPosition
+	StartFrom     StreamPosition
 	Authenticated *Credentials
 }
 
 func (o *PersistentStreamSubscriptionOptions) setDefaults() {
-	if o.From == nil {
-		o.From = End{}
+	if o.StartFrom == nil {
+		o.StartFrom = End{}
 	}
 }
 
 type PersistentAllSubscriptionOptions struct {
-	Settings           *SubscriptionSettings
-	From               AllPosition
-	MaxSearchWindow    int
-	CheckpointInterval int
-	Filter             *SubscriptionFilter
-	Authenticated      *Credentials
+	Settings        *SubscriptionSettings
+	StartFrom       AllPosition
+	MaxSearchWindow int
+	Filter          *SubscriptionFilter
+	Authenticated   *Credentials
 }
 
 func (o *PersistentAllSubscriptionOptions) setDefaults() {
-	if o.From == nil {
-		o.From = End{}
+	if o.StartFrom == nil {
+		o.StartFrom = End{}
 	}
 
 	if o.Filter != nil {
 		if o.MaxSearchWindow == 0 {
 			o.MaxSearchWindow = 32
 		}
-
-		if o.CheckpointInterval == 0 {
-			o.CheckpointInterval = 1
-		}
 	}
 }
 
-type ConnectToPersistentSubscriptionOptions struct {
-	BatchSize     uint32
+type SubscribeToPersistentSubscriptionOptions struct {
+	BufferSize    uint32
 	Authenticated *Credentials
 }
 
-func (o *ConnectToPersistentSubscriptionOptions) setDefaults() {
-	if o.BatchSize == 0 {
-		o.BatchSize = 10
+func (o *SubscribeToPersistentSubscriptionOptions) setDefaults() {
+	if o.BufferSize == 0 {
+		o.BufferSize = 10
 	}
 }
 
 type DeletePersistentSubscriptionOptions struct {
+	Authenticated *Credentials
+}
+
+type ReplayParkedMessagesOptions struct {
+	Authenticated *Credentials
+	StopAt        int
+}
+
+type ListPersistentSubscriptionsOptions struct {
+	Authenticated *Credentials
+}
+
+type GetPersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 }

@@ -18,34 +18,34 @@ const (
 )
 
 type SubscriptionSettings struct {
-	ResolveLinkTos        bool
-	ExtraStatistics       bool
-	MaxRetryCount         int32
-	MinCheckpointCount    int32
-	MaxCheckpointCount    int32
-	MaxSubscriberCount    int32
-	LiveBufferSize        int32
-	ReadBatchSize         int32
-	HistoryBufferSize     int32
-	NamedConsumerStrategy ConsumerStrategy
-	MessageTimeoutInMs    int32
-	CheckpointAfterInMs   int32
+	ResolveLinkTos       bool
+	ExtraStatistics      bool
+	MaxRetryCount        int32
+	CheckpointLowerBound int32
+	CheckpointUpperBound int32
+	MaxSubscriberCount   int32
+	LiveBufferSize       int32
+	ReadBatchSize        int32
+	HistoryBufferSize    int32
+	ConsumerStrategyName ConsumerStrategy
+	MessageTimeout       int32
+	CheckpointAfter      int32
 }
 
 func SubscriptionSettingsDefault() SubscriptionSettings {
 	return SubscriptionSettings{
-		ResolveLinkTos:        false,
-		ExtraStatistics:       false,
-		MaxRetryCount:         10,
-		MinCheckpointCount:    10,
-		MaxCheckpointCount:    10 * 1000,
-		MaxSubscriberCount:    SUBSCRIBER_COUNT_UNLIMITED,
-		LiveBufferSize:        500,
-		ReadBatchSize:         20,
-		HistoryBufferSize:     500,
-		NamedConsumerStrategy: ConsumerStrategy_RoundRobin,
-		MessageTimeoutInMs:    30 * 1000,
-		CheckpointAfterInMs:   2 * 1000,
+		ResolveLinkTos:       false,
+		ExtraStatistics:      false,
+		MaxRetryCount:        10,
+		CheckpointLowerBound: 10,
+		CheckpointUpperBound: 1_000,
+		MaxSubscriberCount:   SUBSCRIBER_COUNT_UNLIMITED,
+		LiveBufferSize:       500,
+		ReadBatchSize:        20,
+		HistoryBufferSize:    500,
+		ConsumerStrategyName: ConsumerStrategy_RoundRobin,
+		MessageTimeout:       30 * 1000,
+		CheckpointAfter:      2 * 1000,
 	}
 }
 
@@ -580,4 +580,44 @@ func ExcludeSystemEventsFilter() *SubscriptionFilter {
 		Type:  EventFilterType,
 		Regex: "/^[^\\$].*/",
 	}
+}
+
+type PersistentSubscriptionStatus string
+
+const (
+	PersistentSubscriptionStatus_NotReady                = "NotReady"
+	PersistentSubscriptionStatus_Behind                  = "Behind"
+	PersistentSubscriptionStatus_OutstandingPageRequest  = "OutstandingPageRequest"
+	PersistentSubscriptionStatus_ReplayingParkedMessages = "ReplayingParkedMessages"
+	PersistentSubscriptionStatus_Live                    = "Live"
+)
+
+type PersistentSubscriptionInfo struct {
+	EventStreamId            string                        `json:"eventStreamId"`
+	GroupName                string                        `json:"groupName"`
+	Status                   PersistentSubscriptionStatus  `json:"status"`
+	AverageItemsPerSecond    float64                       `json:"averageItemsPerSecond"`
+	TotalItemsProcessed      int64                         `json:"totalItemsProcessed"`
+	LastProcessedEventNumber int64                         `json:"lastProcessedEventNumber"`
+	LastKnownEventNumber     int64                         `json:"lastKnownEventNumber"`
+	ConnectionCount          int64                         `json:"connectionCount,omitempty"`
+	TotalInFlightMessages    int64                         `json:"totalInFlightMessages"`
+	Config                   *PersistentSubscriptionConfig `json:"config,omitempty"`
+}
+
+type PersistentSubscriptionConfig struct {
+	ResolveLinkTos       bool   `json:"resolveLinktos"`
+	StartFrom            int64  `json:"startFrom"`
+	MessageTimeout       int64  `json:"messageTimeoutMilliseconds"`
+	ExtraStatistics      bool   `json:"extraStatistics"`
+	MaxRetryCount        int64  `json:"maxRetryCount"`
+	LiveBufferSize       int64  `json:"liveBufferSize"`
+	BufferSize           int64  `json:"bufferSize"`
+	ReadBatchSize        int64  `json:"readBatchSize"`
+	PreferRoundRobin     bool   `json:"preferRoundRobin"`
+	CheckpointAfter      int64  `json:"checkPointAfterMilliseconds"`
+	CheckpointLowerBound int64  `json:"minCheckPointCount"`
+	CheckpointUpperBound int64  `json:"maxCheckPointCount"`
+	MaxSubscriberCount   int64  `json:"maxSubscriberCount"`
+	ConsumerStrategyName string `json:"consumerStrategyName"`
 }
