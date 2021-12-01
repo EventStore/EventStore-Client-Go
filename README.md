@@ -12,7 +12,7 @@ Some dependencies are required in order to work with the code:
 
 * Certificates for testing TLS requirements, located at `./certs`.
 
-Testing requires [Docker] to be installed.
+Testing requires [Docker] and [Docker Compose] to be installed.
 
 ## Build the project
 
@@ -47,16 +47,27 @@ To also regenerate protobuf and gRPC files while building
 
 ## Run tests
 
-```shell
-go test ./esdb
-```
-
 Run docker compose for generating certificates:
 
 ```shell
 docker-compose up
 docker-compose down
 ```
+
+```shell
+docker-compose -f cluster-docker-compose.yml up -d 
+go test ./esdb
+docker-compose -f cluster-docker-compose.yml down
+```
+
+By default the tests use `ghcr.io/eventstore/eventstore:ci`. To override this, set `EVENTSTORE_DOCKER_TAG_ENV` to the tag you wish to use:
+
+```shell
+docker-compose -f cluster-docker-compose.yml up -d 
+EVENTSTORE_DOCKER_TAG_ENV="21.10.0-focal" go test ./esdb
+docker-compose -f cluster-docker-compose.yml down
+```
+
 
 ## Contributing
 
@@ -65,5 +76,6 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 [container]: https://github.com/EventStore/EventStore-Client-gRPC-TestData
 
 [docker]: https://www.docker.com/
+[docker compose]: https://www.docker.com/
 
 [es]: https://eventstore.com
