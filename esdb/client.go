@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
+	"net/http"
+	"strconv"
 	"time"
 
 	"errors"
@@ -410,12 +413,12 @@ func (client *Client) SubscribeToAll(
 	return nil, fmt.Errorf("failed to initiate subscription")
 }
 
-// ConnectToPersistentSubscription ...
-func (client *Client) ConnectToPersistentSubscription(
+// SubscribeToPersistentSubscription ...
+func (client *Client) SubscribeToPersistentSubscription(
 	ctx context.Context,
 	streamName string,
 	groupName string,
-	options ConnectToPersistentSubscriptionOptions,
+	options SubscribeToPersistentSubscriptionOptions,
 ) (*PersistentSubscription, error) {
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
@@ -427,17 +430,17 @@ func (client *Client) ConnectToPersistentSubscription(
 	return persistentSubscriptionClient.ConnectToPersistentSubscription(
 		ctx,
 		handle,
-		int32(options.BatchSize),
+		int32(options.BufferSize),
 		streamName,
 		groupName,
 		options.Authenticated,
 	)
 }
 
-func (client *Client) ConnectToPersistentSubscriptionToAll(
+func (client *Client) SubscribeToPersistentSubscriptionToAll(
 	ctx context.Context,
 	groupName string,
-	options ConnectToPersistentSubscriptionOptions,
+	options SubscribeToPersistentSubscriptionOptions,
 ) (*PersistentSubscription, error) {
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
@@ -449,7 +452,7 @@ func (client *Client) ConnectToPersistentSubscriptionToAll(
 	return persistentSubscriptionClient.ConnectToPersistentSubscription(
 		ctx,
 		handle,
-		int32(options.BatchSize),
+		int32(options.BufferSize),
 		"",
 		groupName,
 		options.Authenticated,
@@ -474,10 +477,10 @@ func (client *Client) CreatePersistentSubscription(
 		options.Settings = &setts
 	}
 
-	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, streamName, groupName, options.From, *options.Settings, options.Authenticated)
+	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, streamName, groupName, options.StartFrom, *options.Settings, options.Authenticated)
 }
 
-func (client *Client) CreatePersistentSubscriptionAll(
+func (client *Client) CreatePersistentSubscriptionToAll(
 	ctx context.Context,
 	groupName string,
 	options PersistentAllSubscriptionOptions,
@@ -491,8 +494,7 @@ func (client *Client) CreatePersistentSubscriptionAll(
 	var filterOptions *SubscriptionFilterOptions = nil
 	if options.Filter != nil {
 		filterOptions = &SubscriptionFilterOptions{
-			MaxSearchWindow:    options.MaxSearchWindow,
-			CheckpointInterval: options.CheckpointInterval,
+			MaxSearchWindow: options.MaxSearchWindow,
 			SubscriptionFilter: options.Filter,
 		}
 	}
@@ -507,7 +509,7 @@ func (client *Client) CreatePersistentSubscriptionAll(
 		ctx,
 		handle,
 		groupName,
-		options.From,
+		options.StartFrom,
 		*options.Settings,
 		filterOptions,
 		options.Authenticated,
@@ -532,10 +534,10 @@ func (client *Client) UpdatePersistentStreamSubscription(
 		options.Settings = &setts
 	}
 
-	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, streamName, groupName, options.From, *options.Settings, options.Authenticated)
+	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, streamName, groupName, options.StartFrom, *options.Settings, options.Authenticated)
 }
 
-func (client *Client) UpdatePersistentSubscriptionAll(
+func (client *Client) UpdatePersistentSubscriptionToAll(
 	ctx context.Context,
 	groupName string,
 	options PersistentAllSubscriptionOptions,
@@ -547,7 +549,7 @@ func (client *Client) UpdatePersistentSubscriptionAll(
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, groupName, options.From, *options.Settings, options.Authenticated)
+	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, groupName, options.StartFrom, *options.Settings, options.Authenticated)
 }
 
 func (client *Client) DeletePersistentSubscription(
@@ -565,7 +567,7 @@ func (client *Client) DeletePersistentSubscription(
 	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, handle, streamName, groupName, options.Authenticated)
 }
 
-func (client *Client) DeletePersistentSubscriptionAll(
+func (client *Client) DeletePersistentSubscriptionToAll(
 	ctx context.Context,
 	groupName string,
 	options DeletePersistentSubscriptionOptions,
@@ -577,6 +579,190 @@ func (client *Client) DeletePersistentSubscriptionAll(
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName, options.Authenticated)
+}
+
+func (client *Client) ReplayParkedMessages(ctx context.Context, streamName string, groupName string, options ReplayParkedMessagesOptions) error {
+	params := &httpParams{
+		headers: []keyvalue{newKV("content-length", "0")},
+	}
+
+	if options.StopAt != 0 {
+		params.queries = append(params.queries, newKV("stop_at", strconv.Itoa(options.StopAt)))
+	}
+
+	url := fmt.Sprintf("/subscriptions/%s/%s/replayParked", streamName, groupName)
+	_, err := client.httpExecute("POST", url, options.Authenticated, params)
+
+	return err
+}
+
+// We don't need a Context in this case but we want to maintain the same signature so
+// the user won't have to change anything when the persistent subscription management functions would
+// be ported to gRPC.
+func (client *Client) ListAllPersistentSubscriptions(ctx context.Context, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
+	body, err := client.httpExecute("GET", "/subscriptions", options.Authenticated, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []PersistentSubscriptionInfo
+
+	err = json.Unmarshal(body, &subs)
+
+	if err != nil {
+		return nil, &InternalClientError{Err: err}
+	}
+
+	return subs, nil
+}
+
+func (client *Client) ListPersistentSubscriptionsForStream(ctx context.Context, streamName string, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
+	body, err := client.httpExecute("GET", fmt.Sprintf("/subscriptions/%s", streamName), options.Authenticated, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []PersistentSubscriptionInfo
+
+	err = json.Unmarshal(body, &subs)
+
+	if err != nil {
+		return nil, &InternalClientError{Err: err}
+	}
+
+	return subs, nil
+}
+
+func (client *Client) GetPersistentSubscriptionInfo(ctx context.Context, streamName string, groupName string, options GetPersistentSubscriptionOptions) (*PersistentSubscriptionInfo, error) {
+	body, err := client.httpExecute("GET", fmt.Sprintf("/subscriptions/%s/%s/info", streamName, groupName), options.Authenticated, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var info PersistentSubscriptionInfo
+
+	err = json.Unmarshal(body, &info)
+
+	if err != nil {
+		return nil, &InternalClientError{Err: err}
+	}
+
+	return &info, nil
+}
+
+func (client *Client) getBaseUrl() (string, error) {
+	handle, err := client.grpcClient.getConnectionHandle()
+
+	if err != nil {
+		return "", err
+	}
+
+	var protocol string
+	if client.Config.DisableTLS {
+		protocol = "http"
+	} else {
+		protocol = "https"
+	}
+
+	return fmt.Sprintf("%s://%s", protocol, handle.connection.Target()), nil
+}
+
+type keyvalue struct {
+	key   string
+	value string
+}
+
+func newKV(key string, value string) keyvalue {
+	return keyvalue{
+		key:   key,
+		value: value,
+	}
+}
+
+type httpParams struct {
+	queries []keyvalue
+	headers []keyvalue
+}
+
+func (client *Client) httpExecute(method string, path string, auth *Credentials, params *httpParams) ([]byte, error) {
+	baseUrl, err := client.getBaseUrl()
+	if err != nil {
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+	}
+
+	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", baseUrl, path), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("content-type", "application/json")
+
+	if params != nil {
+		if params.headers != nil {
+			for i := range params.headers {
+				tuple := params.headers[i]
+				req.Header.Add(tuple.key, tuple.value)
+			}
+		}
+
+		if params.queries != nil {
+			query := req.URL.Query()
+			for i := range params.queries {
+				tuple := params.queries[i]
+				query.Add(tuple.key, tuple.value)
+			}
+			req.URL.RawQuery = query.Encode()
+		}
+	}
+
+	var creds *Credentials
+	if auth != nil {
+		creds = auth
+	} else {
+		if client.Config.Username != "" {
+			creds = &Credentials{
+				Login:    client.Config.Username,
+				Password: client.Config.Password,
+			}
+		}
+	}
+
+	if creds != nil {
+		req.SetBasicAuth(creds.Login, creds.Password)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
+		switch resp.StatusCode {
+		case 401:
+			return nil, ErrPermissionDenied
+		case 404:
+			return nil, ErrResourceNotFound
+		default:
+			{
+				if resp.StatusCode >= 500 && resp.StatusCode < 600 {
+					return nil, &ServerError{Code: resp.StatusCode}
+				}
+
+				return nil, &InternalClientError{Code: resp.StatusCode}
+			}
+		}
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, &InternalClientError{Err: err}
+	}
+
+	return body, nil
 }
 
 func readInternal(

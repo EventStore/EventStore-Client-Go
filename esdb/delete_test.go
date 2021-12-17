@@ -25,7 +25,7 @@ func canDeleteStream(db *esdb.Client) TestCall {
 
 		streamID := NAME_GENERATOR.Generate()
 
-		_, err := db.AppendToStream(context.Background(),  streamID, esdb.AppendToStreamOptions{}, createTestEvent())
+		_, err := db.AppendToStream(context.Background(), streamID, esdb.AppendToStreamOptions{}, createTestEvent())
 		assert.NoError(t, err)
 		deleteResult, err := db.DeleteStream(context.Background(), streamID, opts)
 

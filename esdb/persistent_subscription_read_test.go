@@ -40,22 +40,22 @@ func persistentSubscription_ReadExistingStream_AckToReceiveNewEvents(clientInsta
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Start{},
+				StartFrom: esdb.Start{},
 			},
 		)
 		require.NoError(t, err)
 
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{
-				BatchSize: 2,
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{
+				BufferSize: 2,
 			})
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, firstReadEvent)
 
-		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		secondReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, secondReadEvent)
 
@@ -90,16 +90,16 @@ func persistentSubscription_ToExistingStream_StartFromBeginning_AndEventsInIt(cl
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Start{},
+				StartFrom: esdb.Start{},
 			},
 		)
 		require.NoError(t, err)
 		// read one event
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
 
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 
@@ -123,7 +123,7 @@ func persistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEventsA
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Start{},
+				StartFrom: esdb.Start{},
 			},
 		)
 		require.NoError(t, err)
@@ -135,11 +135,11 @@ func persistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEventsA
 		require.NoError(t, err)
 		// read one event
 
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
 
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 		// assert Event Number == stream Start
@@ -168,7 +168,7 @@ func persistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppendEve
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.End{},
+				StartFrom: esdb.End{},
 			},
 		)
 		require.NoError(t, err)
@@ -179,14 +179,14 @@ func persistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppendEve
 		require.NoError(t, err)
 
 		// read one event
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
 
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
-		// assert readEvent.EventNumber == stream From 10
+		// assert readEvent.EventNumber == stream StartFrom 10
 		// assert readEvent.ID == events[10].EventID
 		require.EqualValues(t, 10, readEvent.OriginalEvent().EventNumber)
 		require.Equal(t, events[10].EventID, readEvent.OriginalEvent().EventID)
@@ -206,21 +206,21 @@ func persistentSubscription_ToExistingStream_StartFromEnd_EventsInIt(clientInsta
 
 		_, err := clientInstance.AppendToStream(context.Background(), streamID, opts, events[:10]...)
 		require.NoError(t, err)
-		// create persistent stream connection with From set to End
+		// create persistent stream connection with StartFrom set to End
 		groupName := "Group 1"
 		err = clientInstance.CreatePersistentSubscription(
 			context.Background(),
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.End{},
+				StartFrom: esdb.End{},
 			},
 		)
 		require.NoError(t, err)
 
 		ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			ctx, streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			ctx, streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
 
 		doneChannel := make(chan struct{})
@@ -255,7 +255,7 @@ func persistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAfterwa
 	return func(t *testing.T) {
 		// create 3 events
 		events := testCreateEvents(4)
-		// create persistent stream connection with From set to Position(2)
+		// create persistent stream connection with StartFrom set to Position(2)
 		streamID := NAME_GENERATOR.Generate()
 		groupName := "Group 1"
 		err := clientInstance.CreatePersistentSubscription(
@@ -263,7 +263,7 @@ func persistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAfterwa
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Revision(2),
+				StartFrom: esdb.Revision(2),
 			},
 		)
 		require.NoError(t, err)
@@ -274,14 +274,14 @@ func persistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAfterwa
 		_, err = clientInstance.AppendToStream(context.Background(), streamID, opts, events...)
 		require.NoError(t, err)
 		// read one event
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 
-		// assert readEvent.EventNumber == stream From 2
+		// assert readEvent.EventNumber == stream StartFrom 2
 		// assert readEvent.ID == events[2].EventID
 		require.EqualValues(t, 2, readEvent.OriginalEvent().EventNumber)
 		require.Equal(t, events[2].EventID, readEvent.OriginalEvent().EventID)
@@ -301,14 +301,14 @@ func persistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEventsA
 		_, err := clientInstance.AppendToStream(context.Background(), streamID, opts, events[:10]...)
 		require.NoError(t, err)
 
-		// create persistent stream connection with start From set to Position(10)
+		// create persistent stream connection with start StartFrom set to Position(10)
 		groupName := "Group 1"
 		err = clientInstance.CreatePersistentSubscription(
 			context.Background(),
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Revision(10),
+				StartFrom: esdb.Revision(10),
 			},
 		)
 		require.NoError(t, err)
@@ -321,14 +321,14 @@ func persistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEventsA
 		require.NoError(t, err)
 
 		// read one event
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 
-		// assert readEvent.EventNumber == stream From 10
+		// assert readEvent.EventNumber == stream StartFrom 10
 		// assert readEvent.ID == events[10].EventID
 		require.EqualValues(t, 10, readEvent.OriginalEvent().EventNumber)
 		require.Equal(t, events[10].EventID, readEvent.OriginalEvent().EventID)
@@ -348,7 +348,7 @@ func persistentSubscription_ToExistingStream_StartFrom4_EventsInIt(clientInstanc
 		_, err := clientInstance.AppendToStream(context.Background(), streamID, opts, events[:10]...)
 		require.NoError(t, err)
 
-		// create persistent stream connection with start From set to Position(4)
+		// create persistent stream connection with start StartFrom set to Position(4)
 		groupName := "Group 1"
 
 		err = clientInstance.CreatePersistentSubscription(
@@ -356,7 +356,7 @@ func persistentSubscription_ToExistingStream_StartFrom4_EventsInIt(clientInstanc
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Revision(4),
+				StartFrom: esdb.Revision(4),
 			},
 		)
 		require.NoError(t, err)
@@ -369,14 +369,14 @@ func persistentSubscription_ToExistingStream_StartFrom4_EventsInIt(clientInstanc
 		require.NoError(t, err)
 
 		// read one event
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 
-		// assert readEvent.EventNumber == stream From 4
+		// assert readEvent.EventNumber == stream StartFrom 4
 		// assert readEvent.ID == events[4].EventID
 		require.EqualValues(t, 4, readEvent.OriginalEvent().EventNumber)
 		require.Equal(t, events[4].EventID, readEvent.OriginalEvent().EventID)
@@ -397,14 +397,14 @@ func persistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsIn
 		_, err := clientInstance.AppendToStream(context.Background(), streamID, opts, events[:11]...)
 		require.NoError(t, err)
 
-		// create persistent stream connection with start From set to Position(11)
+		// create persistent stream connection with start StartFrom set to Position(11)
 		groupName := "Group 1"
 		err = clientInstance.CreatePersistentSubscription(
 			context.Background(),
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Revision(11),
+				StartFrom: esdb.Revision(11),
 			},
 		)
 		require.NoError(t, err)
@@ -418,14 +418,14 @@ func persistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsIn
 		require.NoError(t, err)
 
 		// read one event
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{})
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
-		readEvent := readConnectionClient.Recv().EventAppeared
+		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
 
-		// assert readEvent.EventNumber == stream From 11
+		// assert readEvent.EventNumber == stream StartFrom 11
 		// assert readEvent.ID == events[11].EventID
 		require.EqualValues(t, 11, readEvent.OriginalEvent().EventNumber)
 		require.Equal(t, events[11].EventID, readEvent.OriginalEvent().EventID)
@@ -447,21 +447,21 @@ func persistentSubscription_ReadExistingStream_NackToReceiveNewEvents(clientInst
 			streamID,
 			groupName,
 			esdb.PersistentStreamSubscriptionOptions{
-				From: esdb.Start{},
+				StartFrom: esdb.Start{},
 			},
 		)
 
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{
-				BatchSize: 2,
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{
+				BufferSize: 2,
 			})
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, firstReadEvent)
 
-		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		secondReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, secondReadEvent)
 
@@ -479,11 +479,11 @@ func persistentSubscription_ReadExistingStream_NackToReceiveNewEvents(clientInst
 func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		groupName := "Group 1"
-		err := clientInstance.CreatePersistentSubscriptionAll(
+		err := clientInstance.CreatePersistentSubscriptionToAll(
 			context.Background(),
 			groupName,
 			esdb.PersistentAllSubscriptionOptions{
-				From: esdb.Start{},
+				StartFrom: esdb.Start{},
 			},
 		)
 
@@ -493,18 +493,18 @@ func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
 
 		require.NoError(t, err)
 
-		readConnectionClient, err := clientInstance.ConnectToPersistentSubscriptionToAll(
-			context.Background(), groupName, esdb.ConnectToPersistentSubscriptionOptions{
-				BatchSize: 2,
+		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscriptionToAll(
+			context.Background(), groupName, esdb.SubscribeToPersistentSubscriptionOptions{
+				BufferSize: 2,
 			},
 		)
 		require.NoError(t, err)
 
-		firstReadEvent := readConnectionClient.Recv().EventAppeared
+		firstReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, firstReadEvent)
 
-		secondReadEvent := readConnectionClient.Recv().EventAppeared
+		secondReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, secondReadEvent)
 
@@ -516,7 +516,7 @@ func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
 		thirdReadEvent := readConnectionClient.Recv()
 		require.NoError(t, err)
 		require.NotNil(t, thirdReadEvent)
-		err = readConnectionClient.Ack(thirdReadEvent.EventAppeared)
+		err = readConnectionClient.Ack(thirdReadEvent.EventAppeared.Event)
 		require.NoError(t, err)
 	}
 }

@@ -503,15 +503,17 @@ func positionFromPersistentProto(recordedEvent *persistent.ReadResp_ReadEvent_Re
 	}
 }
 
-func fromPersistentProtoResponse(resp *persistent.ReadResp) *ResolvedEvent {
+func fromPersistentProtoResponse(resp *persistent.ReadResp) (*ResolvedEvent, int) {
 	readEvent := resp.GetEvent()
 	positionWire := readEvent.GetPosition()
 	eventWire := readEvent.GetEvent()
 	linkWire := readEvent.GetLink()
+	countWire := readEvent.GetCount()
 
 	var event *RecordedEvent = nil
 	var link *RecordedEvent = nil
 	var commit *uint64
+	retryCount := 0
 
 	if positionWire != nil {
 		switch value := positionWire.(type) {
@@ -522,6 +524,19 @@ func fromPersistentProtoResponse(resp *persistent.ReadResp) *ResolvedEvent {
 		case *persistent.ReadResp_ReadEvent_NoPosition:
 			{
 				commit = nil
+			}
+		}
+	}
+
+	if countWire != nil {
+		switch value := countWire.(type) {
+		case *persistent.ReadResp_ReadEvent_RetryCount:
+			{
+				retryCount = int(value.RetryCount)
+			}
+		case *persistent.ReadResp_ReadEvent_NoRetryCount:
+			{
+				retryCount = 0
 			}
 		}
 	}
@@ -540,7 +555,7 @@ func fromPersistentProtoResponse(resp *persistent.ReadResp) *ResolvedEvent {
 		Event:  event,
 		Link:   link,
 		Commit: commit,
-	}
+	}, retryCount
 }
 
 func newMessageFromPersistentProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) RecordedEvent {
@@ -668,15 +683,15 @@ func updatePersistentSubscriptionSettingsProto(
 		ResolveLinks:          settings.ResolveLinkTos,
 		ExtraStatistics:       settings.ExtraStatistics,
 		MaxRetryCount:         settings.MaxRetryCount,
-		MinCheckpointCount:    settings.MinCheckpointCount,
-		MaxCheckpointCount:    settings.MaxCheckpointCount,
+		MinCheckpointCount:    settings.CheckpointLowerBound,
+		MaxCheckpointCount:    settings.CheckpointUpperBound,
 		MaxSubscriberCount:    settings.MaxSubscriberCount,
 		LiveBufferSize:        settings.LiveBufferSize,
 		ReadBatchSize:         settings.ReadBatchSize,
 		HistoryBufferSize:     settings.HistoryBufferSize,
-		NamedConsumerStrategy: updatePersistentRequestConsumerStrategyProto(settings.NamedConsumerStrategy),
-		MessageTimeout:        updatePersistentRequestMessageTimeOutInMsProto(settings.MessageTimeoutInMs),
-		CheckpointAfter:       updatePersistentRequestCheckpointAfterMsProto(settings.CheckpointAfterInMs),
+		NamedConsumerStrategy: updatePersistentRequestConsumerStrategyProto(settings.ConsumerStrategyName),
+		MessageTimeout:        updatePersistentRequestMessageTimeOutInMsProto(settings.MessageTimeout),
+		CheckpointAfter:       updatePersistentRequestCheckpointAfterMsProto(settings.CheckpointAfter),
 	}
 }
 
@@ -866,15 +881,15 @@ func createPersistentSubscriptionSettingsProto(
 		ResolveLinks:          settings.ResolveLinkTos,
 		ExtraStatistics:       settings.ExtraStatistics,
 		MaxRetryCount:         settings.MaxRetryCount,
-		MinCheckpointCount:    settings.MinCheckpointCount,
-		MaxCheckpointCount:    settings.MaxCheckpointCount,
+		MinCheckpointCount:    settings.CheckpointLowerBound,
+		MaxCheckpointCount:    settings.CheckpointUpperBound,
 		MaxSubscriberCount:    settings.MaxSubscriberCount,
 		LiveBufferSize:        settings.LiveBufferSize,
 		ReadBatchSize:         settings.ReadBatchSize,
 		HistoryBufferSize:     settings.HistoryBufferSize,
-		NamedConsumerStrategy: consumerStrategyProto(settings.NamedConsumerStrategy),
-		MessageTimeout:        messageTimeOutInMsProto(settings.MessageTimeoutInMs),
-		CheckpointAfter:       checkpointAfterMsProto(settings.CheckpointAfterInMs),
+		NamedConsumerStrategy: consumerStrategyProto(settings.ConsumerStrategyName),
+		MessageTimeout:        messageTimeOutInMsProto(settings.MessageTimeout),
+		CheckpointAfter:       checkpointAfterMsProto(settings.CheckpointAfter),
 	}
 }
 

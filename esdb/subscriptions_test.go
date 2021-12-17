@@ -111,7 +111,7 @@ func allSubscriptionWithFilterDeliversCorrectEvents(db *esdb.Client) TestCall {
 
 		go func() {
 			current := 0
-			for current <= len(versions) - 1 {
+			for current <= len(versions)-1 {
 				subEvent := subscription.Recv()
 
 				if subEvent.SubscriptionDropped != nil {

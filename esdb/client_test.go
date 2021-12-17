@@ -9,7 +9,7 @@ func TestSingleNode(t *testing.T) {
 	t.Cleanup(emptyContainer.Close)
 	emptyContainerClient := CreateTestClient(emptyContainer, t)
 	WaitForAdminToBeAvailable(t, emptyContainerClient)
-	t.Cleanup(func() {emptyContainerClient.Close()})
+	t.Cleanup(func() { emptyContainerClient.Close() })
 	t.Log("[debug] empty database container started and ready to serve!")
 	//
 
@@ -19,7 +19,7 @@ func TestSingleNode(t *testing.T) {
 	t.Cleanup(populatedContainer.Close)
 	populatedContainerClient := CreateTestClient(populatedContainer, t)
 	WaitForAdminToBeAvailable(t, populatedContainerClient)
-	t.Cleanup(func(){populatedContainerClient.Close()})
+	t.Cleanup(func() { populatedContainerClient.Close() })
 	t.Log("[debug] prepopulated database container started and ready to serve!")
 	//
 
@@ -41,7 +41,7 @@ func TestClusterNode(t *testing.T) {
 	WaitForAdminToBeAvailable(t, db)
 	WaitForLeaderToBeElected(t, db)
 
-	t.Cleanup(func(){ db.Close() })
+	t.Cleanup(func() { db.Close() })
 
 	ClusterTests(t)
 	ReadStreamTests(t, db, nil)

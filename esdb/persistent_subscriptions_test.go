@@ -25,6 +25,10 @@ func PersistentSubTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBCli
 		t.Run("persistentAllCreate", persistentAllCreate(emptyDBClient))
 		t.Run("persistentAllUpdate", persistentAllUpdate(emptyDBClient))
 		t.Run("persistentAllDelete", persistentAllDelete(emptyDBClient))
+		t.Run("persistentListAllSubs", persistentListAllSubs(emptyDBClient))
+		t.Run("persistentReplayParkedMessages", persistentReplayParkedMessages(emptyDBClient))
+		t.Run("persistentListSubsForStream", persistentListSubsForStream(emptyDBClient))
+		t.Run("persistentGetInfo", persistentGetInfo(emptyDBClient))
 	})
 }
 
@@ -50,7 +54,7 @@ func createPersistentStreamSubscription_MessageTimeoutZero(clientInstance *esdb.
 		pushEventToStream(t, clientInstance, streamID)
 
 		settings := esdb.SubscriptionSettingsDefault()
-		settings.MessageTimeoutInMs = 0
+		settings.MessageTimeout = 0
 
 		err := clientInstance.CreatePersistentSubscription(
 			context.Background(),
@@ -150,15 +154,15 @@ func updatePersistentStreamSubscription(clientInstance *esdb.Client) TestCall {
 
 		settings := esdb.SubscriptionSettingsDefault()
 		settings.HistoryBufferSize = settings.HistoryBufferSize + 1
-		settings.NamedConsumerStrategy = esdb.ConsumerStrategy_DispatchToSingle
+		settings.ConsumerStrategyName = esdb.ConsumerStrategy_DispatchToSingle
 		settings.MaxSubscriberCount = settings.MaxSubscriberCount + 1
 		settings.ReadBatchSize = settings.ReadBatchSize + 1
-		settings.CheckpointAfterInMs = settings.CheckpointAfterInMs + 1
-		settings.MaxCheckpointCount = settings.MaxCheckpointCount + 1
-		settings.MinCheckpointCount = settings.MinCheckpointCount + 1
+		settings.CheckpointAfter = settings.CheckpointAfter + 1
+		settings.CheckpointUpperBound = settings.CheckpointUpperBound + 1
+		settings.CheckpointLowerBound = settings.CheckpointLowerBound + 1
 		settings.LiveBufferSize = settings.LiveBufferSize + 1
 		settings.MaxRetryCount = settings.MaxRetryCount + 1
-		settings.MessageTimeoutInMs = settings.MessageTimeoutInMs + 1
+		settings.MessageTimeout = settings.MessageTimeout + 1
 		settings.ExtraStatistics = !settings.ExtraStatistics
 		settings.ResolveLinkTos = !settings.ResolveLinkTos
 
@@ -246,7 +250,7 @@ func testPersistentSubscriptionClosing(db *esdb.Client) TestCall {
 		groupName := "Group 1"
 
 		err := db.CreatePersistentSubscription(context.Background(), streamID, groupName, esdb.PersistentStreamSubscriptionOptions{
-			From: esdb.Start{},
+			StartFrom: esdb.Start{},
 		})
 
 		require.NoError(t, err)
@@ -254,9 +258,9 @@ func testPersistentSubscriptionClosing(db *esdb.Client) TestCall {
 		var receivedEvents sync.WaitGroup
 		var droppedEvent sync.WaitGroup
 
-		subscription, err := db.ConnectToPersistentSubscription(
-			context.Background(), streamID, groupName, esdb.ConnectToPersistentSubscriptionOptions{
-				BatchSize: 2,
+		subscription, err := db.SubscribeToPersistentSubscription(
+			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{
+				BufferSize: 2,
 			})
 
 		require.NoError(t, err)
@@ -273,7 +277,7 @@ func testPersistentSubscriptionClosing(db *esdb.Client) TestCall {
 						current++
 					}
 
-					subscription.Ack(subEvent.EventAppeared)
+					subscription.Ack(subEvent.EventAppeared.Event)
 
 					continue
 				}
@@ -300,7 +304,7 @@ func persistentAllCreate(client *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		groupName := NAME_GENERATOR.Generate()
 
-		err := client.CreatePersistentSubscriptionAll(
+		err := client.CreatePersistentSubscriptionToAll(
 			context.Background(),
 			groupName,
 			esdb.PersistentAllSubscriptionOptions{},
@@ -318,7 +322,7 @@ func persistentAllUpdate(client *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		groupName := NAME_GENERATOR.Generate()
 
-		err := client.CreatePersistentSubscriptionAll(
+		err := client.CreatePersistentSubscriptionToAll(
 			context.Background(),
 			groupName,
 			esdb.PersistentAllSubscriptionOptions{},
@@ -333,7 +337,7 @@ func persistentAllUpdate(client *esdb.Client) TestCall {
 		setts := esdb.SubscriptionSettingsDefault()
 		setts.ResolveLinkTos = true
 
-		err = client.UpdatePersistentSubscriptionAll(context.Background(), groupName, esdb.PersistentAllSubscriptionOptions{
+		err = client.UpdatePersistentSubscriptionToAll(context.Background(), groupName, esdb.PersistentAllSubscriptionOptions{
 			Settings: &setts,
 		})
 
@@ -345,7 +349,7 @@ func persistentAllDelete(client *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		groupName := NAME_GENERATOR.Generate()
 
-		err := client.CreatePersistentSubscriptionAll(
+		err := client.CreatePersistentSubscriptionToAll(
 			context.Background(),
 			groupName,
 			esdb.PersistentAllSubscriptionOptions{},
@@ -357,8 +361,147 @@ func persistentAllDelete(client *esdb.Client) TestCall {
 
 		require.NoError(t, err)
 
-		err = client.DeletePersistentSubscriptionAll(context.Background(), groupName, esdb.DeletePersistentSubscriptionOptions{})
+		err = client.DeletePersistentSubscriptionToAll(context.Background(), groupName, esdb.DeletePersistentSubscriptionOptions{})
 
 		require.NoError(t, err)
+	}
+}
+
+func persistentReplayParkedMessages(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+		streamName := NAME_GENERATOR.Generate()
+		eventCount := 2
+
+		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		sub, err := client.SubscribeToPersistentSubscription(context.Background(), streamName, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		events := testCreateEvents(uint32(eventCount))
+
+		_, err = client.AppendToStream(context.Background(), streamName, esdb.AppendToStreamOptions{}, events...)
+
+		require.NoError(t, err)
+
+		i := 0
+		for i < eventCount {
+			event := sub.Recv()
+
+			if event.SubscriptionDropped != nil {
+				t.FailNow()
+			}
+
+			if event.EventAppeared != nil {
+				err = sub.Nack("because reasons", esdb.Nack_Park, event.EventAppeared.Event)
+				require.NoError(t, err)
+				i++
+			}
+		}
+
+		// We let the server the time to park those events.
+		time.Sleep(5 * time.Second)
+
+		err = client.ReplayParkedMessages(context.Background(), streamName, groupName, esdb.ReplayParkedMessagesOptions{})
+
+		i = 0
+		for i < eventCount {
+			event := sub.Recv()
+
+			if event.SubscriptionDropped != nil {
+				t.FailNow()
+			}
+
+			if event.EventAppeared != nil {
+				err = sub.Ack(event.EventAppeared.Event)
+				require.NoError(t, err)
+				i++
+			}
+		}
+
+		require.NoError(t, err)
+	}
+}
+
+func persistentListAllSubs(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+		streamName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		subs, err := client.ListAllPersistentSubscriptions(context.Background(), esdb.ListPersistentSubscriptionsOptions{})
+
+		require.NoError(t, err)
+		require.NotNil(t, subs)
+		require.NotEmpty(t, subs)
+
+		found := false
+		for i := range subs {
+			if subs[i].EventStreamId == streamName && subs[i].GroupName == groupName {
+				found = true
+				break
+			}
+		}
+
+		require.True(t, found)
+	}
+}
+
+func persistentListSubsForStream(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		streamName := NAME_GENERATOR.Generate()
+		groupNames := make(map[string]int)
+		var err error
+		count := 2
+
+		for i := 0; i < count; i++ {
+			name := NAME_GENERATOR.Generate()
+			err = client.CreatePersistentSubscription(context.Background(), streamName, name, esdb.PersistentStreamSubscriptionOptions{})
+			require.NoError(t, err)
+			groupNames[name] = 0
+		}
+
+		require.NoError(t, err)
+
+		subs, err := client.ListPersistentSubscriptionsForStream(context.Background(), streamName, esdb.ListPersistentSubscriptionsOptions{})
+
+		require.NoError(t, err)
+		require.NotNil(t, subs)
+		require.NotEmpty(t, subs)
+
+		found := 0
+		for i := range subs {
+			if subs[i].EventStreamId == streamName {
+				if _, exists := groupNames[subs[i].GroupName]; exists {
+					found++
+				}
+			}
+		}
+
+		require.Equal(t, 2, found)
+	}
+}
+
+func persistentGetInfo(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		streamName := NAME_GENERATOR.Generate()
+		groupName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		sub, err := client.GetPersistentSubscriptionInfo(context.Background(), streamName, groupName, esdb.GetPersistentSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		require.Equal(t, streamName, sub.EventStreamId)
+		require.Equal(t, groupName, sub.GroupName)
 	}
 }
