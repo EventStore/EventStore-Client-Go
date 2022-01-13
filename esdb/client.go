@@ -516,7 +516,7 @@ func (client *Client) CreatePersistentSubscriptionToAll(
 	)
 }
 
-func (client *Client) UpdatePersistentStreamSubscription(
+func (client *Client) UpdatePersistentSubscription(
 	ctx context.Context,
 	streamName string,
 	groupName string,
