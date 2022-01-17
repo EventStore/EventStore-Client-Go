@@ -166,7 +166,7 @@ func updatePersistentStreamSubscription(clientInstance *esdb.Client) TestCall {
 		settings.ExtraStatistics = !settings.ExtraStatistics
 		settings.ResolveLinkTos = !settings.ResolveLinkTos
 
-		err = clientInstance.UpdatePersistentStreamSubscription(context.Background(), streamID, "Group 1", esdb.PersistentStreamSubscriptionOptions{
+		err = clientInstance.UpdatePersistentSubscription(context.Background(), streamID, "Group 1", esdb.PersistentStreamSubscriptionOptions{
 			Settings: &settings,
 		})
 
@@ -178,7 +178,7 @@ func updatePersistentStreamSubscription_ErrIfSubscriptionDoesNotExist(clientInst
 	return func(t *testing.T) {
 		streamID := NAME_GENERATOR.Generate()
 
-		err := clientInstance.UpdatePersistentStreamSubscription(context.Background(), streamID, "Group 1", esdb.PersistentStreamSubscriptionOptions{})
+		err := clientInstance.UpdatePersistentSubscription(context.Background(), streamID, "Group 1", esdb.PersistentStreamSubscriptionOptions{})
 
 		require.Error(t, err)
 	}

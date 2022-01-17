@@ -86,7 +86,7 @@ func updatePersistentSubscription(client *esdb.Client) {
 		},
 	}
 
-	err := client.UpdatePersistentStreamSubscription(context.Background(), "test-stream", "subscription-group", options)
+	err := client.UpdatePersistentSubscription(context.Background(), "test-stream", "subscription-group", options)
 
 	if err != nil {
 		panic(err)
