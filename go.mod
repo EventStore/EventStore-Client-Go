@@ -11,7 +11,7 @@ require (
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
-	github.com/opencontainers/runc v1.0.0-rc95 // indirect
+	github.com/opencontainers/runc v1.0.3 // indirect
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/stretchr/testify v1.6.1
 	google.golang.org/genproto v0.0.0-20200815001618-f69a88009b70 // indirect
