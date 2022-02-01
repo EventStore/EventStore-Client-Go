@@ -7,13 +7,13 @@ import (
 )
 
 func createPersistentSubscription(client *esdb.Client) {
-	// #region create-persistent-subscription
+	// #region create-persistent-subscription-to-stream
 	err := client.CreatePersistentSubscription(context.Background(), "test-stream", "subscription-group", esdb.PersistentStreamSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
 	}
-	// #endregion create-persistent-subscription
+	// #endregion create-persistent-subscription-to-stream
 }
 
 func connectToPersistentSubscriptionToStream(client *esdb.Client) {
