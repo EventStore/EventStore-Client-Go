@@ -51,7 +51,7 @@ func (client *Client) AppendToStream(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
@@ -123,7 +123,27 @@ func (client *Client) AppendToStream(
 		}
 	case *api.AppendResp_WrongExpectedVersion_:
 		{
-			return nil, ErrWrongExpectedStreamRevision
+			wrong := result.(*api.AppendResp_WrongExpectedVersion_).WrongExpectedVersion
+			expected := ""
+			current := ""
+
+			if wrong.GetExpectedAny() != nil {
+				expected = "any"
+			} else if wrong.GetExpectedNoStream() != nil {
+				expected = "no_stream"
+			} else if wrong.GetExpectedStreamExists() != nil {
+				expected = "stream_exists"
+			} else {
+				expected = strconv.Itoa(int(wrong.GetExpectedRevision()))
+			}
+
+			if wrong.GetCurrentNoStream() != nil {
+				current = "no_stream"
+			} else {
+				current = strconv.Itoa(int(wrong.GetCurrentRevision()))
+			}
+
+			return nil, &Error{code: ErrorWrongExpectedVersion, err: fmt.Errorf("wrong expected version: expecting '%s' but got '%s'", expected, current)}
 		}
 	}
 
@@ -175,13 +195,8 @@ func (client *Client) GetStreamMetadata(
 
 	stream, err := client.ReadStream(context, streamName, opts, 1)
 
-	var streamDeletedError *StreamDeletedError
-	if errors.Is(err, ErrStreamNotFound) || errors.As(err, &streamDeletedError) {
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error when reading stream metadata: %w", err)
+	if esdbErr, ok := FromError(err); !ok {
+		return nil, esdbErr
 	}
 
 	event, err := stream.Recv()
@@ -199,13 +214,13 @@ func (client *Client) GetStreamMetadata(
 	err = json.Unmarshal(event.OriginalEvent().Data, &props)
 
 	if err != nil {
-		return nil, fmt.Errorf("error when deserializing stream metadata json: %w", err)
+		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when deserializing stream metadata json: %w", err)}
 	}
 
 	meta, err := StreamMetadataFromMap(props)
 
 	if err != nil {
-		return nil, fmt.Errorf("error when parsing stream metadata json: %w", err)
+		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing stream metadata json: %w", err)}
 	}
 
 	return &meta, nil
@@ -220,7 +235,7 @@ func (client *Client) DeleteStream(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
@@ -250,7 +265,7 @@ func (client *Client) TombstoneStream(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
@@ -283,7 +298,7 @@ func (client *Client) ReadStream(
 	readRequest := toReadStreamRequest(streamID, opts.Direction, opts.From, count, opts.ResolveLinkTos)
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 
@@ -299,7 +314,7 @@ func (client *Client) ReadAll(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	readRequest := toReadAllRequest(opts.Direction, opts.From, count, opts.ResolveLinkTos)
@@ -315,7 +330,7 @@ func (client *Client) SubscribeToStream(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
@@ -363,7 +378,7 @@ func (client *Client) SubscribeToAll(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
@@ -423,8 +438,9 @@ func (client *Client) SubscribeToPersistentSubscription(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
 	}
+
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.ConnectToPersistentSubscription(
@@ -445,7 +461,11 @@ func (client *Client) SubscribeToPersistentSubscriptionToAll(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, fmt.Errorf("can't get a connection handle: %w", err)
+		return nil, err
+	}
+
+	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
+		return nil, unsupportedFeatureError()
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
@@ -468,7 +488,7 @@ func (client *Client) CreatePersistentSubscription(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return fmt.Errorf("can't get a connection handle: %w", err)
+		return err
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
@@ -488,13 +508,16 @@ func (client *Client) CreatePersistentSubscriptionToAll(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return fmt.Errorf("can't get a connection handle: %w", err)
+		return err
 	}
 
+	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
+		return unsupportedFeatureError()
+	}
 	var filterOptions *SubscriptionFilterOptions = nil
 	if options.Filter != nil {
 		filterOptions = &SubscriptionFilterOptions{
-			MaxSearchWindow: options.MaxSearchWindow,
+			MaxSearchWindow:    options.MaxSearchWindow,
 			SubscriptionFilter: options.Filter,
 		}
 	}
@@ -525,7 +548,7 @@ func (client *Client) UpdatePersistentSubscription(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return fmt.Errorf("can't get a connection handle: %w", err)
+		return err
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
@@ -545,8 +568,13 @@ func (client *Client) UpdatePersistentSubscriptionToAll(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return fmt.Errorf("can't get a connection handle: %w", err)
+		return err
 	}
+
+	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
+		return unsupportedFeatureError()
+	}
+
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, groupName, options.StartFrom, *options.Settings, options.Authenticated)
@@ -560,7 +588,7 @@ func (client *Client) DeletePersistentSubscription(
 ) error {
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return fmt.Errorf("can't get a connection handle: %w", err)
+		return err
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
@@ -574,8 +602,13 @@ func (client *Client) DeletePersistentSubscriptionToAll(
 ) error {
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return fmt.Errorf("can't get a connection handle: %w", err)
+		return err
 	}
+
+	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
+		return unsupportedFeatureError()
+	}
+
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName, options.Authenticated)
@@ -611,7 +644,7 @@ func (client *Client) ListAllPersistentSubscriptions(ctx context.Context, option
 	err = json.Unmarshal(body, &subs)
 
 	if err != nil {
-		return nil, &InternalClientError{Err: err}
+		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	return subs, nil
@@ -629,7 +662,7 @@ func (client *Client) ListPersistentSubscriptionsForStream(ctx context.Context, 
 	err = json.Unmarshal(body, &subs)
 
 	if err != nil {
-		return nil, &InternalClientError{Err: err}
+		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	return subs, nil
@@ -647,7 +680,7 @@ func (client *Client) GetPersistentSubscriptionInfo(ctx context.Context, streamN
 	err = json.Unmarshal(body, &info)
 
 	if err != nil {
-		return nil, &InternalClientError{Err: err}
+		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	return &info, nil
@@ -742,16 +775,16 @@ func (client *Client) httpExecute(method string, path string, auth *Credentials,
 	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
 		switch resp.StatusCode {
 		case 401:
-			return nil, ErrPermissionDenied
+			return nil, &Error{code: ErrorAccessDenied}
 		case 404:
-			return nil, ErrResourceNotFound
+			return nil, &Error{code: ErrorResourceNotFound}
 		default:
 			{
 				if resp.StatusCode >= 500 && resp.StatusCode < 600 {
-					return nil, &ServerError{Code: resp.StatusCode}
+					return nil, &Error{code: ErrorInternalServer, err: fmt.Errorf("server returned a '%v' response", resp.StatusCode)}
 				}
 
-				return nil, &InternalClientError{Code: resp.StatusCode}
+				return nil, &Error{code: ErrorInternalClient, err: fmt.Errorf("unexpected response code '%v'", resp.StatusCode)}
 			}
 		}
 	}
@@ -759,7 +792,7 @@ func (client *Client) httpExecute(method string, path string, auth *Credentials,
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, &InternalClientError{Err: err}
+		return nil, &Error{code: ErrorUnknown, err: err}
 	}
 
 	return body, nil
@@ -803,7 +836,7 @@ func readInternal(
 				streamName = values[0]
 			}
 
-			return nil, &StreamDeletedError{StreamName: streamName}
+			return nil, &Error{code: ErrorStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
 		}
 
 		return nil, err
@@ -824,8 +857,9 @@ func readInternal(
 		stream := newReadStream(params, resolvedEvent)
 		return stream, nil
 	case *api.ReadResp_StreamNotFound_:
+		streamName := string(msg.Content.(*api.ReadResp_StreamNotFound_).StreamNotFound.StreamIdentifier.StreamName)
 		defer cancel()
-		return nil, ErrStreamNotFound
+		return nil, &Error{code: ErrorResourceNotFound, err: fmt.Errorf("stream '%s' is not found", streamName)}
 	}
 
 	defer cancel()

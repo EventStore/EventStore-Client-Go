@@ -5,7 +5,7 @@ import "testing"
 func TestSingleNode(t *testing.T) {
 	// Empty database container
 	t.Log("[debug] starting empty database container...")
-	emptyContainer := GetEmptyDatabase()
+	emptyContainer := GetEmptyDatabase(t)
 	t.Cleanup(emptyContainer.Close)
 	emptyContainerClient := CreateTestClient(emptyContainer, t)
 	WaitForAdminToBeAvailable(t, emptyContainerClient)
@@ -15,7 +15,7 @@ func TestSingleNode(t *testing.T) {
 
 	// Prepopulated database container
 	t.Log("[debug] starting prepopulated database container...")
-	populatedContainer := GetPrePopulatedDatabase()
+	populatedContainer := GetPrePopulatedDatabase(t)
 	t.Cleanup(populatedContainer.Close)
 	populatedContainerClient := CreateTestClient(populatedContainer, t)
 	WaitForAdminToBeAvailable(t, populatedContainerClient)

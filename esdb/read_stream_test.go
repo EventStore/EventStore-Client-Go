@@ -3,7 +3,6 @@ package esdb_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"sync"
@@ -205,7 +204,9 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 func readStreamNotFound(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		_, err := db.ReadStream(context.Background(), NAME_GENERATOR.Generate(), esdb.ReadStreamOptions{}, 1)
+		esdbErr, ok := esdb.FromError(err)
 
-		require.True(t, errors.Is(err, esdb.ErrStreamNotFound))
+		assert.False(t, ok)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
 	}
 }

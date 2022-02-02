@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/esdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +106,9 @@ func createPersistentStreamSubscription_FailsIfAlreadyExists(clientInstance *esd
 			esdb.PersistentStreamSubscriptionOptions{},
 		)
 
-		require.Error(t, err)
+		esdbErr, ok := esdb.FromError(err)
+		assert.False(t, ok)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceAlreadyExists)
 	}
 }
 
@@ -218,7 +221,9 @@ func deletePersistentSubscription_ErrIfSubscriptionDoesNotExist(clientInstance *
 			esdb.DeletePersistentSubscriptionOptions{},
 		)
 
-		require.Error(t, err)
+		esdbErr, ok := esdb.FromError(err)
+		assert.False(t, ok)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
 	}
 }
 
@@ -310,8 +315,10 @@ func persistentAllCreate(client *esdb.Client) TestCall {
 			esdb.PersistentAllSubscriptionOptions{},
 		)
 
-		if err != nil && IsESDB_VersionBelow_21() {
-			t.Skip()
+		if err, ok := esdb.FromError(err); !ok {
+			if err.Code() == esdb.ErrorUnsupportedFeature {
+				t.Skip()
+			}
 		}
 
 		require.NoError(t, err)
@@ -328,8 +335,10 @@ func persistentAllUpdate(client *esdb.Client) TestCall {
 			esdb.PersistentAllSubscriptionOptions{},
 		)
 
-		if err != nil && IsESDB_VersionBelow_21() {
-			t.Skip()
+		if err, ok := esdb.FromError(err); !ok {
+			if err.Code() == esdb.ErrorUnsupportedFeature {
+				t.Skip()
+			}
 		}
 
 		require.NoError(t, err)
@@ -355,8 +364,10 @@ func persistentAllDelete(client *esdb.Client) TestCall {
 			esdb.PersistentAllSubscriptionOptions{},
 		)
 
-		if err != nil && IsESDB_VersionBelow_21() {
-			t.Skip()
+		if err, ok := esdb.FromError(err); !ok {
+			if err.Code() == esdb.ErrorUnsupportedFeature {
+				t.Skip()
+			}
 		}
 
 		require.NoError(t, err)

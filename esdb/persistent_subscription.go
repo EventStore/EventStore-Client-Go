@@ -12,8 +12,6 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-const MAX_ACK_COUNT = 2000
-
 type Nack_Action int32
 
 const (
@@ -52,10 +50,6 @@ func (connection *PersistentSubscription) Close() error {
 func (connection *PersistentSubscription) Ack(messages ...*ResolvedEvent) error {
 	if len(messages) == 0 {
 		return nil
-	}
-
-	if len(messages) > MAX_ACK_COUNT {
-		return &PersistentSubscriptionExceedsMaxMessageCountError
 	}
 
 	var ids []uuid.UUID
