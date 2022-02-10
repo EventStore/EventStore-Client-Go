@@ -38,6 +38,28 @@ func connectToPersistentSubscriptionToStream(client *esdb.Client) {
 	// #endregion subscribe-to-persistent-subscription-to-stream
 }
 
+func connectToPersistentSubscriptionToAll(client *esdb.Client) {
+	// #region subscribe-to-persistent-subscription-to-all
+	sub, err := client.SubscribeToPersistentSubscriptionToAll(context.Background(), "subscription-group", esdb.SubscribeToPersistentSubscriptionOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		event := sub.Recv()
+
+		if event.EventAppeared != nil {
+			sub.Ack(event.EventAppeared.Event)
+		}
+
+		if event.SubscriptionDropped != nil {
+			break
+		}
+	}
+	// #endregion subscribe-to-persistent-subscription-to-all
+}
+
 func createPersistentSubscriptionToAll(client *esdb.Client) {
 	// #region create-persistent-subscription-to-all
 	options := esdb.PersistentAllSubscriptionOptions{
