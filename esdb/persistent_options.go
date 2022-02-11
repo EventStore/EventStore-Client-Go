@@ -59,3 +59,7 @@ type ListPersistentSubscriptionsOptions struct {
 type GetPersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 }
+
+type RestartPersistentSubscriptionSubsystemOptions struct {
+	Authenticated *Credentials
+}
