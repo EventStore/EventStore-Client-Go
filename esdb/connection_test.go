@@ -39,7 +39,8 @@ func closeConnection(container *Container) TestCall {
 		opts.ExpectedRevision = esdb.Any{}
 		_, err = db.AppendToStream(context, streamID.String(), opts, testEvent)
 
-		assert.NotNil(t, err)
-		assert.Equal(t, "can't get a connection handle: esdb connection is closed", err.Error())
+		esdbErr, ok := esdb.FromError(err)
+		assert.False(t, ok)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorConnectionClosed)
 	}
 }

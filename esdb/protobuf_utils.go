@@ -923,11 +923,11 @@ func createRequestFilterOptionsProto(
 	options *SubscriptionFilterOptions,
 ) (*persistent.CreateReq_AllOptions_FilterOptions, error) {
 	if len(options.SubscriptionFilter.Prefixes) == 0 && len(options.SubscriptionFilter.Regex) == 0 {
-		return nil, &PersistentSubscriptionToAllMustProvideRegexOrPrefixError
+		return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
 
 	}
 	if len(options.SubscriptionFilter.Prefixes) > 0 && len(options.SubscriptionFilter.Regex) > 0 {
-		return nil, &PersistentSubscriptionToAllCanSetOnlyRegexOrPrefixError
+		return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
 	}
 	filterOptions := persistent.CreateReq_AllOptions_FilterOptions{
 		CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),

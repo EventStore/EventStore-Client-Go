@@ -1,59 +1,76 @@
 package esdb
 
 import (
-	"errors"
 	"fmt"
 )
 
-// ErrWrongExpectedStreamRevision ...
-var ErrWrongExpectedStreamRevision = errors.New("WrongExpectedStreamRevision")
+type ErrorCode int
 
-// ErrPermissionDenied ...
-var ErrPermissionDenied = errors.New("PermissionDenied")
+const (
+	ErrorUnknown ErrorCode = iota
+	ErrorUnsupportedFeature
+	ErrorDeadlineExceeded
+	ErrorUnauthenticated
+	ErrorResourceNotFound
+	ErrorResourceAlreadyExists
+	ErrorConnectionClosed
+	ErrorWrongExpectedVersion
+	ErrorAccessDenied
+	ErrorStreamDeleted
+	ErrorParsing
+	ErrorInternalClient
+	ErrorInternalServer
+	ErrorNotLeader
+)
 
-// ErrStreamNotFound is returned when a read requests gets a stream not found response
-// from the EventStore.
-// Example usage:
-// ```go
-// events, err := esdb.ReadStream(...)
-// if err == errors.ErrStreamNotFound {
-//   // handle the stream not being found
-// }
-// ```
-var ErrStreamNotFound = errors.New("Failed to perform read because the stream was not found")
-
-type StreamDeletedError struct {
-	StreamName string
+type Error struct {
+	code ErrorCode
+	err  error
 }
 
-func (e *StreamDeletedError) Error() string {
-	return fmt.Sprintf("stream '%s' is deleted", e.StreamName)
+func (e *Error) Code() ErrorCode {
+	return e.code
 }
 
-var ErrResourceNotFound = errors.New("ResourceNotFound")
-
-type ServerError struct {
-	Code int
-	Err  error
+func (e *Error) Err() error {
+	return e.err
 }
 
-func (e *ServerError) Error() string {
-	return fmt.Sprintf("Server error: %d: %s", e.Code, e.Err)
+func (e *Error) Error() string {
+	msg := ""
+
+	switch e.code {
+	case ErrorUnsupportedFeature:
+		msg = "unsupported feature"
+	}
+
+	if e.err != nil {
+		msg = fmt.Sprintf("%s: %v", msg, e.Err())
+	}
+
+	return msg
 }
 
-func (err ServerError) Unwrap() error {
-	return err.Err
+func (e *Error) Unwrap() error {
+	return e.Err()
 }
 
-type InternalClientError struct {
-	Code int
-	Err  error
+func FromError(err error) (*Error, bool) {
+	if err == nil {
+		return nil, true
+	}
+
+	if esErr, ok := err.(*Error); ok {
+		return esErr, false
+	}
+
+	return &Error{code: ErrorUnknown, err: err}, false
 }
 
-func (e *InternalClientError) Error() string {
-	return fmt.Sprintf("Internal client error: code %d: %s", e.Code, e.Err)
+func unsupportedFeatureError() error {
+	return &Error{code: ErrorUnsupportedFeature}
 }
 
-func (err InternalClientError) Unwrap() error {
-	return err.Err
+func unknownError() error {
+	return &Error{code: ErrorUnknown}
 }

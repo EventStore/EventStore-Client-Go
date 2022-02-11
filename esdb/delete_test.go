@@ -2,7 +2,6 @@ package esdb_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/esdb"
@@ -71,8 +70,8 @@ func detectStreamDeleted(db *esdb.Client) TestCall {
 		require.Nil(t, err)
 
 		_, err = db.ReadStream(context.Background(), streamID, esdb.ReadStreamOptions{}, 1)
-		var streamDeletedError *esdb.StreamDeletedError
-
-		require.True(t, errors.As(err, &streamDeletedError))
+		esdbErr, ok := esdb.FromError(err)
+		assert.False(t, ok)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorStreamDeleted)
 	}
 }

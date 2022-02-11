@@ -3,7 +3,6 @@ package esdb_test
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,8 +17,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/goombaio/namegenerator"
 	"github.com/ory/dockertest/v3"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -118,10 +115,6 @@ func IsESDB_Version(predicate VersionPredicateFn) bool {
 	return false
 }
 
-func IsESDB_VersionBelow_21() bool {
-	return IsESDB_Version(func(v ESDBVersion) bool { return v.Maj < 21 })
-}
-
 func getDockerOptions() *dockertest.RunOptions {
 	config := readEnvironmentVariables(defaultEventStoreDockerConfig)
 	return &dockertest.RunOptions{
@@ -138,30 +131,30 @@ func (container *Container) Close() {
 	}
 }
 
-func GetEmptyDatabase() *Container {
+func GetEmptyDatabase(t *testing.T) *Container {
 	options := getDockerOptions()
-	return getDatabase(options)
+	return getDatabase(t, options)
 }
 
-func GetPrePopulatedDatabase() *Container {
+func GetPrePopulatedDatabase(t *testing.T) *Container {
 	options := getDockerOptions()
 	options.Env = []string{
 		"EVENTSTORE_DB=/data/integration-tests",
 		"EVENTSTORE_MEM_DB=false",
 	}
-	return getDatabase(options)
+	return getDatabase(t, options)
 }
 
 // TODO - Keep retrying when the healthcheck failed. We should try creating a new container instead of failing the test.
-func getDatabase(options *dockertest.RunOptions) *Container {
+func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		log.Fatalf("Could not connect to docker. Reason: %v", err)
+		t.Fatalf("Could not connect to docker. Reason: %v", err)
 	}
 
 	err = setTLSContext(options)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	fmt.Println("Starting docker container...")
@@ -175,7 +168,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 		retries += 1
 		resource, err = pool.RunWithOptions(options)
 		if err != nil {
-			log.Fatalf("Could not start resource. Reason: %v", err)
+			t.Fatalf("Could not start resource. Reason: %v", err)
 		}
 
 		fmt.Printf("Started container with id: %v, name: %s\n",
@@ -205,7 +198,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 			closeErr := resource.Close()
 
 			if closeErr != nil && retries >= retryLimit {
-				log.Fatalf("Failed to closeConnection docker resource. Reason: %v", err)
+				t.Fatalf("Failed to closeConnection docker resource. Reason: %v", err)
 			}
 
 			if retries < retryLimit {
@@ -213,7 +206,7 @@ func getDatabase(options *dockertest.RunOptions) *Container {
 				continue
 			}
 
-			log.Fatalln("[debug] stopping docker resource")
+			t.Fatal("[debug] stopping docker resource")
 		} else {
 			log.Print("[debug] healthCheck succeeded!")
 			break
@@ -318,15 +311,16 @@ func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
 		}
 
 		if err != nil {
-			code := status.Code(err)
-			if errors.Is(err, esdb.ErrStreamNotFound) || code == codes.Unauthenticated || code == codes.Unavailable {
-				time.Sleep(500 * time.Microsecond)
-				t.Logf("[debug] not available retrying...")
-				cancel()
-				continue
-			}
+			if esdbError, ok := esdb.FromError(err); !ok {
+				if esdbError.Code() == esdb.ErrorResourceNotFound || esdbError.Code() == esdb.ErrorUnauthenticated {
+					time.Sleep(500 * time.Microsecond)
+					t.Logf("[debug] not available retrying...")
+					cancel()
+					continue
+				}
 
-			panic(err)
+				t.Fatalf("unexpected error when waiting the admin account to be available: %+v", err)
+			}
 		}
 
 		cancel()

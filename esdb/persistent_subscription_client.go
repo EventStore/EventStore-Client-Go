@@ -2,6 +2,7 @@ package esdb
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"time"
 
@@ -37,20 +38,19 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 	readClient, err := client.persistentSubscriptionClient.Read(ctx, callOptions...)
 	if err != nil {
 		defer cancel()
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return nil, PersistentSubscriptionFailedToInitClientError(err)
+		return nil, client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	err = readClient.Send(toPersistentReadRequest(bufferSize, groupName, []byte(streamName)))
 	if err != nil {
 		defer cancel()
-		return nil, PersistentSubscriptionFailedSendStreamInitError(err)
+		return nil, client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	readResult, err := readClient.Recv()
 	if err != nil {
 		defer cancel()
-		return nil, PersistentSubscriptionFailedReceiveStreamInitError(err)
+		return nil, client.inner.handleError(handle, headers, trailers, err)
 	}
 	switch readResult.Content.(type) {
 	case *persistent.ReadResp_SubscriptionConfirmation_:
@@ -65,7 +65,7 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 	}
 
 	defer cancel()
-	return nil, PersistentSubscriptionNoConfirmationError(err)
+	return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription confirmation error")}
 }
 
 func (client *persistentClient) CreateStreamSubscription(
@@ -88,8 +88,7 @@ func (client *persistentClient) CreateStreamSubscription(
 	}
 	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig, callOptions...)
 	if err != nil {
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return PersistentSubscriptionFailedCreationError(err)
+		return client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	return nil
@@ -119,8 +118,7 @@ func (client *persistentClient) CreateAllSubscription(
 	}
 	_, err = client.persistentSubscriptionClient.Create(ctx, protoConfig, callOptions...)
 	if err != nil {
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return PersistentSubscriptionFailedCreationError(err)
+		return client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	return nil
@@ -146,8 +144,7 @@ func (client *persistentClient) UpdateStreamSubscription(
 	}
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
 	if err != nil {
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return PersistentSubscriptionUpdateFailedError(err)
+		return client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	return nil
@@ -173,8 +170,7 @@ func (client *persistentClient) UpdateAllSubscription(
 	}
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
 	if err != nil {
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return PersistentSubscriptionUpdateFailedError(err)
+		return client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	return nil
@@ -198,8 +194,7 @@ func (client *persistentClient) DeleteStreamSubscription(
 	}
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
 	if err != nil {
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return PersistentSubscriptionDeletionFailedError(err)
+		return client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	return nil
@@ -217,8 +212,7 @@ func (client *persistentClient) DeleteAllSubscription(ctx context.Context, handl
 	}
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
 	if err != nil {
-		err = client.inner.handleError(handle, headers, trailers, err)
-		return PersistentSubscriptionDeletionFailedError(err)
+		return client.inner.handleError(handle, headers, trailers, err)
 	}
 
 	return nil
