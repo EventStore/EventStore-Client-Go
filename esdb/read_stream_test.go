@@ -3,6 +3,7 @@ package esdb_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"sync"
@@ -46,6 +47,7 @@ func ReadStreamTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClient
 		t.Run("readStreamEventsBackwardsFromEndPosition", readStreamEventsBackwardsFromEndPosition(populatedDBClient))
 		t.Run("readStreamReturnsEOFAfterCompletion", readStreamReturnsEOFAfterCompletion(emptyDBClient))
 		t.Run("readStreamNotFound", readStreamNotFound(emptyDBClient))
+		t.Run("readStreamWithMaxAge", readStreamWithMaxAge(emptyDBClient))
 	})
 }
 
@@ -208,5 +210,28 @@ func readStreamNotFound(db *esdb.Client) TestCall {
 
 		assert.False(t, ok)
 		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
+	}
+}
+
+func readStreamWithMaxAge(db *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		streamName := NAME_GENERATOR.Generate()
+		_, err := db.AppendToStream(context.Background(), streamName, esdb.AppendToStreamOptions{}, createTestEvent())
+
+		assert.NoError(t, err)
+
+		metadata := esdb.StreamMetadata{}
+		metadata.SetMaxAge(time.Second)
+
+		_, err = db.SetStreamMetadata(context.Background(), streamName, esdb.AppendToStreamOptions{}, metadata)
+
+		assert.NoError(t, err)
+
+		time.Sleep(2 * time.Second)
+
+		_, err = db.ReadStream(context.Background(), streamName, esdb.ReadStreamOptions{}, 10)
+
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, io.EOF))
 	}
 }
