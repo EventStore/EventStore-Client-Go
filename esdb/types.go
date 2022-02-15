@@ -340,7 +340,7 @@ func (m StreamMetadata) ToMap() (map[string]interface{}, error) {
 	}
 
 	if maxAge := m.MaxAge(); maxAge != nil {
-		props["$maxAge"] = *maxAge
+		props["$maxAge"] = int64(maxAge.Seconds())
 	}
 
 	if truncateBefore := m.TruncateBefore(); truncateBefore != nil {
@@ -348,7 +348,7 @@ func (m StreamMetadata) ToMap() (map[string]interface{}, error) {
 	}
 
 	if cacheControl := m.CacheControl(); cacheControl != nil {
-		props["$cacheControl"] = *cacheControl
+		props["$cacheControl"] = int64(cacheControl.Seconds())
 	}
 
 	acl := m.Acl()
@@ -406,8 +406,8 @@ func StreamMetadataFromMap(props map[string]interface{}) (StreamMetadata, error)
 
 			return meta, fmt.Errorf("invalid $maxCount value: %v", value)
 		case "$maxAge":
-			if ms, ok := lookForUint64(value); ok {
-				meta.SetMaxAge(time.Duration(ms))
+			if secs, ok := lookForUint64(value); ok {
+				meta.SetMaxAge(time.Duration(secs) * time.Second)
 				continue
 			}
 
@@ -420,8 +420,8 @@ func StreamMetadataFromMap(props map[string]interface{}) (StreamMetadata, error)
 
 			return meta, fmt.Errorf("invalid $tb value: %v", value)
 		case "$cacheControl":
-			if ms, ok := lookForUint64(value); ok {
-				meta.SetCacheControl(time.Duration(ms))
+			if secs, ok := lookForUint64(value); ok {
+				meta.SetCacheControl(time.Duration(secs) * time.Second)
 				continue
 			}
 
