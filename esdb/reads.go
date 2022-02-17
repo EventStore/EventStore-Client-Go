@@ -16,6 +16,11 @@ type readResp struct {
 	err   *error
 }
 
+type IReadStream interface {
+	Close()
+	Recv() (*ResolvedEvent, error)
+}
+
 type ReadStream struct {
 	client  *grpcClient
 	channel chan (chan readResp)

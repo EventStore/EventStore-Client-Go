@@ -293,7 +293,7 @@ func (client *Client) ReadStream(
 	streamID string,
 	opts ReadStreamOptions,
 	count uint64,
-) (*ReadStream, error) {
+) (IReadStream, error) {
 	opts.setDefaults()
 	readRequest := toReadStreamRequest(streamID, opts.Direction, opts.From, count, opts.ResolveLinkTos)
 	handle, err := client.grpcClient.getConnectionHandle()
