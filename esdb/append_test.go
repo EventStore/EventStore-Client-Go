@@ -24,7 +24,7 @@ func createTestEvent() esdb.EventData {
 	return event
 }
 
-func collectStreamEvents(stream *esdb.ReadStream) ([]*esdb.ResolvedEvent, error) {
+func collectStreamEvents(stream esdb.IReadStream) ([]*esdb.ResolvedEvent, error) {
 	events := []*esdb.ResolvedEvent{}
 
 	for {
