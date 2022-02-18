@@ -84,7 +84,7 @@ func logicToTest(eventStoreClient IEventStoreClient) {
 		print(eventData)
 	}
 
-	//.. something to test to test
+	//.. something to test
 
 }
 
