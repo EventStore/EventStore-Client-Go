@@ -529,3 +529,10 @@ func TestConnectionStringWithKeepAlive(t *testing.T) {
 	assert.Equal(t, 11*time.Second, config.KeepAliveInterval)
 	assert.Equal(t, -1, int(config.KeepAliveTimeout))
 }
+
+func TestConnectionStringWithDefaultDeadline(t *testing.T) {
+	config, err := esdb.ParseConnectionString("esdb://localhost?defaultDeadline=60000")
+	require.NoError(t, err)
+	assert.NotNil(t, config.DefaultDeadline)
+	assert.Equal(t, *config.DefaultDeadline, 60*time.Second)
+}

@@ -1,9 +1,26 @@
 package esdb
 
+import (
+	"time"
+)
+
 type SubscribeToStreamOptions struct {
 	From           StreamPosition
 	ResolveLinkTos bool
 	Authenticated  *Credentials
+	Deadline       *time.Duration
+}
+
+func (o *SubscribeToStreamOptions) kind() operationKind {
+	return StreamingOperation
+}
+
+func (o *SubscribeToStreamOptions) credentials() *Credentials {
+	return o.Authenticated
+}
+
+func (o *SubscribeToStreamOptions) deadline() *time.Duration {
+	return o.Deadline
 }
 
 func (o *SubscribeToStreamOptions) setDefaults() {
@@ -19,6 +36,19 @@ type SubscribeToAllOptions struct {
 	CheckpointInterval int
 	Filter             *SubscriptionFilter
 	Authenticated      *Credentials
+	Deadline           *time.Duration
+}
+
+func (o *SubscribeToAllOptions) kind() operationKind {
+	return StreamingOperation
+}
+
+func (o *SubscribeToAllOptions) credentials() *Credentials {
+	return o.Authenticated
+}
+
+func (o *SubscribeToAllOptions) deadline() *time.Duration {
+	return o.Deadline
 }
 
 func (o *SubscribeToAllOptions) setDefaults() {

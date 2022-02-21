@@ -3,8 +3,6 @@ package esdb
 import (
 	"context"
 	"fmt"
-	"math"
-	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
@@ -18,24 +16,17 @@ type persistentClient struct {
 }
 
 func (client *persistentClient) ConnectToPersistentSubscription(
-	ctx context.Context,
+	parent context.Context,
+	conf *Configuration,
+	options options,
 	handle connectionHandle,
 	bufferSize int32,
 	streamName string,
 	groupName string,
-	auth *Credentials,
 ) (*PersistentSubscription, error) {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
-
-	deadline := time.Now().Add(time.Duration(math.MaxInt64))
-	ctx, cancel := context.WithDeadline(ctx, deadline)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
 	readClient, err := client.persistentSubscriptionClient.Read(ctx, callOptions...)
 	if err != nil {
 		defer cancel()
@@ -70,23 +61,20 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 }
 
 func (client *persistentClient) CreateStreamSubscription(
-	ctx context.Context,
+	parent context.Context,
+	conf *Configuration,
+	options options,
 	handle connectionHandle,
 	streamName string,
 	groupName string,
 	position StreamPosition,
 	settings SubscriptionSettings,
-	auth *Credentials,
 ) error {
 	createSubscriptionConfig := createPersistentRequestProto(streamName, groupName, position, settings)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
 	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig, callOptions...)
 	if err != nil {
 		return client.inner.handleError(handle, headers, trailers, err)
@@ -96,13 +84,14 @@ func (client *persistentClient) CreateStreamSubscription(
 }
 
 func (client *persistentClient) CreateAllSubscription(
-	ctx context.Context,
+	parent context.Context,
+	conf *Configuration,
+	options options,
 	handle connectionHandle,
 	groupName string,
 	position AllPosition,
 	settings SubscriptionSettings,
 	filter *SubscriptionFilterOptions,
-	auth *Credentials,
 ) error {
 	protoConfig, err := createPersistentRequestAllOptionsProto(groupName, position, settings, filter)
 	if err != nil {
@@ -111,12 +100,9 @@ func (client *persistentClient) CreateAllSubscription(
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
+
 	_, err = client.persistentSubscriptionClient.Create(ctx, protoConfig, callOptions...)
 	if err != nil {
 		return client.inner.handleError(handle, headers, trailers, err)
@@ -126,23 +112,21 @@ func (client *persistentClient) CreateAllSubscription(
 }
 
 func (client *persistentClient) UpdateStreamSubscription(
-	ctx context.Context,
+	parent context.Context,
+	conf *Configuration,
+	options options,
 	handle connectionHandle,
 	streamName string,
 	groupName string,
 	position StreamPosition,
 	settings SubscriptionSettings,
-	auth *Credentials,
 ) error {
 	updateSubscriptionConfig := updatePersistentRequestStreamProto(streamName, groupName, position, settings)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
+
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
 	if err != nil {
 		return client.inner.handleError(handle, headers, trailers, err)
@@ -152,23 +136,21 @@ func (client *persistentClient) UpdateStreamSubscription(
 }
 
 func (client *persistentClient) UpdateAllSubscription(
-	ctx context.Context,
+	parent context.Context,
+	conf *Configuration,
+	options options,
 	handle connectionHandle,
 	groupName string,
 	position AllPosition,
 	settings SubscriptionSettings,
-	auth *Credentials,
 ) error {
 	updateSubscriptionConfig := updatePersistentRequestAllOptionsProto(groupName, position, settings)
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
+
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
 	if err != nil {
 		return client.inner.handleError(handle, headers, trailers, err)
@@ -178,21 +160,19 @@ func (client *persistentClient) UpdateAllSubscription(
 }
 
 func (client *persistentClient) DeleteStreamSubscription(
-	ctx context.Context,
+	parent context.Context,
+	conf *Configuration,
+	options options,
 	handle connectionHandle,
 	streamName string,
 	groupName string,
-	auth *Credentials,
 ) error {
 	deleteSubscriptionOptions := deletePersistentRequestStreamProto(streamName, groupName)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
+
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
 	if err != nil {
 		return client.inner.handleError(handle, headers, trailers, err)
@@ -201,16 +181,19 @@ func (client *persistentClient) DeleteStreamSubscription(
 	return nil
 }
 
-func (client *persistentClient) DeleteAllSubscription(ctx context.Context, handle connectionHandle, groupName string, auth *Credentials) error {
+func (client *persistentClient) DeleteAllSubscription(
+	parent context.Context,
+	conf *Configuration,
+	options options,
+	handle connectionHandle,
+	groupName string,
+) error {
 	deleteSubscriptionOptions := deletePersistentRequestAllOptionsProto(groupName)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	if auth != nil {
-		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: auth.Login,
-			password: auth.Password,
-		}))
-	}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
+
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
 	if err != nil {
 		return client.inner.handleError(handle, headers, trailers, err)
@@ -219,7 +202,13 @@ func (client *persistentClient) DeleteAllSubscription(ctx context.Context, handl
 	return nil
 }
 
-func (client *persistentClient) listPersistentSubscriptions(ctx context.Context, handle connectionHandle, streamName *string, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
+func (client *persistentClient) listPersistentSubscriptions(
+	parent context.Context,
+	conf *Configuration,
+	handle connectionHandle,
+	streamName *string,
+	options ListPersistentSubscriptionsOptions,
+) ([]PersistentSubscriptionInfo, error) {
 	listOptions := &persistent.ListReq_Options{}
 
 	if streamName == nil {
@@ -250,6 +239,8 @@ func (client *persistentClient) listPersistentSubscriptions(ctx context.Context,
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
 	if options.Authenticated != nil {
 		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
 			username: options.Authenticated.Login,
@@ -277,7 +268,14 @@ func (client *persistentClient) listPersistentSubscriptions(ctx context.Context,
 	return infos, nil
 }
 
-func (client *persistentClient) getPersistentSubscriptionInfo(ctx context.Context, handle connectionHandle, streamName *string, groupName string, options GetPersistentSubscriptionOptions) (*PersistentSubscriptionInfo, error) {
+func (client *persistentClient) getPersistentSubscriptionInfo(
+	parent context.Context,
+	conf *Configuration,
+	handle connectionHandle,
+	streamName *string,
+	groupName string,
+	options GetPersistentSubscriptionOptions,
+) (*PersistentSubscriptionInfo, error) {
 	getInfoOptions := &persistent.GetInfoReq_Options{}
 
 	if streamName == nil {
@@ -294,6 +292,8 @@ func (client *persistentClient) getPersistentSubscriptionInfo(ctx context.Contex
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
 	if options.Authenticated != nil {
 		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
 			username: options.Authenticated.Login,
@@ -315,7 +315,14 @@ func (client *persistentClient) getPersistentSubscriptionInfo(ctx context.Contex
 	return info, nil
 }
 
-func (client *persistentClient) replayParkedMessages(ctx context.Context, handle connectionHandle, streamName *string, groupName string, options ReplayParkedMessagesOptions) error {
+func (client *persistentClient) replayParkedMessages(
+	parent context.Context,
+	conf *Configuration,
+	handle connectionHandle,
+	streamName *string,
+	groupName string,
+	options ReplayParkedMessagesOptions,
+) error {
 	replayOptions := &persistent.ReplayParkedReq_Options{}
 
 	if streamName == nil {
@@ -340,6 +347,8 @@ func (client *persistentClient) replayParkedMessages(ctx context.Context, handle
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
 	if options.Authenticated != nil {
 		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
 			username: options.Authenticated.Login,
@@ -355,9 +364,16 @@ func (client *persistentClient) replayParkedMessages(ctx context.Context, handle
 	return nil
 }
 
-func (client *persistentClient) restartSubsystem(ctx context.Context, handle connectionHandle, options RestartPersistentSubscriptionSubsystemOptions) error {
+func (client *persistentClient) restartSubsystem(
+	parent context.Context,
+	conf *Configuration,
+	handle connectionHandle,
+	options RestartPersistentSubscriptionSubsystemOptions,
+) error {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
+	defer cancel()
 	if options.Authenticated != nil {
 		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
 			username: options.Authenticated.Login,
