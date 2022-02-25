@@ -126,12 +126,13 @@ func (msg getConnection) handle(state *connectionState) {
 		state.connection = conn
 		state.serverInfo = serverInfo
 
-		resp := newConnectionHandle(id, conn)
+		resp := newConnectionHandle(id, serverInfo, conn)
 		msg.channel <- resp
 	} else {
 		handle := connectionHandle{
 			id:         state.correlation,
 			connection: state.connection,
+			serverInfo: state.serverInfo,
 			err:        nil,
 		}
 
@@ -179,7 +180,7 @@ func (handle connectionHandle) Connection() *grpc.ClientConn {
 
 func (handle *connectionHandle) SupportsFeature(feature int) bool {
 	if handle.serverInfo != nil {
-		return handle.serverInfo.FeatureFlags&feature == 0
+		return handle.serverInfo.FeatureFlags&feature != 0
 	}
 
 	return false
@@ -192,10 +193,11 @@ func newErroredConnectionHandle(err error) connectionHandle {
 	}
 }
 
-func newConnectionHandle(id uuid.UUID, connection *grpc.ClientConn) connectionHandle {
+func newConnectionHandle(id uuid.UUID, serverInfo *ServerInfo, connection *grpc.ClientConn) connectionHandle {
 	return connectionHandle{
 		id:         id,
 		connection: connection,
+		serverInfo: serverInfo,
 	}
 }
 
