@@ -488,7 +488,7 @@ func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature {
+			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}

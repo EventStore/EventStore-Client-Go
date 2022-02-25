@@ -316,7 +316,7 @@ func persistentAllCreate(client *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature {
+			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}
@@ -336,7 +336,7 @@ func persistentAllUpdate(client *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature {
+			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}
@@ -365,7 +365,7 @@ func persistentAllDelete(client *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature {
+			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}

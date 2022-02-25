@@ -115,6 +115,12 @@ func IsESDB_Version(predicate VersionPredicateFn) bool {
 	return false
 }
 
+func IsESDBVersion20() bool {
+	return IsESDB_Version(func(version ESDBVersion) bool {
+		return version.Maj < 21
+	})
+}
+
 func getDockerOptions() *dockertest.RunOptions {
 	config := readEnvironmentVariables(defaultEventStoreDockerConfig)
 	return &dockertest.RunOptions{
