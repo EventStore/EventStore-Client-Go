@@ -18,6 +18,7 @@ func TestConnectionStringDefaults(t *testing.T) {
 	assert.Equal(t, 10, config.MaxDiscoverAttempts)
 	assert.Equal(t, 10*time.Second, config.KeepAliveInterval)
 	assert.Equal(t, 10*time.Second, config.KeepAliveTimeout)
+	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
 }
 
 func TestConnectionStringWithNoSchema(t *testing.T) {
@@ -237,7 +238,7 @@ func TestConnectionStringWithInvalidSettings(t *testing.T) {
 	config, err = esdb.ParseConnectionString("esdb://user:pass@127.0.0.1?/")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "Invalid key/value pair specified")
+	assert.NotNil(t, err.Error())
 }
 
 func TestConnectionStringWithDifferentNodePreferences(t *testing.T) {
@@ -296,7 +297,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Empty(t, config.Password)
 	assert.Equal(t, "hostname:4321", config.Address)
 	assert.Empty(t, config.GossipSeeds)
-	assert.Empty(t, config.NodePreference)
+	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
 	assert.Equal(t, true, config.DisableTLS)
 	assert.Equal(t, false, config.SkipCertificateVerification)
 

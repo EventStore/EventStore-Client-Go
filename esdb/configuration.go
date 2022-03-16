@@ -84,6 +84,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		MaxDiscoverAttempts: 10,
 		KeepAliveInterval:   10 * time.Second,
 		KeepAliveTimeout:    10 * time.Second,
+		NodePreference:      NodePreference_Leader,
 	}
 
 	schemeIndex := strings.Index(connectionString, SchemeSeparator)
