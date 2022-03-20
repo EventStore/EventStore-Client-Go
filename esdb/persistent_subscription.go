@@ -12,6 +12,8 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+const MAX_ACK_COUNT = 2000
+
 type Nack_Action int32
 
 const (
@@ -30,8 +32,8 @@ type PersistentSubscription struct {
 	once           *sync.Once
 }
 
-func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
-	channel := make(chan *PersistentSubscriptionEvent)
+func (connection *PersistentSubscription) Recv() *SubscriptionEvent {
+	channel := make(chan *SubscriptionEvent)
 	req := persistentRequest{
 		channel: channel,
 	}
@@ -50,6 +52,10 @@ func (connection *PersistentSubscription) Close() error {
 func (connection *PersistentSubscription) Ack(messages ...*ResolvedEvent) error {
 	if len(messages) == 0 {
 		return nil
+	}
+
+	if len(messages) > MAX_ACK_COUNT {
+		return &PersistentSubscriptionExceedsMaxMessageCountError
 	}
 
 	var ids []uuid.UUID
@@ -110,7 +116,7 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 }
 
 type persistentRequest struct {
-	channel chan *PersistentSubscriptionEvent
+	channel chan *SubscriptionEvent
 }
 
 func NewPersistentSubscription(
@@ -135,7 +141,7 @@ func NewPersistentSubscription(
 			req := <-channel
 
 			if closed {
-				req.channel <- &PersistentSubscriptionEvent{
+				req.channel <- &SubscriptionEvent{
 					SubscriptionDropped: &SubscriptionDropped{
 						Error: fmt.Errorf("subscription has been dropped"),
 					},
@@ -152,7 +158,7 @@ func NewPersistentSubscription(
 					Error: err,
 				}
 
-				req.channel <- &PersistentSubscriptionEvent{
+				req.channel <- &SubscriptionEvent{
 					SubscriptionDropped: &dropped,
 				}
 
@@ -164,12 +170,9 @@ func NewPersistentSubscription(
 			switch result.Content.(type) {
 			case *persistent.ReadResp_Event:
 				{
-					resolvedEvent, retryCount := fromPersistentProtoResponse(result)
-					req.channel <- &PersistentSubscriptionEvent{
-						EventAppeared: &EventAppeared{
-							Event:      resolvedEvent,
-							RetryCount: retryCount,
-						},
+					resolvedEvent := fromPersistentProtoResponse(result)
+					req.channel <- &SubscriptionEvent{
+						EventAppeared: resolvedEvent,
 					}
 				}
 			}

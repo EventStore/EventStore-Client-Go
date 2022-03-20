@@ -70,10 +70,6 @@ type Configuration struct {
 
 	// The amount of time (in milliseconds) the sender of the keep alive ping waits for an acknowledgement.
 	KeepAliveTimeout time.Duration // Defaults to 10 seconds.
-
-	// The amount of time (in milliseconds) a non-streaming operation should take to complete before resulting in a
-	// DeadlineExceeded. Defaults to 10 seconds.
-	DefaultDeadline *time.Duration
 }
 
 // ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
@@ -84,7 +80,6 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		MaxDiscoverAttempts: 10,
 		KeepAliveInterval:   10 * time.Second,
 		KeepAliveTimeout:    10 * time.Second,
-		NodePreference:      NodePreference_Leader,
 	}
 
 	schemeIndex := strings.Index(connectionString, SchemeSeparator)
@@ -265,12 +260,6 @@ func parseSetting(k, v string, config *Configuration) error {
 		if err != nil {
 			return err
 		}
-	case "defaultdeadline":
-		config.DefaultDeadline = new(time.Duration)
-		err := parseDurationAsMs(k, v, config.DefaultDeadline)
-		if err != nil {
-			return nil
-		}
 	default:
 		return fmt.Errorf("Unknown setting: '%s'", k)
 	}
@@ -366,17 +355,6 @@ func parseKeepAliveSetting(k, v string, d *time.Duration) error {
 	} else {
 		*d = time.Duration(i * int(time.Millisecond))
 	}
-
-	return nil
-}
-
-func parseDurationAsMs(k, v string, d *time.Duration) error {
-	i, err := strconv.Atoi(v)
-	if err != nil || i < 1 {
-		return fmt.Errorf("invalid %s \"%s\". Please provide a strictly positive integer", k, v)
-	}
-
-	*d = time.Duration(i * int(time.Millisecond))
 
 	return nil
 }

@@ -6,7 +6,7 @@ option go_package = "github.com/EventStore/EventStore-Client-Go/protos/gossip";
 import "shared.proto";
 
 service Gossip {
-	rpc Read (event_store.client.Empty) returns (ClusterInfo);
+	rpc Read (event_store.client.shared.Empty) returns (ClusterInfo);
 }
 
 message ClusterInfo {
@@ -37,7 +37,7 @@ message MemberInfo {
 		ReadOnlyReplica = 14;
 		ResigningLeader = 15;
 	}
-	event_store.client.UUID instance_id = 1;
+	event_store.client.shared.UUID instance_id = 1;
 	int64 time_stamp = 2;
 	VNodeState state = 3;
 	bool is_alive = 4;

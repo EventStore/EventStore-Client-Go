@@ -9,6 +9,7 @@ jobs:
     name: Code generation & compile
     strategy:
       matrix:
+        api: [ v1, v2 ]
         os: [ ubuntu-18.04, windows-2019, macos-10.15 ]
 
     runs-on: ${{ matrix.os }}
@@ -17,19 +18,31 @@ jobs:
       - uses: actions/checkout@v1
 
       - name: Generate protos and build project (Powershell)
-        if: ${{ matrix.os == 'windows-2019' }}
+        if: ${{ matrix.os == 'windows-2019' && matrix.api == 'v1' }}
         run: .\build.ps1 -generateProtos
         shell: pwsh
 
+      - name: Generate protos and build project (Powershell)
+        if: ${{ matrix.os == 'windows-2019' && matrix.api != 'v1' }}
+        run: .\build.ps1 -generateProtos
+        shell: pwsh
+        working-directory: ${{ matrix.api }}
+
       - name: Generate protos and build project (Bash)
-        if: ${{ matrix.os != 'windows-2019' }}
+        if: ${{ matrix.os != 'windows-2019' && matrix.api == 'v1' }}
         run: ./build.sh --generate-protos
+
+      - name: Generate protos and build project (Bash)
+        if: ${{ matrix.os != 'windows-2019' && matrix.api != 'v1' }}
+        run: ./build.sh --generate-protos
+        working-directory: ${{ matrix.api }}
 
   tests:
     needs: build
     name: Tests
     strategy:
       matrix:
+        api: [ v1, v2 ]
         version: [ 20.10.5-buster-slim, 21.10.0-buster-slim, ci ]
     runs-on: ubuntu-18.04
 
@@ -42,12 +55,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tests
+      - name: Configure docker.
         run: |
           touch vars.env
           docker-compose up
           docker-compose --file=cluster-docker-compose.yml up -d
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ matrix.version }}
+
+      - name: Tests
+        if: ${{ matrix.api == 'v1' }}
+        run: |
           go test -v ./...
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ matrix.version }}
+
+      - name: Tests
+        if: ${{ matrix.api != 'v1' }}
+        run: |
+          go test -v ./...
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ matrix.version }}
+
+        working-directory: ${{ matrix.api }}
+
+      - name: Cleanup docker.
+        run: |
           docker-compose down
           docker-compose --file=cluster-docker-compose.yml down
         env:

@@ -8,11 +8,9 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	gossipApi "github.com/EventStore/EventStore-Client-Go/protos/gossip"
-	server_features "github.com/EventStore/EventStore-Client-Go/protos/serverfeatures"
 	"github.com/EventStore/EventStore-Client-Go/protos/shared"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc"
@@ -50,24 +48,21 @@ func (client *grpcClient) handleError(handle connectionHandle, headers metadata.
 				}
 
 				client.channel <- msg
-				log.Printf("[error] Not leader exception, reconnecting to %v", endpoint)
-				return &Error{code: ErrorNotLeader}
+				log.Printf("[error] Not leader exception occurred")
+				return fmt.Errorf("not leader exception")
 			}
 		}
 	}
 
-	if values != nil && values[0] == "stream-deleted" {
-		streamName := trailers.Get("stream-name")[0]
-		return &Error{code: ErrorStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
-	}
-
-	code := errToCode(err)
-
-	if code != ErrorUnknown {
-		return &Error{code: code}
-	}
-
 	log.Printf("[error] unexpected exception: %v", err)
+
+	code := status.Code(err)
+	if code == codes.FailedPrecondition { // Precondition -> ErrWrongExpectedStreamRevision
+		return fmt.Errorf("%w, reason: %s", ErrWrongExpectedStreamRevision, err.Error())
+	}
+	if code == codes.PermissionDenied { // PermissionDenied -> ErrPermissionDenied
+		return fmt.Errorf("%w", ErrPermissionDenied)
+	}
 
 	msg := reconnect{
 		correlation: handle.Id(),
@@ -106,7 +101,7 @@ func newGetConnectionMsg() getConnection {
 func (msg getConnection) handle(state *connectionState) {
 	// Means we need to create a grpc connection.
 	if state.correlation == uuid.Nil {
-		conn, serverInfo, err := discoverNode(state.config)
+		conn, err := discoverNode(state.config)
 
 		if err != nil {
 			state.lastError = err
@@ -124,15 +119,13 @@ func (msg getConnection) handle(state *connectionState) {
 
 		state.correlation = id
 		state.connection = conn
-		state.serverInfo = serverInfo
 
-		resp := newConnectionHandle(id, serverInfo, conn)
+		resp := newConnectionHandle(id, conn)
 		msg.channel <- resp
 	} else {
 		handle := connectionHandle{
 			id:         state.correlation,
 			connection: state.connection,
-			serverInfo: state.serverInfo,
 			err:        nil,
 		}
 
@@ -143,7 +136,6 @@ func (msg getConnection) handle(state *connectionState) {
 type connectionState struct {
 	correlation uuid.UUID
 	connection  *grpc.ClientConn
-	serverInfo  *ServerInfo
 	config      Configuration
 	lastError   error
 	closed      bool
@@ -166,7 +158,6 @@ type msg interface {
 type connectionHandle struct {
 	id         uuid.UUID
 	connection *grpc.ClientConn
-	serverInfo *ServerInfo
 	err        error
 }
 
@@ -178,26 +169,19 @@ func (handle connectionHandle) Connection() *grpc.ClientConn {
 	return handle.connection
 }
 
-func (handle *connectionHandle) SupportsFeature(feature int) bool {
-	if handle.serverInfo != nil {
-		return handle.serverInfo.FeatureFlags&feature != 0
-	}
-
-	return false
-}
-
 func newErroredConnectionHandle(err error) connectionHandle {
 	return connectionHandle{
-		id:  uuid.Nil,
-		err: err,
+		id:         uuid.Nil,
+		connection: nil,
+		err:        err,
 	}
 }
 
-func newConnectionHandle(id uuid.UUID, serverInfo *ServerInfo, connection *grpc.ClientConn) connectionHandle {
+func newConnectionHandle(id uuid.UUID, connection *grpc.ClientConn) connectionHandle {
 	return connectionHandle{
 		id:         id,
 		connection: connection,
-		serverInfo: serverInfo,
+		err:        nil,
 	}
 }
 
@@ -212,9 +196,7 @@ func connectionStateMachine(config Configuration, channel chan msg) {
 			case getConnection:
 				{
 					evt.channel <- connectionHandle{
-						err: &Error{
-							code: ErrorConnectionClosed,
-						},
+						err: fmt.Errorf("esdb connection is closed"),
 					}
 				}
 			case closeConnection:
@@ -254,13 +236,6 @@ func (msg reconnect) handle(state *connectionState) {
 			return
 		}
 
-		serverInfo, err := getSupportedMethods(context.Background(), &state.config, conn)
-		if err != nil {
-			log.Printf("[error] exception when fetching server features from suggested node %s: %v", msg.endpoint.String(), err)
-			state.correlation = uuid.Nil
-			return
-		}
-
 		id, err := uuid.NewV4()
 
 		if err != nil {
@@ -271,7 +246,6 @@ func (msg reconnect) handle(state *connectionState) {
 
 		state.correlation = id
 		state.connection = conn
-		state.serverInfo = serverInfo
 
 		log.Printf("[info] Successfully connected to leader node %s", msg.endpoint.String())
 	}
@@ -285,7 +259,7 @@ func (msg closeConnection) handle(state *connectionState) {
 	state.closed = true
 	if state.connection != nil {
 		defer func() {
-			_ = state.connection.Close()
+			state.connection.Close()
 			state.connection = nil
 		}()
 	}
@@ -322,105 +296,10 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize connection to %s. Reason: %w", address, err)
+		return nil, fmt.Errorf("Failed to initialize connection to %+v. Reason: %v", conf, err)
 	}
 
 	return conn, nil
-}
-
-type ServerVersion struct {
-	Major int
-	Minor int
-	Patch int
-}
-
-const (
-	FEATURE_NOTHING                                   = 0
-	FEATURE_BATCH_APPEND                              = 1
-	FEATURE_PERSISTENT_SUBSCRIPTION_LIST              = 2
-	FEATURE_PERSISTENT_SUBSCRIPTION_REPLAY            = 4
-	FEATURE_PERSISTENT_SUBSCRIPTION_RESTART_SUBSYSTEM = 8
-	FEATURE_PERSISTENT_SUBSCRIPTION_GET_INFO          = 16
-	FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL            = 32
-	FEATURE_PERSISTENT_SUBSCRIPTION_MANAGEMENT        = FEATURE_PERSISTENT_SUBSCRIPTION_LIST | FEATURE_PERSISTENT_SUBSCRIPTION_GET_INFO | FEATURE_PERSISTENT_SUBSCRIPTION_RESTART_SUBSYSTEM | FEATURE_PERSISTENT_SUBSCRIPTION_REPLAY
-)
-
-type ServerInfo struct {
-	Version      ServerVersion
-	FeatureFlags int
-}
-
-func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.ClientConn) (*ServerInfo, error) {
-	client := server_features.NewServerFeaturesClient(conn)
-	newCtx, cancel := context.WithTimeout(ctx, time.Duration(conf.GossipTimeout)*time.Second)
-	defer cancel()
-	methods, err := client.GetSupportedMethods(newCtx, &shared.Empty{})
-
-	s, ok := status.FromError(err)
-
-	if !ok || (s != nil && s.Code() != codes.OK) {
-		if s.Code() == codes.Unimplemented || s.Code() == codes.NotFound {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	info := ServerInfo{
-		Version:      ServerVersion{},
-		FeatureFlags: FEATURE_NOTHING,
-	}
-
-	for idx, value := range strings.Split(methods.EventStoreServerVersion, ".") {
-		if idx > 2 {
-			break
-		}
-
-		num, err := strconv.Atoi(value)
-
-		if err != nil {
-			return nil, fmt.Errorf("invalid EventStoreDB server version format: %w", err)
-		}
-
-		switch idx {
-		case 0:
-			info.Version.Major = num
-		case 1:
-			info.Version.Minor = num
-		default:
-			info.Version.Patch = num
-		}
-	}
-
-	for _, method := range methods.Methods {
-		switch method.ServiceName {
-		case "event_store.client.streams.streams":
-			if method.MethodName == "batchappend" {
-				info.FeatureFlags |= FEATURE_BATCH_APPEND
-			}
-		case "event_store.client.persistent_subscriptions.persistentsubscriptions":
-			switch method.MethodName {
-			case "create":
-				for _, feat := range method.Features {
-					if feat == "all" {
-						info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL
-					}
-				}
-			case "getinfo":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_GET_INFO
-			case "replayparked":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_REPLAY
-			case "list":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_LIST
-			case "restartsubsystem":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_RESTART_SUBSYSTEM
-			default:
-			}
-		default:
-		}
-	}
-
-	return &info, nil
 }
 
 type basicAuth struct {
@@ -449,58 +328,44 @@ func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 	}
 }
 
-func discoverNode(conf Configuration) (*grpc.ClientConn, *ServerInfo, error) {
+func discoverNode(conf Configuration) (*grpc.ClientConn, error) {
 	var connection *grpc.ClientConn = nil
-	var serverInfo *ServerInfo = nil
-	var err error
-	var candidates []string
+	attempt := 1
 
-	attempt := 0
-	// We still need to keep tracking that state until 20.10 end of life, as GossipOnSingleNode is still present in that
-	// version.
-	clusterMode := false
+	if conf.DnsDiscover || len(conf.GossipSeeds) > 0 {
+		var candidates []string
 
-	if conf.DnsDiscover {
-		clusterMode = true
-		candidates = append(candidates, conf.Address)
-	} else if len(conf.GossipSeeds) > 0 {
-		clusterMode = true
-		for _, seed := range conf.GossipSeeds {
-			candidates = append(candidates, seed.String())
-		}
-	} else {
-		candidates = append(candidates, conf.Address)
-	}
-
-	if clusterMode {
-		shuffleCandidates(candidates)
-	}
-
-	for attempt < conf.MaxDiscoverAttempts {
-		attempt += 1
-		log.Printf("[info] discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
-		for _, candidate := range candidates {
-			log.Printf("[debug] trying candidate '%s'...", candidate)
-			connection, err = createGrpcConnection(&conf, candidate)
-			if err != nil {
-				log.Printf("[warn] Error when creating a grpc connection for candidate %s: %v", candidate, err)
-
-				continue
+		if conf.DnsDiscover {
+			candidates = append(candidates, conf.Address)
+		} else {
+			for _, seed := range conf.GossipSeeds {
+				candidates = append(candidates, seed.String())
 			}
+		}
 
-			if clusterMode {
-				client := gossipApi.NewGossipClient(connection)
-				ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.GossipTimeout)*time.Second)
-				info, err := client.Read(ctx, &shared.Empty{})
+		shuffleCandidates(candidates)
 
-				s, ok := status.FromError(err)
-				if !ok || (s != nil && s.Code() != codes.OK) {
-					log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
-					cancel()
+		for attempt <= conf.MaxDiscoverAttempts {
+			log.Printf("[info] discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
+			for _, candidate := range candidates {
+				log.Printf("[info] Attempting to gossip via %s", candidate)
+				connection, err := createGrpcConnection(&conf, candidate)
+				if err != nil {
+					log.Printf("[warn] Error when creating a grpc connection for candidate %s", candidate)
+
 					continue
 				}
 
-				cancel()
+				client := gossipApi.NewGossipClient(connection)
+				context, cancel := context.WithTimeout(context.Background(), time.Duration(conf.GossipTimeout)*time.Second)
+				defer cancel()
+				info, err := client.Read(context, &shared.Empty{})
+
+				if err != nil {
+					log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
+					continue
+				}
+
 				info.Members = shuffleMembers(info.Members)
 				selected, err := pickBestCandidate(info, conf.NodePreference)
 
@@ -511,72 +376,48 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, *ServerInfo, error) {
 
 				selectedAddress := fmt.Sprintf("%s:%d", selected.GetHttpEndPoint().GetAddress(), selected.GetHttpEndPoint().GetPort())
 				log.Printf("[info] Best candidate found. %s (%s)", selectedAddress, selected.State.String())
+
 				if candidate != selectedAddress {
-					candidate = selectedAddress
-					_ = connection.Close()
 					connection, err = createGrpcConnection(&conf, selectedAddress)
 
 					if err != nil {
-						log.Printf("[warn] Error when creating gRPC connection for the selected candidate '%s': %v", selectedAddress, err)
+						log.Printf("[warn] Error when creating gRPC connection for best candidate %v", err)
 						continue
 					}
 				}
+
+				log.Printf("[info] Successfully connected to best candidate %s (%s)", selectedAddress, selected.State.String())
+
+				return connection, nil
 			}
 
-			log.Printf("[debug] Attempting node supported features retrieval on '%s'...", candidate)
-			serverInfo, err = getSupportedMethods(context.Background(), &conf, connection)
-			if err != nil {
-				log.Printf("[warn] Error when creating reading server features from the best candidate '%s': %v", candidate, err)
-				_ = connection.Close()
-				connection = nil
-				continue
-			}
-
-			if serverInfo != nil {
-				log.Printf("[debug] Retrieved supported features on node '%s' successfully", candidate)
-			} else {
-				log.Printf("[debug] Selected node '%s' doesn't support a supported features endpoint", candidate)
-			}
-
-			break
+			attempt += 1
+			time.Sleep(time.Duration(conf.DiscoveryInterval))
 		}
 
-		if connection != nil {
-			break
+		return nil, fmt.Errorf("maximum discovery attempt count reached")
+
+	} else {
+		for attempt <= conf.MaxDiscoverAttempts {
+			grpcConn, err := createGrpcConnection(&conf, conf.Address)
+
+			if err == nil {
+				connection = grpcConn
+				break
+			}
+
+			log.Printf("[warn] error when creating a single node connection to %s", conf.Address)
+
+			attempt += 1
+			time.Sleep(time.Duration(conf.DiscoveryInterval))
+		}
+
+		if connection == nil {
+			return nil, fmt.Errorf("unable to connect to single node %s", conf.Address)
 		}
 	}
 
-	if connection == nil {
-		return nil, nil, &Error{
-			code: errToCode(err),
-			err:  fmt.Errorf("maximum discovery attempt count reached: %v. Last Error: %w", conf.MaxDiscoverAttempts, err),
-		}
-	}
-
-	return connection, serverInfo, nil
-}
-
-// In that case, `err` is always != nil
-func errToCode(err error) ErrorCode {
-	var code ErrorCode
-	switch status.Code(err) {
-	case codes.Unauthenticated:
-		code = ErrorUnauthenticated
-	case codes.Unimplemented:
-		code = ErrorUnsupportedFeature
-	case codes.NotFound:
-		code = ErrorResourceNotFound
-	case codes.PermissionDenied:
-		code = ErrorAccessDenied
-	case codes.DeadlineExceeded:
-		code = ErrorDeadlineExceeded
-	case codes.AlreadyExists:
-		code = ErrorResourceAlreadyExists
-	default:
-		code = ErrorUnknown
-	}
-
-	return code
+	return connection, nil
 }
 
 func shuffleCandidates(src []string) []string {

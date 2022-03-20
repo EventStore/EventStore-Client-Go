@@ -18,7 +18,6 @@ func TestConnectionStringDefaults(t *testing.T) {
 	assert.Equal(t, 10, config.MaxDiscoverAttempts)
 	assert.Equal(t, 10*time.Second, config.KeepAliveInterval)
 	assert.Equal(t, 10*time.Second, config.KeepAliveTimeout)
-	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
 }
 
 func TestConnectionStringWithNoSchema(t *testing.T) {
@@ -238,7 +237,7 @@ func TestConnectionStringWithInvalidSettings(t *testing.T) {
 	config, err = esdb.ParseConnectionString("esdb://user:pass@127.0.0.1?/")
 	require.Error(t, err)
 	assert.Nil(t, config)
-	assert.NotNil(t, err.Error())
+	assert.Contains(t, err.Error(), "Invalid key/value pair specified")
 }
 
 func TestConnectionStringWithDifferentNodePreferences(t *testing.T) {
@@ -297,7 +296,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Empty(t, config.Password)
 	assert.Equal(t, "hostname:4321", config.Address)
 	assert.Empty(t, config.GossipSeeds)
-	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
+	assert.Empty(t, config.NodePreference)
 	assert.Equal(t, true, config.DisableTLS)
 	assert.Equal(t, false, config.SkipCertificateVerification)
 
@@ -529,11 +528,4 @@ func TestConnectionStringWithKeepAlive(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 11*time.Second, config.KeepAliveInterval)
 	assert.Equal(t, -1, int(config.KeepAliveTimeout))
-}
-
-func TestConnectionStringWithDefaultDeadline(t *testing.T) {
-	config, err := esdb.ParseConnectionString("esdb://localhost?defaultDeadline=60000")
-	require.NoError(t, err)
-	assert.NotNil(t, config.DefaultDeadline)
-	assert.Equal(t, *config.DefaultDeadline, 60*time.Second)
 }

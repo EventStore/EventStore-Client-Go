@@ -2,6 +2,7 @@ package esdb_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/EventStore/EventStore-Client-Go/esdb"
@@ -24,7 +25,7 @@ func canDeleteStream(db *esdb.Client) TestCall {
 
 		streamID := NAME_GENERATOR.Generate()
 
-		_, err := db.AppendToStream(context.Background(), streamID, esdb.AppendToStreamOptions{}, createTestEvent())
+		_, err := db.AppendToStream(context.Background(),  streamID, esdb.AppendToStreamOptions{}, createTestEvent())
 		assert.NoError(t, err)
 		deleteResult, err := db.DeleteStream(context.Background(), streamID, opts)
 
@@ -70,8 +71,8 @@ func detectStreamDeleted(db *esdb.Client) TestCall {
 		require.Nil(t, err)
 
 		_, err = db.ReadStream(context.Background(), streamID, esdb.ReadStreamOptions{}, 1)
-		esdbErr, ok := esdb.FromError(err)
-		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorStreamDeleted)
+		var streamDeletedError *esdb.StreamDeletedError
+
+		require.True(t, errors.As(err, &streamDeletedError))
 	}
 }

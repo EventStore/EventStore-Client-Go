@@ -47,7 +47,6 @@ func ReadStreamTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClient
 		t.Run("readStreamEventsBackwardsFromEndPosition", readStreamEventsBackwardsFromEndPosition(populatedDBClient))
 		t.Run("readStreamReturnsEOFAfterCompletion", readStreamReturnsEOFAfterCompletion(emptyDBClient))
 		t.Run("readStreamNotFound", readStreamNotFound(emptyDBClient))
-		t.Run("readStreamWithMaxAge", readStreamWithMaxAge(emptyDBClient))
 	})
 }
 
@@ -188,7 +187,6 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 		require.NoError(t, err)
 		_, err = collectStreamEvents(stream)
 		require.NoError(t, err)
-		waitingForError.Add(1)
 
 		go func() {
 			_, err := stream.Recv()
@@ -198,6 +196,7 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 		}()
 
 		require.NoError(t, err)
+		waitingForError.Add(1)
 		timedOut := waitWithTimeout(&waitingForError, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out waiting for read stream to return io.EOF on completion")
 	}
@@ -206,32 +205,7 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 func readStreamNotFound(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		_, err := db.ReadStream(context.Background(), NAME_GENERATOR.Generate(), esdb.ReadStreamOptions{}, 1)
-		esdbErr, ok := esdb.FromError(err)
 
-		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
-	}
-}
-
-func readStreamWithMaxAge(db *esdb.Client) TestCall {
-	return func(t *testing.T) {
-		streamName := NAME_GENERATOR.Generate()
-		_, err := db.AppendToStream(context.Background(), streamName, esdb.AppendToStreamOptions{}, createTestEvent())
-
-		assert.NoError(t, err)
-
-		metadata := esdb.StreamMetadata{}
-		metadata.SetMaxAge(time.Second)
-
-		_, err = db.SetStreamMetadata(context.Background(), streamName, esdb.AppendToStreamOptions{}, metadata)
-
-		assert.NoError(t, err)
-
-		time.Sleep(2 * time.Second)
-
-		_, err = db.ReadStream(context.Background(), streamName, esdb.ReadStreamOptions{}, 10)
-
-		assert.Error(t, err)
-		assert.True(t, errors.Is(err, io.EOF))
+		require.True(t, errors.Is(err, esdb.ErrStreamNotFound))
 	}
 }

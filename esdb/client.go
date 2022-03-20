@@ -3,10 +3,12 @@ package esdb
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"strconv"
+	"math"
+	"time"
+
+	"errors"
 
 	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
 	"google.golang.org/grpc"
@@ -46,15 +48,19 @@ func (client *Client) AppendToStream(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(context, client.Config, &opts, callOptions)
-	defer cancel()
+	if opts.Authenticated != nil {
+		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
+			username: opts.Authenticated.Login,
+			password: opts.Authenticated.Password,
+		}))
+	}
 
-	appendOperation, err := streamsClient.Append(ctx, callOptions...)
+	appendOperation, err := streamsClient.Append(context, callOptions...)
 	if err != nil {
 		err = client.grpcClient.handleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("could not construct append operation. Reason: %w", err)
@@ -114,27 +120,7 @@ func (client *Client) AppendToStream(
 		}
 	case *api.AppendResp_WrongExpectedVersion_:
 		{
-			wrong := result.(*api.AppendResp_WrongExpectedVersion_).WrongExpectedVersion
-			expected := ""
-			current := ""
-
-			if wrong.GetExpectedAny() != nil {
-				expected = "any"
-			} else if wrong.GetExpectedNoStream() != nil {
-				expected = "no_stream"
-			} else if wrong.GetExpectedStreamExists() != nil {
-				expected = "stream_exists"
-			} else {
-				expected = strconv.Itoa(int(wrong.GetExpectedRevision()))
-			}
-
-			if wrong.GetCurrentNoStream() != nil {
-				current = "no_stream"
-			} else {
-				current = strconv.Itoa(int(wrong.GetCurrentRevision()))
-			}
-
-			return nil, &Error{code: ErrorWrongExpectedVersion, err: fmt.Errorf("wrong expected version: expecting '%s' but got '%s'", expected, current)}
+			return nil, ErrWrongExpectedStreamRevision
 		}
 	}
 
@@ -186,8 +172,13 @@ func (client *Client) GetStreamMetadata(
 
 	stream, err := client.ReadStream(context, streamName, opts, 1)
 
-	if esdbErr, ok := FromError(err); !ok {
-		return nil, esdbErr
+	var streamDeletedError *StreamDeletedError
+	if errors.Is(err, ErrStreamNotFound) || errors.As(err, &streamDeletedError) {
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error when reading stream metadata: %w", err)
 	}
 
 	event, err := stream.Recv()
@@ -205,13 +196,13 @@ func (client *Client) GetStreamMetadata(
 	err = json.Unmarshal(event.OriginalEvent().Data, &props)
 
 	if err != nil {
-		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when deserializing stream metadata json: %w", err)}
+		return nil, fmt.Errorf("error when deserializing stream metadata json: %w", err)
 	}
 
 	meta, err := StreamMetadataFromMap(props)
 
 	if err != nil {
-		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing stream metadata json: %w", err)}
+		return nil, fmt.Errorf("error when parsing stream metadata json: %w", err)
 	}
 
 	return &meta, nil
@@ -219,22 +210,26 @@ func (client *Client) GetStreamMetadata(
 
 // DeleteStream ...
 func (client *Client) DeleteStream(
-	parent context.Context,
+	context context.Context,
 	streamID string,
 	opts DeleteStreamOptions,
 ) (*DeleteResult, error) {
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.Config, &opts, callOptions)
-	defer cancel()
+	if opts.Authenticated != nil {
+		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
+			username: opts.Authenticated.Login,
+			password: opts.Authenticated.Password,
+		}))
+	}
 	deleteRequest := toDeleteRequest(streamID, opts.ExpectedRevision)
-	deleteResponse, err := streamsClient.Delete(ctx, deleteRequest, callOptions...)
+	deleteResponse, err := streamsClient.Delete(context, deleteRequest, callOptions...)
 	if err != nil {
 		err = client.grpcClient.handleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("failed to perform delete, details: %w", err)
@@ -245,22 +240,26 @@ func (client *Client) DeleteStream(
 
 // Tombstone ...
 func (client *Client) TombstoneStream(
-	parent context.Context,
+	context context.Context,
 	streamID string,
 	opts TombstoneStreamOptions,
 ) (*DeleteResult, error) {
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.Config, &opts, callOptions)
-	defer cancel()
+	if opts.Authenticated != nil {
+		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
+			username: opts.Authenticated.Login,
+			password: opts.Authenticated.Password,
+		}))
+	}
 	tombstoneRequest := toTombstoneRequest(streamID, opts.ExpectedRevision)
-	tombstoneResponse, err := streamsClient.Tombstone(ctx, tombstoneRequest, callOptions...)
+	tombstoneResponse, err := streamsClient.Tombstone(context, tombstoneRequest, callOptions...)
 
 	if err != nil {
 		err = client.grpcClient.handleError(handle, headers, trailers, err)
@@ -281,11 +280,11 @@ func (client *Client) ReadStream(
 	readRequest := toReadStreamRequest(streamID, opts.Direction, opts.From, count, opts.ResolveLinkTos)
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 
-	return readInternal(context, client, &opts, handle, streamsClient, readRequest)
+	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest, opts.Authenticated)
 }
 
 // ReadAll ...
@@ -297,33 +296,39 @@ func (client *Client) ReadAll(
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	readRequest := toReadAllRequest(opts.Direction, opts.From, count, opts.ResolveLinkTos)
-	return readInternal(context, client, &opts, handle, streamsClient, readRequest)
+	return readInternal(context, client.grpcClient, handle, streamsClient, readRequest, opts.Authenticated)
 }
 
 // SubscribeToStream ...
 func (client *Client) SubscribeToStream(
-	parent context.Context,
+	ctx context.Context,
 	streamID string,
 	opts SubscribeToStreamOptions,
 ) (*Subscription, error) {
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.Config, &opts, callOptions)
-
+	if opts.Authenticated != nil {
+		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
+			username: opts.Authenticated.Login,
+			password: opts.Authenticated.Password,
+		}))
+	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	subscriptionRequest, err := toStreamSubscriptionRequest(streamID, opts.From, opts.ResolveLinkTos, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct subscription. Reason: %w", err)
 	}
+	deadline := time.Now().Add(time.Duration(math.MaxInt64))
+	ctx, cancel := context.WithDeadline(ctx, deadline)
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, callOptions...)
 	if err != nil {
 		defer cancel()
@@ -349,18 +354,23 @@ func (client *Client) SubscribeToStream(
 
 // SubscribeToAll ...
 func (client *Client) SubscribeToAll(
-	parent context.Context,
+	ctx context.Context,
 	opts SubscribeToAllOptions,
 ) (*Subscription, error) {
 	opts.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.Config, &opts, callOptions)
+	if opts.Authenticated != nil {
+		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
+			username: opts.Authenticated.Login,
+			password: opts.Authenticated.Password,
+		}))
+	}
 
 	var filterOptions *SubscriptionFilterOptions = nil
 	if opts.Filter != nil {
@@ -375,6 +385,8 @@ func (client *Client) SubscribeToAll(
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct subscription. Reason: %w", err)
 	}
+	deadline := time.Now().Add(time.Duration(math.MaxInt64))
+	ctx, cancel := context.WithDeadline(ctx, deadline)
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, callOptions...)
 	if err != nil {
 		defer cancel()
@@ -398,56 +410,49 @@ func (client *Client) SubscribeToAll(
 	return nil, fmt.Errorf("failed to initiate subscription")
 }
 
-// SubscribeToPersistentSubscription ...
-func (client *Client) SubscribeToPersistentSubscription(
+// ConnectToPersistentSubscription ...
+func (client *Client) ConnectToPersistentSubscription(
 	ctx context.Context,
 	streamName string,
 	groupName string,
-	options SubscribeToPersistentSubscriptionOptions,
+	options ConnectToPersistentSubscriptionOptions,
 ) (*PersistentSubscription, error) {
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
-
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.ConnectToPersistentSubscription(
 		ctx,
-		client.Config,
-		&options,
 		handle,
-		int32(options.BufferSize),
+		int32(options.BatchSize),
 		streamName,
 		groupName,
+		options.Authenticated,
 	)
 }
 
-func (client *Client) SubscribeToPersistentSubscriptionToAll(
+func (client *Client) ConnectToPersistentSubscriptionToAll(
 	ctx context.Context,
 	groupName string,
-	options SubscribeToPersistentSubscriptionOptions,
+	options ConnectToPersistentSubscriptionOptions,
 ) (*PersistentSubscription, error) {
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return nil, err
-	}
-
-	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return nil, unsupportedFeatureError()
+		return nil, fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
 	return persistentSubscriptionClient.ConnectToPersistentSubscription(
 		ctx,
-		client.Config,
-		&options,
 		handle,
-		int32(options.BufferSize),
+		int32(options.BatchSize),
 		"",
 		groupName,
+		options.Authenticated,
 	)
 }
 
@@ -460,7 +465,7 @@ func (client *Client) CreatePersistentSubscription(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
@@ -469,10 +474,10 @@ func (client *Client) CreatePersistentSubscription(
 		options.Settings = &setts
 	}
 
-	return persistentSubscriptionClient.CreateStreamSubscription(ctx, client.Config, &options, handle, streamName, groupName, options.StartFrom, *options.Settings)
+	return persistentSubscriptionClient.CreateStreamSubscription(ctx, handle, streamName, groupName, options.From, *options.Settings, options.Authenticated)
 }
 
-func (client *Client) CreatePersistentSubscriptionToAll(
+func (client *Client) CreatePersistentSubscriptionAll(
 	ctx context.Context,
 	groupName string,
 	options PersistentAllSubscriptionOptions,
@@ -480,16 +485,14 @@ func (client *Client) CreatePersistentSubscriptionToAll(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't get a connection handle: %w", err)
 	}
 
-	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return unsupportedFeatureError()
-	}
 	var filterOptions *SubscriptionFilterOptions = nil
 	if options.Filter != nil {
 		filterOptions = &SubscriptionFilterOptions{
 			MaxSearchWindow:    options.MaxSearchWindow,
+			CheckpointInterval: options.CheckpointInterval,
 			SubscriptionFilter: options.Filter,
 		}
 	}
@@ -502,17 +505,16 @@ func (client *Client) CreatePersistentSubscriptionToAll(
 
 	return persistentSubscriptionClient.CreateAllSubscription(
 		ctx,
-		client.Config,
-		&options,
 		handle,
 		groupName,
-		options.StartFrom,
+		options.From,
 		*options.Settings,
 		filterOptions,
+		options.Authenticated,
 	)
 }
 
-func (client *Client) UpdatePersistentSubscription(
+func (client *Client) UpdatePersistentStreamSubscription(
 	ctx context.Context,
 	streamName string,
 	groupName string,
@@ -521,7 +523,7 @@ func (client *Client) UpdatePersistentSubscription(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
@@ -530,10 +532,10 @@ func (client *Client) UpdatePersistentSubscription(
 		options.Settings = &setts
 	}
 
-	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, client.Config, &options, handle, streamName, groupName, options.StartFrom, *options.Settings)
+	return persistentSubscriptionClient.UpdateStreamSubscription(ctx, handle, streamName, groupName, options.From, *options.Settings, options.Authenticated)
 }
 
-func (client *Client) UpdatePersistentSubscriptionToAll(
+func (client *Client) UpdatePersistentSubscriptionAll(
 	ctx context.Context,
 	groupName string,
 	options PersistentAllSubscriptionOptions,
@@ -541,16 +543,11 @@ func (client *Client) UpdatePersistentSubscriptionToAll(
 	options.setDefaults()
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't get a connection handle: %w", err)
 	}
-
-	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return unsupportedFeatureError()
-	}
-
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.UpdateAllSubscription(ctx, client.Config, &options, handle, groupName, options.StartFrom, *options.Settings)
+	return persistentSubscriptionClient.UpdateAllSubscription(ctx, handle, groupName, options.From, *options.Settings, options.Authenticated)
 }
 
 func (client *Client) DeletePersistentSubscription(
@@ -561,160 +558,49 @@ func (client *Client) DeletePersistentSubscription(
 ) error {
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't get a connection handle: %w", err)
 	}
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, client.Config, &options, handle, streamName, groupName)
+	return persistentSubscriptionClient.DeleteStreamSubscription(ctx, handle, streamName, groupName, options.Authenticated)
 }
 
-func (client *Client) DeletePersistentSubscriptionToAll(
+func (client *Client) DeletePersistentSubscriptionAll(
 	ctx context.Context,
 	groupName string,
 	options DeletePersistentSubscriptionOptions,
 ) error {
 	handle, err := client.grpcClient.getConnectionHandle()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't get a connection handle: %w", err)
 	}
-
-	if !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return unsupportedFeatureError()
-	}
-
 	persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
 
-	return persistentSubscriptionClient.DeleteAllSubscription(ctx, client.Config, &options, handle, groupName)
-}
-
-func (client *Client) ReplayParkedMessages(ctx context.Context, streamName string, groupName string, options ReplayParkedMessagesOptions) error {
-	return client.replayParkedMessages(ctx, streamName, groupName, options)
-}
-
-func (client *Client) ReplayParkedMessagesToAll(ctx context.Context, groupName string, options ReplayParkedMessagesOptions) error {
-	return client.replayParkedMessages(ctx, "$all", groupName, options)
-}
-
-func (client *Client) replayParkedMessages(ctx context.Context, streamName string, groupName string, options ReplayParkedMessagesOptions) error {
-	handle, err := client.grpcClient.getConnectionHandle()
-	if err != nil {
-		return err
-	}
-
-	var finalStreamName *string
-	if streamName != "$all" {
-		finalStreamName = &streamName
-	}
-
-	if finalStreamName == nil && !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return unsupportedFeatureError()
-	}
-
-	if handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_MANAGEMENT) {
-		persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentSubscriptionClient.replayParkedMessages(ctx, client.Config, handle, finalStreamName, groupName, options)
-	}
-
-	return client.httpReplayParkedMessages(streamName, groupName, options)
-}
-
-func (client *Client) ListAllPersistentSubscriptions(ctx context.Context, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
-	return client.listPersistentSubscriptionsInternal(ctx, nil, options)
-}
-
-func (client *Client) ListPersistentSubscriptionsForStream(ctx context.Context, streamName string, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
-	return client.listPersistentSubscriptionsInternal(ctx, &streamName, options)
-}
-
-func (client *Client) ListPersistentSubscriptionsToAll(ctx context.Context, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
-	streamName := "$all"
-	return client.listPersistentSubscriptionsInternal(ctx, &streamName, options)
-}
-
-func (client *Client) listPersistentSubscriptionsInternal(ctx context.Context, streamName *string, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
-	handle, err := client.grpcClient.getConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-
-	if streamName != nil && *streamName == "$all" && !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return nil, unsupportedFeatureError()
-	}
-
-	if handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_MANAGEMENT) {
-		persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentSubscriptionClient.listPersistentSubscriptions(ctx, client.Config, handle, streamName, options)
-	}
-
-	if streamName != nil {
-		return client.httpListPersistentSubscriptionsForStream(*streamName, options)
-	}
-
-	return client.httpListAllPersistentSubscriptions(options)
-}
-
-func (client *Client) GetPersistentSubscriptionInfo(ctx context.Context, streamName string, groupName string, options GetPersistentSubscriptionOptions) (*PersistentSubscriptionInfo, error) {
-	return client.getPersistentSubscriptionInfoInternal(ctx, &streamName, groupName, options)
-}
-
-func (client *Client) GetPersistentSubscriptionInfoToAll(ctx context.Context, groupName string, options GetPersistentSubscriptionOptions) (*PersistentSubscriptionInfo, error) {
-	return client.getPersistentSubscriptionInfoInternal(ctx, nil, groupName, options)
-}
-
-func (client *Client) getPersistentSubscriptionInfoInternal(ctx context.Context, streamName *string, groupName string, options GetPersistentSubscriptionOptions) (*PersistentSubscriptionInfo, error) {
-	handle, err := client.grpcClient.getConnectionHandle()
-	if err != nil {
-		return nil, err
-	}
-
-	if streamName != nil && *streamName == "$all" && !handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL) {
-		return nil, unsupportedFeatureError()
-
-	}
-
-	if handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_MANAGEMENT) {
-		persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentSubscriptionClient.getPersistentSubscriptionInfo(ctx, client.Config, handle, streamName, groupName, options)
-	}
-
-	if streamName == nil {
-		streamName = new(string)
-		*streamName = "$all"
-	}
-
-	return client.httpGetPersistentSubscriptionInfo(*streamName, groupName, options)
-}
-
-func (client *Client) RestartPersistentSubscriptionSubsystem(ctx context.Context, options RestartPersistentSubscriptionSubsystemOptions) error {
-	handle, err := client.grpcClient.getConnectionHandle()
-	if err != nil {
-		return err
-	}
-
-	if handle.SupportsFeature(FEATURE_PERSISTENT_SUBSCRIPTION_MANAGEMENT) {
-		persistentClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentClient.restartSubsystem(ctx, client.Config, handle, options)
-	}
-
-	return client.httpRestartSubsystem(options)
+	return persistentSubscriptionClient.DeleteAllSubscription(ctx, handle, groupName, options.Authenticated)
 }
 
 func readInternal(
-	parent context.Context,
-	client *Client,
-	options options,
+	ctx context.Context,
+	client *grpcClient,
 	handle connectionHandle,
 	streamsClient api.StreamsClient,
 	readRequest *api.ReadReq,
+	auth *Credentials,
 ) (*ReadStream, error) {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.Config, options, callOptions)
+	if auth != nil {
+		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
+			username: auth.Login,
+			password: auth.Password,
+		}))
+	}
+	ctx, cancel := context.WithCancel(ctx)
 	result, err := streamsClient.Read(ctx, readRequest, callOptions...)
 	if err != nil {
 		defer cancel()
 
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.handleError(handle, headers, trailers, err)
 		return nil, fmt.Errorf("failed to construct read stream. Reason: %w", err)
 	}
 
@@ -731,7 +617,7 @@ func readInternal(
 				streamName = values[0]
 			}
 
-			return nil, &Error{code: ErrorStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
+			return nil, &StreamDeletedError{StreamName: streamName}
 		}
 
 		return nil, err
@@ -741,7 +627,7 @@ func readInternal(
 	case *api.ReadResp_Event:
 		resolvedEvent := getResolvedEventFromProto(msg.GetEvent())
 		params := readStreamParams{
-			client:   client.grpcClient,
+			client:   client,
 			handle:   handle,
 			cancel:   cancel,
 			inner:    result,
@@ -752,9 +638,8 @@ func readInternal(
 		stream := newReadStream(params, resolvedEvent)
 		return stream, nil
 	case *api.ReadResp_StreamNotFound_:
-		streamName := string(msg.Content.(*api.ReadResp_StreamNotFound_).StreamNotFound.StreamIdentifier.StreamName)
 		defer cancel()
-		return nil, &Error{code: ErrorResourceNotFound, err: fmt.Errorf("stream '%s' is not found", streamName)}
+		return nil, ErrStreamNotFound
 	}
 
 	defer cancel()

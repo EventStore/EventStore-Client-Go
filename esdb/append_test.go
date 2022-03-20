@@ -2,6 +2,7 @@ package esdb_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
@@ -10,6 +11,8 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/esdb"
 	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func createTestEvent() esdb.EventData {
@@ -107,9 +110,10 @@ func appendWithInvalidStreamRevision(db *esdb.Client) TestCall {
 		}
 
 		_, err := db.AppendToStream(context, streamID.String(), opts, createTestEvent())
-		esdbErr, ok := esdb.FromError(err)
-		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorWrongExpectedVersion)
+
+		if !errors.Is(err, esdb.ErrWrongExpectedStreamRevision) {
+			t.Fatalf("Expected WrongExpectedVersion, got %+v", err)
+		}
 	}
 }
 
@@ -141,9 +145,8 @@ func appendToSystemStreamWithIncorrectCredentials(container *Container) TestCall
 		}
 
 		_, err = db.AppendToStream(context, streamID.String(), opts, createTestEvent())
-		esdbErr, ok := esdb.FromError(err)
-		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorUnauthenticated)
+
+		assert.Equal(t, status.Code(err), codes.Unauthenticated)
 	}
 }
 

@@ -503,17 +503,15 @@ func positionFromPersistentProto(recordedEvent *persistent.ReadResp_ReadEvent_Re
 	}
 }
 
-func fromPersistentProtoResponse(resp *persistent.ReadResp) (*ResolvedEvent, int) {
+func fromPersistentProtoResponse(resp *persistent.ReadResp) *ResolvedEvent {
 	readEvent := resp.GetEvent()
 	positionWire := readEvent.GetPosition()
 	eventWire := readEvent.GetEvent()
 	linkWire := readEvent.GetLink()
-	countWire := readEvent.GetCount()
 
 	var event *RecordedEvent = nil
 	var link *RecordedEvent = nil
 	var commit *uint64
-	retryCount := 0
 
 	if positionWire != nil {
 		switch value := positionWire.(type) {
@@ -524,19 +522,6 @@ func fromPersistentProtoResponse(resp *persistent.ReadResp) (*ResolvedEvent, int
 		case *persistent.ReadResp_ReadEvent_NoPosition:
 			{
 				commit = nil
-			}
-		}
-	}
-
-	if countWire != nil {
-		switch value := countWire.(type) {
-		case *persistent.ReadResp_ReadEvent_RetryCount:
-			{
-				retryCount = int(value.RetryCount)
-			}
-		case *persistent.ReadResp_ReadEvent_NoRetryCount:
-			{
-				retryCount = 0
 			}
 		}
 	}
@@ -555,7 +540,7 @@ func fromPersistentProtoResponse(resp *persistent.ReadResp) (*ResolvedEvent, int
 		Event:  event,
 		Link:   link,
 		Commit: commit,
-	}, retryCount
+	}
 }
 
 func newMessageFromPersistentProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) RecordedEvent {
@@ -683,15 +668,15 @@ func updatePersistentSubscriptionSettingsProto(
 		ResolveLinks:          settings.ResolveLinkTos,
 		ExtraStatistics:       settings.ExtraStatistics,
 		MaxRetryCount:         settings.MaxRetryCount,
-		MinCheckpointCount:    settings.CheckpointLowerBound,
-		MaxCheckpointCount:    settings.CheckpointUpperBound,
+		MinCheckpointCount:    settings.MinCheckpointCount,
+		MaxCheckpointCount:    settings.MaxCheckpointCount,
 		MaxSubscriberCount:    settings.MaxSubscriberCount,
 		LiveBufferSize:        settings.LiveBufferSize,
 		ReadBatchSize:         settings.ReadBatchSize,
 		HistoryBufferSize:     settings.HistoryBufferSize,
-		NamedConsumerStrategy: updatePersistentRequestConsumerStrategyProto(settings.ConsumerStrategyName),
-		MessageTimeout:        updatePersistentRequestMessageTimeOutInMsProto(settings.MessageTimeout),
-		CheckpointAfter:       updatePersistentRequestCheckpointAfterMsProto(settings.CheckpointAfter),
+		NamedConsumerStrategy: updatePersistentRequestConsumerStrategyProto(settings.NamedConsumerStrategy),
+		MessageTimeout:        updatePersistentRequestMessageTimeOutInMsProto(settings.MessageTimeoutInMs),
+		CheckpointAfter:       updatePersistentRequestCheckpointAfterMsProto(settings.CheckpointAfterInMs),
 	}
 }
 
@@ -881,15 +866,15 @@ func createPersistentSubscriptionSettingsProto(
 		ResolveLinks:          settings.ResolveLinkTos,
 		ExtraStatistics:       settings.ExtraStatistics,
 		MaxRetryCount:         settings.MaxRetryCount,
-		MinCheckpointCount:    settings.CheckpointLowerBound,
-		MaxCheckpointCount:    settings.CheckpointUpperBound,
+		MinCheckpointCount:    settings.MinCheckpointCount,
+		MaxCheckpointCount:    settings.MaxCheckpointCount,
 		MaxSubscriberCount:    settings.MaxSubscriberCount,
 		LiveBufferSize:        settings.LiveBufferSize,
 		ReadBatchSize:         settings.ReadBatchSize,
 		HistoryBufferSize:     settings.HistoryBufferSize,
-		NamedConsumerStrategy: consumerStrategyProto(settings.ConsumerStrategyName),
-		MessageTimeout:        messageTimeOutInMsProto(settings.MessageTimeout),
-		CheckpointAfter:       checkpointAfterMsProto(settings.CheckpointAfter),
+		NamedConsumerStrategy: consumerStrategyProto(settings.NamedConsumerStrategy),
+		MessageTimeout:        messageTimeOutInMsProto(settings.MessageTimeoutInMs),
+		CheckpointAfter:       checkpointAfterMsProto(settings.CheckpointAfterInMs),
 	}
 }
 
@@ -923,11 +908,11 @@ func createRequestFilterOptionsProto(
 	options *SubscriptionFilterOptions,
 ) (*persistent.CreateReq_AllOptions_FilterOptions, error) {
 	if len(options.SubscriptionFilter.Prefixes) == 0 && len(options.SubscriptionFilter.Regex) == 0 {
-		return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
+		return nil, &PersistentSubscriptionToAllMustProvideRegexOrPrefixError
 
 	}
 	if len(options.SubscriptionFilter.Prefixes) > 0 && len(options.SubscriptionFilter.Regex) > 0 {
-		return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
+		return nil, &PersistentSubscriptionToAllCanSetOnlyRegexOrPrefixError
 	}
 	filterOptions := persistent.CreateReq_AllOptions_FilterOptions{
 		CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),

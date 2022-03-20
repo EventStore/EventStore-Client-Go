@@ -8,46 +8,152 @@ import (
 
 const SUBSCRIBER_COUNT_UNLIMITED = 0
 
-type ConsumerStrategy string
+type ConsumerStrategy int32
 
 const (
-	ConsumerStrategy_RoundRobin          ConsumerStrategy = "RoundRobin"
-	ConsumerStrategy_DispatchToSingle    ConsumerStrategy = "DispatchToSingle"
-	ConsumerStrategy_Pinned              ConsumerStrategy = "Pinned"
-	ConsumerStrategy_PinnedByCorrelation ConsumerStrategy = "PinnedByCorrelation"
+	ConsumerStrategy_RoundRobin          ConsumerStrategy = 0
+	ConsumerStrategy_DispatchToSingle    ConsumerStrategy = 1
+	ConsumerStrategy_Pinned              ConsumerStrategy = 2
+	ConsumerStrategy_PinnedByCorrelation ConsumerStrategy = 3
 )
 
 type SubscriptionSettings struct {
-	StartFrom            interface{}
-	ResolveLinkTos       bool
-	ExtraStatistics      bool
-	MaxRetryCount        int32
-	CheckpointLowerBound int32
-	CheckpointUpperBound int32
-	MaxSubscriberCount   int32
-	LiveBufferSize       int32
-	ReadBatchSize        int32
-	HistoryBufferSize    int32
-	ConsumerStrategyName ConsumerStrategy
-	MessageTimeout       int32
-	CheckpointAfter      int32
+	ResolveLinkTos        bool
+	ExtraStatistics       bool
+	MaxRetryCount         int32
+	MinCheckpointCount    int32
+	MaxCheckpointCount    int32
+	MaxSubscriberCount    int32
+	LiveBufferSize        int32
+	ReadBatchSize         int32
+	HistoryBufferSize     int32
+	NamedConsumerStrategy ConsumerStrategy
+	MessageTimeoutInMs    int32
+	CheckpointAfterInMs   int32
 }
 
 func SubscriptionSettingsDefault() SubscriptionSettings {
 	return SubscriptionSettings{
-		ResolveLinkTos:       false,
-		ExtraStatistics:      false,
-		MaxRetryCount:        10,
-		CheckpointLowerBound: 10,
-		CheckpointUpperBound: 1_000,
-		MaxSubscriberCount:   SUBSCRIBER_COUNT_UNLIMITED,
-		LiveBufferSize:       500,
-		ReadBatchSize:        20,
-		HistoryBufferSize:    500,
-		ConsumerStrategyName: ConsumerStrategy_RoundRobin,
-		MessageTimeout:       30 * 1000,
-		CheckpointAfter:      2 * 1000,
+		ResolveLinkTos:        false,
+		ExtraStatistics:       false,
+		MaxRetryCount:         10,
+		MinCheckpointCount:    10,
+		MaxCheckpointCount:    10 * 1000,
+		MaxSubscriberCount:    SUBSCRIBER_COUNT_UNLIMITED,
+		LiveBufferSize:        500,
+		ReadBatchSize:         20,
+		HistoryBufferSize:     500,
+		NamedConsumerStrategy: ConsumerStrategy_RoundRobin,
+		MessageTimeoutInMs:    30 * 1000,
+		CheckpointAfterInMs:   2 * 1000,
 	}
+}
+
+type PersistentSubscriptionError struct {
+	Code int
+	Err  error
+}
+
+var PersistentSubscriptionToAllMustProvideRegexOrPrefixError = PersistentSubscriptionError{
+	Code: 0,
+}
+
+var PersistentSubscriptionToAllCanSetOnlyRegexOrPrefixError = PersistentSubscriptionError{
+	Code: 1,
+}
+
+func PersistentSubscriptionFailedToInitClientError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 2,
+		Err:  err,
+	}
+}
+
+func PersistentSubscriptionFailedSendStreamInitError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 3,
+		Err:  err,
+	}
+}
+
+func PersistentSubscriptionFailedReceiveStreamInitError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 4,
+		Err:  err,
+	}
+}
+
+func PersistentSubscriptionNoConfirmationError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 5,
+		Err:  err,
+	}
+}
+
+func PersistentSubscriptionFailedCreationError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 6,
+		Err:  err,
+	}
+}
+
+func PersistentSubscriptionUpdateFailedError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 7,
+		Err:  err,
+	}
+}
+
+func PersistentSubscriptionDeletionFailedError(err error) error {
+	return &PersistentSubscriptionError{
+		Code: 8,
+		Err:  err,
+	}
+}
+
+var PersistentSubscriptionExceedsMaxMessageCountError = PersistentSubscriptionError{
+	Code: 9,
+}
+
+func (e *PersistentSubscriptionError) Error() string {
+	switch e.Code {
+	case 0:
+		return "the persistent subscription filter requires a set of prefixes or a regex"
+	case 1:
+		return "the persistent subscription filter may only contain a regex or a set of prefixes, but not both"
+	case 2:
+		return fmt.Sprintf("failed to init the persistent subscription esdb: %s", e.Err)
+	case 3:
+		return fmt.Sprintf("failed to init persistent subscription send stream: %s", e.Err)
+	case 4:
+		return fmt.Sprintf("failed to init persistent subscription receive stream: %s", e.Err)
+	case 5:
+		return fmt.Sprintf("persistent subscription received not confirmation: %s", e.Err)
+	case 6:
+		return fmt.Sprintf("failed to create persistent subscription: %s", e.Err)
+	case 7:
+		return fmt.Sprintf("failed to update persistent subscription: %s", e.Err)
+	case 8:
+		return fmt.Sprintf("failed to delete persistent subscription: %s", e.Err)
+	case 9:
+		return "persistent subscription max message count exceeds maximum value"
+	default:
+		return "unknown persistent subscription to all error"
+	}
+}
+
+func (e *PersistentSubscriptionError) Is(target error) bool {
+	t, ok := target.(*PersistentSubscriptionError)
+
+	if !ok {
+		return false
+	}
+
+	return e.Code == t.Code
+}
+
+func (e *PersistentSubscriptionError) Unwrap() error {
+	return e.Err
 }
 
 // Position ...
@@ -341,7 +447,7 @@ func (m StreamMetadata) ToMap() (map[string]interface{}, error) {
 	}
 
 	if maxAge := m.MaxAge(); maxAge != nil {
-		props["$maxAge"] = int64(maxAge.Seconds())
+		props["$maxAge"] = *maxAge
 	}
 
 	if truncateBefore := m.TruncateBefore(); truncateBefore != nil {
@@ -349,7 +455,7 @@ func (m StreamMetadata) ToMap() (map[string]interface{}, error) {
 	}
 
 	if cacheControl := m.CacheControl(); cacheControl != nil {
-		props["$cacheControl"] = int64(cacheControl.Seconds())
+		props["$cacheControl"] = *cacheControl
 	}
 
 	acl := m.Acl()
@@ -407,8 +513,8 @@ func StreamMetadataFromMap(props map[string]interface{}) (StreamMetadata, error)
 
 			return meta, fmt.Errorf("invalid $maxCount value: %v", value)
 		case "$maxAge":
-			if secs, ok := lookForUint64(value); ok {
-				meta.SetMaxAge(time.Duration(secs) * time.Second)
+			if ms, ok := lookForUint64(value); ok {
+				meta.SetMaxAge(time.Duration(ms))
 				continue
 			}
 
@@ -421,8 +527,8 @@ func StreamMetadataFromMap(props map[string]interface{}) (StreamMetadata, error)
 
 			return meta, fmt.Errorf("invalid $tb value: %v", value)
 		case "$cacheControl":
-			if secs, ok := lookForUint64(value); ok {
-				meta.SetCacheControl(time.Duration(secs) * time.Second)
+			if ms, ok := lookForUint64(value); ok {
+				meta.SetCacheControl(time.Duration(ms))
 				continue
 			}
 
@@ -474,96 +580,4 @@ func ExcludeSystemEventsFilter() *SubscriptionFilter {
 		Type:  EventFilterType,
 		Regex: "/^[^\\$].*/",
 	}
-}
-
-type PersistentSubscriptionStatus string
-
-const (
-	PersistentSubscriptionStatus_NotReady                = "NotReady"
-	PersistentSubscriptionStatus_Behind                  = "Behind"
-	PersistentSubscriptionStatus_OutstandingPageRequest  = "OutstandingPageRequest"
-	PersistentSubscriptionStatus_ReplayingParkedMessages = "ReplayingParkedMessages"
-	PersistentSubscriptionStatus_Live                    = "Live"
-)
-
-type PersistentSubscriptionInfoHttpJson struct {
-	EventStreamId                 string                                 `json:"eventStreamId"`
-	GroupName                     string                                 `json:"groupName"`
-	Status                        string                                 `json:"status"`
-	AverageItemsPerSecond         float64                                `json:"averageItemsPerSecond"`
-	TotalItemsProcessed           int64                                  `json:"totalItemsProcessed"`
-	LastProcessedEventNumber      int64                                  `json:"lastProcessedEventNumber"`
-	LastKnownEventNumber          int64                                  `json:"lastKnownEventNumber"`
-	LastCheckpointedEventPosition string                                 `json:"lastCheckpointedEventPosition,omitempty"`
-	LastKnownEventPosition        string                                 `json:"lastKnownEventPosition,omitempty"`
-	ConnectionCount               int64                                  `json:"connectionCount,omitempty"`
-	TotalInFlightMessages         int64                                  `json:"totalInFlightMessages"`
-	Config                        *PersistentSubscriptionConfig          `json:"config,omitempty"`
-	Connections                   []PersistentSubscriptionConnectionInfo `json:"connections,omitempty"`
-	ReadBufferCount               int64                                  `json:"readBufferCount"`
-	RetryBufferCount              int64                                  `json:"retryBufferCount"`
-	LiveBufferCount               int64                                  `json:"liveBufferCount"`
-	OutstandingMessagesCount      int64                                  `json:"OutstandingMessagesCount"`
-	ParkedMessageCount            int64                                  `json:"parkedMessageCount"`
-	CountSinceLastMeasurement     int64                                  `json:"countSinceLastMeasurement"`
-}
-
-type PersistentSubscriptionInfo struct {
-	EventSource string
-	GroupName   string
-	Status      string
-	Connections []PersistentSubscriptionConnectionInfo
-	Settings    *SubscriptionSettings
-	Stats       *PersistentSubscriptionStats
-}
-
-type PersistentSubscriptionStats struct {
-	AveragePerSecond              int64
-	TotalItems                    int64
-	CountSinceLastMeasurement     int64
-	LastCheckpointedEventRevision *uint64
-	LastKnownEventRevision        *uint64
-	LastCheckpointedPosition      *Position
-	LastKnownPosition             *Position
-	ReadBufferCount               int64
-	LiveBufferCount               int64
-	RetryBufferCount              int64
-	TotalInFlightMessages         int64
-	OutstandingMessagesCount      int64
-	ParkedMessagesCount           int64
-}
-
-type PersistentSubscriptionConfig struct {
-	ResolveLinkTos       bool   `json:"resolveLinktos"`
-	StartFrom            int64  `json:"startFrom"`
-	StartPosition        string `json:"startPosition,omitempty"`
-	MessageTimeout       int64  `json:"messageTimeoutMilliseconds"`
-	ExtraStatistics      bool   `json:"extraStatistics"`
-	MaxRetryCount        int64  `json:"maxRetryCount"`
-	LiveBufferSize       int64  `json:"liveBufferSize"`
-	BufferSize           int64  `json:"bufferSize"`
-	ReadBatchSize        int64  `json:"readBatchSize"`
-	PreferRoundRobin     bool   `json:"preferRoundRobin"`
-	CheckpointAfter      int64  `json:"checkPointAfterMilliseconds"`
-	CheckpointLowerBound int64  `json:"minCheckPointCount"`
-	CheckpointUpperBound int64  `json:"maxCheckPointCount"`
-	MaxSubscriberCount   int64  `json:"maxSubscriberCount"`
-	ConsumerStrategyName string `json:"consumerStrategyName"`
-}
-
-type PersistentSubscriptionConnectionInfo struct {
-	From                      string                              `json:"from"`
-	Username                  string                              `json:"username"`
-	AverageItemsPerSecond     float64                             `json:"averageItemsPerSecond"`
-	TotalItemsProcessed       int64                               `json:"totalItemsProcessed"`
-	CountSinceLastMeasurement int64                               `json:"countSinceLastMeasurement"`
-	AvailableSlots            int64                               `json:"availableSlots"`
-	InFlightMessages          int64                               `json:"inFlightMessages"`
-	ConnectionName            string                              `json:"connectionName"`
-	ExtraStatistics           []PersistentSubscriptionMeasurement `json:"extraStatistics"`
-}
-
-type PersistentSubscriptionMeasurement struct {
-	Key   string `json:"key"`
-	Value int64  `json:"value"`
 }
