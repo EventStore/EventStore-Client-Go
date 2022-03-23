@@ -8,11 +8,11 @@ import (
 	"io"
 	"strconv"
 
-	persistentProto "github.com/EventStore/EventStore-Client-Go/protos/persistent"
+	persistentProto "github.com/EventStore/EventStore-Client-Go/v2/protos/persistent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
 )
 
 // Client ...

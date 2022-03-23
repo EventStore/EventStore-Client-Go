@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/goombaio/namegenerator"
 	"github.com/ory/dockertest/v3"

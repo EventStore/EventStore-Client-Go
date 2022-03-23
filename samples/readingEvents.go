@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/EventStore/EventStore-Client-Go/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
 )
 
 func ReadFromStream(db *esdb.Client) {
