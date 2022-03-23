@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EventStore/EventStore-Client-Go/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
 )
 
 func ExcludeSystemEvents(db *esdb.Client) {

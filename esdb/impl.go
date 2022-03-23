@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	gossipApi "github.com/EventStore/EventStore-Client-Go/protos/gossip"
-	server_features "github.com/EventStore/EventStore-Client-Go/protos/serverfeatures"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	gossipApi "github.com/EventStore/EventStore-Client-Go/v2/protos/gossip"
+	server_features "github.com/EventStore/EventStore-Client-Go/v2/protos/serverfeatures"
+	"github.com/EventStore/EventStore-Client-Go/v2/protos/shared"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

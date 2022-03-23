@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
 )
 
 func SubscribeToStream(db *esdb.Client) {

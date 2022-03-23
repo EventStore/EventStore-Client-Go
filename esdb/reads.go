@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 
-	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
 	"google.golang.org/grpc/metadata"
 )
 

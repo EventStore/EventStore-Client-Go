@@ -7,8 +7,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/EventStore/EventStore-Client-Go/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/protos/shared"
+	"github.com/EventStore/EventStore-Client-Go/v2/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/v2/protos/shared"
 	"github.com/gofrs/uuid"
 )
 

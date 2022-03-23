@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	api "github.com/EventStore/EventStore-Client-Go/protos/streams"
+	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
 )
 
 type request struct {
