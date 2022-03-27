@@ -6,116 +6,73 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 
 	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
 	"google.golang.org/grpc/metadata"
 )
 
-type readResp struct {
-	event *ResolvedEvent
-	err   *error
-}
-
 type ReadStream struct {
-	client  *grpcClient
-	channel chan (chan readResp)
-	cancel  context.CancelFunc
-	once    *sync.Once
+	once   *sync.Once
+	closed *int32
+	params readStreamParams
 }
 
 type readStreamParams struct {
 	client   *grpcClient
-	handle   connectionHandle
+	handle   *connectionHandle
 	cancel   context.CancelFunc
 	inner    api.Streams_ReadClient
-	headers  metadata.MD
-	trailers metadata.MD
+	headers  *metadata.MD
+	trailers *metadata.MD
 }
 
 func (stream *ReadStream) Close() {
-	stream.once.Do(stream.cancel)
+	stream.once.Do(func() {
+		atomic.StoreInt32(stream.closed, 1)
+		stream.params.cancel()
+	})
 }
 
 func (stream *ReadStream) Recv() (*ResolvedEvent, error) {
-	promise := make(chan readResp)
-
-	stream.channel <- promise
-
-	resp, isOk := <-promise
-
-	if !isOk {
-		return nil, fmt.Errorf("read stream has been termimated")
+	if atomic.LoadInt32(stream.closed) != 0 {
+		return nil, io.EOF
 	}
 
-	if resp.err != nil {
-		return nil, *resp.err
-	}
+	msg, err := stream.params.inner.Recv()
 
-	return resp.event, nil
-}
+	if err != nil {
+		atomic.StoreInt32(stream.closed, 1)
 
-func newReadStream(params readStreamParams, firstEvt ResolvedEvent) *ReadStream {
-	channel := make(chan (chan readResp))
-	once := new(sync.Once)
-
-	// It is not safe to consume a stream in different goroutines. This is why we only consume
-	// the stream in a dedicated goroutine.
-	//
-	// Current implementation doesn't terminate the goroutine. When a stream is terminated (without or with an error),
-	// we keep user requests coming but will always send back the last errror messages we got.
-	// This implementation is simple to maintain while letting the user sharing their subscription
-	// among as many goroutines as they want.
-	go func() {
-		var lastError *error
-		cachedEvent := &firstEvt
-		for {
-			resp := <-channel
-
-			if cachedEvent != nil {
-				resp <- readResp{
-					event: cachedEvent,
-				}
-
-				cachedEvent = nil
-				continue
-			}
-
-			if lastError != nil {
-				resp <- readResp{
-					err: lastError,
-				}
-
-				continue
-			}
-
-			result, err := params.inner.Recv()
-
-			if err != nil {
-				if !errors.Is(err, io.EOF) {
-					err = params.client.handleError(params.handle, params.headers, params.trailers, err)
-				}
-
-				lastError = &err
-
-				resp <- readResp{
-					err: &err,
-				}
-
-				continue
-			}
-
-			resolvedEvent := getResolvedEventFromProto(result.GetEvent())
-			resp <- readResp{
-				event: &resolvedEvent,
-			}
+		if !errors.Is(err, io.EOF) {
+			err = stream.params.client.handleError(stream.params.handle, *stream.params.headers, *stream.params.trailers, err)
 		}
 
-	}()
+		return nil, err
+	}
+
+	switch msg.Content.(type) {
+	case *api.ReadResp_Event:
+		resolvedEvent := getResolvedEventFromProto(msg.GetEvent())
+		return &resolvedEvent, nil
+	case *api.ReadResp_StreamNotFound_:
+		atomic.StoreInt32(stream.closed, 1)
+		streamName := string(msg.Content.(*api.ReadResp_StreamNotFound_).StreamNotFound.StreamIdentifier.StreamName)
+		return nil, &Error{code: ErrorResourceNotFound, err: fmt.Errorf("stream '%s' is not found", streamName)}
+	}
+
+	panic("unreachable code")
+}
+
+func newReadStream(params readStreamParams) *ReadStream {
+	once := new(sync.Once)
+	closed := new(int32)
+
+	atomic.StoreInt32(closed, 0)
 
 	return &ReadStream{
-		client:  params.client,
-		channel: channel,
-		once:    once,
-		cancel:  params.cancel,
+		once:   once,
+		closed: closed,
+		params: params,
 	}
 }

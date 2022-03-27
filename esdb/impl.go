@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	gossipApi "github.com/EventStore/EventStore-Client-Go/v2/protos/gossip"
@@ -24,10 +26,12 @@ import (
 )
 
 type grpcClient struct {
-	channel chan msg
+	channel   chan msg
+	closeFlag *int32
+	once      *sync.Once
 }
 
-func (client *grpcClient) handleError(handle connectionHandle, headers metadata.MD, trailers metadata.MD, err error) error {
+func (client *grpcClient) handleError(handle *connectionHandle, headers metadata.MD, trailers metadata.MD, err error) error {
 	values := trailers.Get("exception")
 
 	if values != nil && values[0] == "not-leader" {
@@ -78,65 +82,38 @@ func (client *grpcClient) handleError(handle connectionHandle, headers metadata.
 	return err
 }
 
-func (client *grpcClient) getConnectionHandle() (connectionHandle, error) {
+func (client *grpcClient) getConnectionHandle() (*connectionHandle, error) {
+	if atomic.LoadInt32(client.closeFlag) != 0 {
+		return nil, &Error{
+			code: ErrorConnectionClosed,
+			err:  fmt.Errorf("connection is closed"),
+		}
+	}
+
 	msg := newGetConnectionMsg()
 	client.channel <- msg
 
 	resp := <-msg.channel
 
-	return resp, resp.err
+	return &resp, resp.err
 }
 
 func (client *grpcClient) close() {
-	channel := make(chan bool)
-	client.channel <- closeConnection{channel}
-	<-channel
+	client.once.Do(func() {
+		atomic.StoreInt32(client.closeFlag, 1)
+		close(client.channel)
+	})
 }
 
 type getConnection struct {
 	channel chan connectionHandle
 }
 
+func (msg getConnection) isMsg() {}
+
 func newGetConnectionMsg() getConnection {
 	return getConnection{
 		channel: make(chan connectionHandle),
-	}
-}
-
-func (msg getConnection) handle(state *connectionState) {
-	// Means we need to create a grpc connection.
-	if state.correlation == uuid.Nil {
-		conn, serverInfo, err := discoverNode(state.config)
-
-		if err != nil {
-			state.lastError = err
-			resp := newErroredConnectionHandle(err)
-			msg.channel <- resp
-			return
-		}
-
-		id, err := uuid.NewV4()
-
-		if err != nil {
-			state.lastError = fmt.Errorf("error when trying to generate a random UUID: %v", err)
-			return
-		}
-
-		state.correlation = id
-		state.connection = conn
-		state.serverInfo = serverInfo
-
-		resp := newConnectionHandle(id, serverInfo, conn)
-		msg.channel <- resp
-	} else {
-		handle := connectionHandle{
-			id:         state.correlation,
-			connection: state.connection,
-			serverInfo: state.serverInfo,
-			err:        nil,
-		}
-
-		msg.channel <- handle
 	}
 }
 
@@ -146,7 +123,6 @@ type connectionState struct {
 	serverInfo  *ServerInfo
 	config      Configuration
 	lastError   error
-	closed      bool
 }
 
 func newConnectionState(config Configuration) connectionState {
@@ -155,12 +131,11 @@ func newConnectionState(config Configuration) connectionState {
 		connection:  nil,
 		config:      config,
 		lastError:   nil,
-		closed:      false,
 	}
 }
 
 type msg interface {
-	handle(*connectionState)
+	isMsg()
 }
 
 type connectionHandle struct {
@@ -170,11 +145,11 @@ type connectionHandle struct {
 	err        error
 }
 
-func (handle connectionHandle) Id() uuid.UUID {
+func (handle *connectionHandle) Id() uuid.UUID {
 	return handle.id
 }
 
-func (handle connectionHandle) Connection() *grpc.ClientConn {
+func (handle *connectionHandle) Connection() *grpc.ClientConn {
 	return handle.connection
 }
 
@@ -201,33 +176,96 @@ func newConnectionHandle(id uuid.UUID, serverInfo *ServerInfo, connection *grpc.
 	}
 }
 
-func connectionStateMachine(config Configuration, channel chan msg) {
+func connectionStateMachine(config Configuration, closeFlag *int32, channel chan msg) {
 	state := newConnectionState(config)
 
 	for {
-		msg := <-channel
+		msg, ok := <-channel
 
-		if state.closed {
-			switch evt := msg.(type) {
-			case getConnection:
-				{
-					evt.channel <- connectionHandle{
-						err: &Error{
-							code: ErrorConnectionClosed,
-						},
-					}
+		if !ok {
+			if state.connection != nil {
+				err := state.connection.Close()
+
+				if err != nil {
+					log.Printf("[warn] error when closing gRPC connection: %v", err)
 				}
-			case closeConnection:
-				{
-					evt.channel <- true
-				}
-			default:
-				// No-op
 			}
-			continue
+
+			return
 		}
 
-		msg.handle(&state)
+		switch evt := msg.(type) {
+		case getConnection:
+			{
+				// Means we need to create a grpc connection.
+				if state.correlation == uuid.Nil {
+					conn, serverInfo, err := discoverNode(state.config)
+
+					if err != nil {
+						atomic.StoreInt32(closeFlag, 1)
+						state.lastError = err
+						resp := newErroredConnectionHandle(err)
+						evt.channel <- resp
+						close(evt.channel)
+						return
+					}
+
+					state.correlation = uuid.Must(uuid.NewV4())
+					state.connection = conn
+					state.serverInfo = serverInfo
+
+					resp := newConnectionHandle(state.correlation, serverInfo, conn)
+					evt.channel <- resp
+					close(evt.channel)
+				} else {
+					handle := connectionHandle{
+						id:         state.correlation,
+						connection: state.connection,
+						serverInfo: state.serverInfo,
+						err:        nil,
+					}
+
+					evt.channel <- handle
+					close(evt.channel)
+				}
+			}
+		case reconnect:
+			if evt.correlation == state.correlation {
+				if evt.endpoint == nil {
+					// Means that in the next iteration cycle, the discovery process will start.
+					state.correlation = uuid.Nil
+					log.Printf("[info] Starting a new discovery process")
+					continue
+				}
+
+				if state.connection != nil {
+					state.connection.Close()
+					state.connection = nil
+				}
+
+				log.Printf("[info] Connecting to leader node %s ...", evt.endpoint.String())
+				conn, err := createGrpcConnection(&state.config, evt.endpoint.String())
+
+				if err != nil {
+					log.Printf("[error] exception when connecting to suggested node %s", evt.endpoint.String())
+					state.correlation = uuid.Nil
+					continue
+				}
+
+				serverInfo, err := getSupportedMethods(context.Background(), &state.config, conn)
+				if err != nil {
+					log.Printf("[error] exception when fetching server features from suggested node %s: %v", evt.endpoint.String(), err)
+					state.correlation = uuid.Nil
+					continue
+				}
+
+				state.correlation = uuid.Must(uuid.NewV4())
+				state.connection = conn
+				state.serverInfo = serverInfo
+
+				log.Printf("[info] Successfully connected to leader node %s", evt.endpoint.String())
+			}
+		}
 	}
 }
 
@@ -236,62 +274,7 @@ type reconnect struct {
 	endpoint    *EndPoint
 }
 
-func (msg reconnect) handle(state *connectionState) {
-	if msg.correlation == state.correlation {
-		if msg.endpoint == nil {
-			// Means that in the next iteration cycle, the discovery process will start.
-			state.correlation = uuid.Nil
-			log.Printf("[info] Starting a new discovery process")
-			return
-		}
-
-		log.Printf("[info] Connecting to leader node %s ...", msg.endpoint.String())
-		conn, err := createGrpcConnection(&state.config, msg.endpoint.String())
-
-		if err != nil {
-			log.Printf("[error] exception when connecting to suggested node %s", msg.endpoint.String())
-			state.correlation = uuid.Nil
-			return
-		}
-
-		serverInfo, err := getSupportedMethods(context.Background(), &state.config, conn)
-		if err != nil {
-			log.Printf("[error] exception when fetching server features from suggested node %s: %v", msg.endpoint.String(), err)
-			state.correlation = uuid.Nil
-			return
-		}
-
-		id, err := uuid.NewV4()
-
-		if err != nil {
-			log.Printf("[error] exception when generating a correlation id after reconnected to %s : %v", msg.endpoint.String(), err)
-			state.correlation = uuid.Nil
-			return
-		}
-
-		state.correlation = id
-		state.connection = conn
-		state.serverInfo = serverInfo
-
-		log.Printf("[info] Successfully connected to leader node %s", msg.endpoint.String())
-	}
-}
-
-type closeConnection struct {
-	channel chan bool
-}
-
-func (msg closeConnection) handle(state *connectionState) {
-	state.closed = true
-	if state.connection != nil {
-		defer func() {
-			_ = state.connection.Close()
-			state.connection = nil
-		}()
-	}
-
-	msg.channel <- true
-}
+func (msg reconnect) isMsg() {}
 
 func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption

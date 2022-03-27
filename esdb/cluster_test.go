@@ -20,7 +20,7 @@ func notLeaderExceptionButWorkAfterRetry(t *testing.T) {
 
 	// We purposely connect to a follower node so we can trigger on not leader exception.
 	db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=follower&tlsverifycert=false", t)
-	t.Cleanup(func() { db.Close() })
+	defer db.Close()
 	streamID := NAME_GENERATOR.Generate()
 
 	err := db.CreatePersistentSubscription(ctx, streamID, "a_group", esdb.PersistentStreamSubscriptionOptions{})

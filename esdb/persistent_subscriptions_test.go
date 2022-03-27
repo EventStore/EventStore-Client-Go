@@ -395,6 +395,7 @@ func persistentReplayParkedMessages(client *esdb.Client) TestCall {
 		require.NoError(t, err)
 
 		sub, err := client.SubscribeToPersistentSubscription(context.Background(), streamName, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
+		defer sub.Close()
 
 		require.NoError(t, err)
 
@@ -462,6 +463,7 @@ func persistentReplayParkedMessagesToAll(client *esdb.Client) TestCall {
 		require.NoError(t, err)
 
 		sub, err := client.SubscribeToPersistentSubscriptionToAll(context.Background(), groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
+		defer sub.Close()
 
 		require.NoError(t, err)
 

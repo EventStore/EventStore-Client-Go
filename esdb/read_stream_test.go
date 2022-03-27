@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"sync"
 	"testing"
 	"time"
 
@@ -166,8 +165,6 @@ func readStreamEventsBackwardsFromEndPosition(db *esdb.Client) TestCall {
 
 func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		var waitingForError sync.WaitGroup
-
 		proposedEvents := []esdb.EventData{}
 
 		for i := 1; i <= 10; i++ {
@@ -186,30 +183,30 @@ func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {
 		stream, err := db.ReadStream(context.Background(), streamID, esdb.ReadStreamOptions{}, 1_024)
 
 		require.NoError(t, err)
+		defer stream.Close()
 		_, err = collectStreamEvents(stream)
 		require.NoError(t, err)
-		waitingForError.Add(1)
 
-		go func() {
-			_, err := stream.Recv()
-			require.Error(t, err)
-			require.True(t, err == io.EOF)
-			waitingForError.Done()
-		}()
-
-		require.NoError(t, err)
-		timedOut := waitWithTimeout(&waitingForError, time.Duration(5)*time.Second)
-		require.False(t, timedOut, "Timed out waiting for read stream to return io.EOF on completion")
+		_, err = stream.Recv()
+		require.Error(t, err)
+		require.True(t, err == io.EOF)
 	}
 }
 
 func readStreamNotFound(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		_, err := db.ReadStream(context.Background(), NAME_GENERATOR.Generate(), esdb.ReadStreamOptions{}, 1)
+		stream, err := db.ReadStream(context.Background(), NAME_GENERATOR.Generate(), esdb.ReadStreamOptions{}, 1)
+
+		require.NoError(t, err)
+		defer stream.Close()
+
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
+
 		esdbErr, ok := esdb.FromError(err)
 
-		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
+		require.False(t, ok)
+		require.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
 	}
 }
 
@@ -229,9 +226,13 @@ func readStreamWithMaxAge(db *esdb.Client) TestCall {
 
 		time.Sleep(2 * time.Second)
 
-		_, err = db.ReadStream(context.Background(), streamName, esdb.ReadStreamOptions{}, 10)
+		stream, err := db.ReadStream(context.Background(), streamName, esdb.ReadStreamOptions{}, 10)
+		require.NoError(t, err)
+		defer stream.Close()
 
-		assert.Error(t, err)
-		assert.True(t, errors.Is(err, io.EOF))
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, io.EOF))
 	}
 }

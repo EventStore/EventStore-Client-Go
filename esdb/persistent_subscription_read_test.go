@@ -50,6 +50,7 @@ func persistentSubscription_ReadExistingStream_AckToReceiveNewEvents(clientInsta
 				BufferSize: 2,
 			})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		firstReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
@@ -98,6 +99,7 @@ func persistentSubscription_ToExistingStream_StartFromBeginning_AndEventsInIt(cl
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
@@ -138,6 +140,7 @@ func persistentSubscription_ToNonExistingStream_StartFromBeginning_AppendEventsA
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
@@ -182,6 +185,7 @@ func persistentSubscription_ToExistingStream_StartFromEnd_EventsInItAndAppendEve
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
@@ -222,6 +226,7 @@ func persistentSubscription_ToExistingStream_StartFromEnd_EventsInIt(clientInsta
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			ctx, streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		doneChannel := make(chan struct{})
 		go func() {
@@ -277,6 +282,8 @@ func persistentSubscription_ToNonExistingStream_StartFromTwo_AppendEventsAfterwa
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
+
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
@@ -324,6 +331,8 @@ func persistentSubscription_ToExistingStream_StartFrom10_EventsInItAppendEventsA
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
+
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
@@ -372,6 +381,7 @@ func persistentSubscription_ToExistingStream_StartFrom4_EventsInIt(clientInstanc
 		readConnectionClient, err := clientInstance.SubscribeToPersistentSubscription(
 			context.Background(), streamID, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
 		require.NotNil(t, readEvent)
@@ -423,6 +433,7 @@ func persistentSubscription_ToExistingStream_StartFromHigherRevisionThenEventsIn
 		require.NoError(t, err)
 		readEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 		require.NotNil(t, readEvent)
 
 		// assert readEvent.EventNumber == stream StartFrom 11
@@ -456,6 +467,7 @@ func persistentSubscription_ReadExistingStream_NackToReceiveNewEvents(clientInst
 				BufferSize: 2,
 			})
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		firstReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)
@@ -501,6 +513,7 @@ func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
 			},
 		)
 		require.NoError(t, err)
+		defer readConnectionClient.Close()
 
 		firstReadEvent := readConnectionClient.Recv().EventAppeared.Event
 		require.NoError(t, err)

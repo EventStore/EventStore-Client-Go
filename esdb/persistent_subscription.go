@@ -3,6 +3,7 @@ package esdb
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"log"
 	"sync"
@@ -25,25 +26,57 @@ const (
 type PersistentSubscription struct {
 	client         persistent.PersistentSubscriptions_ReadClient
 	subscriptionId string
-	channel        chan persistentRequest
-	cancel         context.CancelFunc
 	once           *sync.Once
+	closed         *int32
+	cancel         context.CancelFunc
 }
 
 func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
-	channel := make(chan *PersistentSubscriptionEvent)
-	req := persistentRequest{
-		channel: channel,
+	if atomic.LoadInt32(connection.closed) != 0 {
+		return &PersistentSubscriptionEvent{
+			SubscriptionDropped: &SubscriptionDropped{
+				Error: fmt.Errorf("subscription has been dropped"),
+			},
+		}
 	}
 
-	connection.channel <- req
-	resp := <-channel
+	result, err := connection.client.Recv()
+	if err != nil {
+		atomic.StoreInt32(connection.closed, 1)
 
-	return resp
+		log.Printf("[error] subscription has dropped. Reason: %v", err)
+
+		dropped := SubscriptionDropped{
+			Error: err,
+		}
+
+		return &PersistentSubscriptionEvent{
+			SubscriptionDropped: &dropped,
+		}
+	}
+
+	switch result.Content.(type) {
+	case *persistent.ReadResp_Event:
+		{
+			resolvedEvent, retryCount := fromPersistentProtoResponse(result)
+			return &PersistentSubscriptionEvent{
+				EventAppeared: &EventAppeared{
+					Event:      resolvedEvent,
+					RetryCount: retryCount,
+				},
+			}
+		}
+	}
+
+	panic("unreachable code")
 }
 
 func (connection *PersistentSubscription) Close() error {
-	connection.once.Do(connection.cancel)
+	connection.once.Do(func() {
+		atomic.StoreInt32(connection.closed, 1)
+		connection.cancel()
+		connection.client.CloseSend()
+	})
 	return nil
 }
 
@@ -109,78 +142,20 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 	return result
 }
 
-type persistentRequest struct {
-	channel chan *PersistentSubscriptionEvent
-}
-
 func NewPersistentSubscription(
 	client persistent.PersistentSubscriptions_ReadClient,
 	subscriptionId string,
 	cancel context.CancelFunc,
 ) *PersistentSubscription {
-	channel := make(chan persistentRequest)
 	once := new(sync.Once)
-
-	// It is not safe to consume a stream in different goroutines. This is why we only consume
-	// the stream in a dedicated goroutine.
-	//
-	// Current implementation doesn't terminate the goroutine. When a subscription is dropped,
-	// we keep user requests coming but will always send back a subscription dropped event.
-	// This implementation is simple to maintain while letting the user sharing their subscription
-	// among as many goroutines as they want.
-	go func() {
-		closed := false
-
-		for {
-			req := <-channel
-
-			if closed {
-				req.channel <- &PersistentSubscriptionEvent{
-					SubscriptionDropped: &SubscriptionDropped{
-						Error: fmt.Errorf("subscription has been dropped"),
-					},
-				}
-
-				continue
-			}
-
-			result, err := client.Recv()
-			if err != nil {
-				log.Printf("[error] subscription has dropped. Reason: %v", err)
-
-				dropped := SubscriptionDropped{
-					Error: err,
-				}
-
-				req.channel <- &PersistentSubscriptionEvent{
-					SubscriptionDropped: &dropped,
-				}
-
-				closed = true
-
-				continue
-			}
-
-			switch result.Content.(type) {
-			case *persistent.ReadResp_Event:
-				{
-					resolvedEvent, retryCount := fromPersistentProtoResponse(result)
-					req.channel <- &PersistentSubscriptionEvent{
-						EventAppeared: &EventAppeared{
-							Event:      resolvedEvent,
-							RetryCount: retryCount,
-						},
-					}
-				}
-			}
-		}
-	}()
+	closed := new(int32)
+	atomic.StoreInt32(closed, 0)
 
 	return &PersistentSubscription{
 		client:         client,
 		subscriptionId: subscriptionId,
-		channel:        channel,
 		once:           once,
+		closed:         closed,
 		cancel:         cancel,
 	}
 }

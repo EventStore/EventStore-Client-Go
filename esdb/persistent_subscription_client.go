@@ -19,7 +19,7 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	bufferSize int32,
 	streamName string,
 	groupName string,
@@ -64,7 +64,7 @@ func (client *persistentClient) CreateStreamSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamName string,
 	groupName string,
 	position StreamPosition,
@@ -87,7 +87,7 @@ func (client *persistentClient) CreateAllSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	groupName string,
 	position AllPosition,
 	settings SubscriptionSettings,
@@ -115,7 +115,7 @@ func (client *persistentClient) UpdateStreamSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamName string,
 	groupName string,
 	position StreamPosition,
@@ -139,7 +139,7 @@ func (client *persistentClient) UpdateAllSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	groupName string,
 	position AllPosition,
 	settings SubscriptionSettings,
@@ -163,7 +163,7 @@ func (client *persistentClient) DeleteStreamSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamName string,
 	groupName string,
 ) error {
@@ -185,7 +185,7 @@ func (client *persistentClient) DeleteAllSubscription(
 	parent context.Context,
 	conf *Configuration,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	groupName string,
 ) error {
 	deleteSubscriptionOptions := deletePersistentRequestAllOptionsProto(groupName)
@@ -205,7 +205,7 @@ func (client *persistentClient) DeleteAllSubscription(
 func (client *persistentClient) listPersistentSubscriptions(
 	parent context.Context,
 	conf *Configuration,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamName *string,
 	options ListPersistentSubscriptionsOptions,
 ) ([]PersistentSubscriptionInfo, error) {
@@ -271,7 +271,7 @@ func (client *persistentClient) listPersistentSubscriptions(
 func (client *persistentClient) getPersistentSubscriptionInfo(
 	parent context.Context,
 	conf *Configuration,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamName *string,
 	groupName string,
 	options GetPersistentSubscriptionOptions,
@@ -318,7 +318,7 @@ func (client *persistentClient) getPersistentSubscriptionInfo(
 func (client *persistentClient) replayParkedMessages(
 	parent context.Context,
 	conf *Configuration,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamName *string,
 	groupName string,
 	options ReplayParkedMessagesOptions,
@@ -367,7 +367,7 @@ func (client *persistentClient) replayParkedMessages(
 func (client *persistentClient) restartSubsystem(
 	parent context.Context,
 	conf *Configuration,
-	handle connectionHandle,
+	handle *connectionHandle,
 	options RestartPersistentSubscriptionSubsystemOptions,
 ) error {
 	var headers, trailers metadata.MD
