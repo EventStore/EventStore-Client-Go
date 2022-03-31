@@ -472,7 +472,7 @@ type SubscriptionFilter struct {
 func ExcludeSystemEventsFilter() *SubscriptionFilter {
 	return &SubscriptionFilter{
 		Type:  EventFilterType,
-		Regex: "/^[^\\$].*/",
+		Regex: "^[^\\$].*",
 	}
 }
 
