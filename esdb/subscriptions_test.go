@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -13,10 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func SubscriptionTests(t *testing.T, populatedDBClient *esdb.Client) {
+func SubscriptionTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClient *esdb.Client) {
 	t.Run("SubscriptionTests", func(t *testing.T) {
 		t.Run("streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents", streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(populatedDBClient))
 		t.Run("allSubscriptionWithFilterDeliversCorrectEvents", allSubscriptionWithFilterDeliversCorrectEvents(populatedDBClient))
+		t.Run("subscriptionAllFilter", subscriptionAllFilter(emptyDBClient))
 		t.Run("connectionClosing", connectionClosing(populatedDBClient))
 	})
 }
@@ -133,6 +135,37 @@ func allSubscriptionWithFilterDeliversCorrectEvents(db *esdb.Client) TestCall {
 		require.NoError(t, err)
 		timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out while waiting for events via the subscription")
+	}
+}
+
+func subscriptionAllFilter(db *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		sub, err := db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{From: esdb.Start{}, Filter: esdb.ExcludeSystemEventsFilter()})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		var completed sync.WaitGroup
+		completed.Add(1)
+
+		go func() {
+			for {
+				event := sub.Recv()
+
+				if event.EventAppeared != nil {
+					if strings.HasPrefix(event.EventAppeared.OriginalEvent().EventType, "$") {
+						t.Fatalf("We should not have system events!")
+					}
+
+					completed.Done()
+					break
+				}
+			}
+		}()
+
+		timedOut := waitWithTimeout(&completed, time.Duration(30)*time.Second)
+		require.False(t, timedOut, "Timed out waiting for filtered subscription completion")
 	}
 }
 

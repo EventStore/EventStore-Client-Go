@@ -26,7 +26,7 @@ func TestSingleNode(t *testing.T) {
 	// Those ReadAll tests need to be executed first because those are based on $all specific order.
 	ReadAllTests(t, populatedContainerClient)
 	ReadStreamTests(t, emptyContainerClient, populatedContainerClient)
-	SubscriptionTests(t, populatedContainerClient)
+	SubscriptionTests(t, emptyContainerClient, populatedContainerClient)
 	AppendTests(t, emptyContainer, emptyContainerClient)
 	ConnectionTests(t, emptyContainer)
 	DeleteTests(t, emptyContainerClient)
