@@ -1,25 +1,27 @@
 package esdb_test
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSingleNode(t *testing.T) {
 	// Empty database container
 	t.Log("[debug] starting empty database container...")
 	emptyContainer := GetEmptyDatabase(t)
-	t.Cleanup(emptyContainer.Close)
+	defer emptyContainer.Close()
 	emptyContainerClient := CreateTestClient(emptyContainer, t)
+	defer emptyContainerClient.Close()
 	WaitForAdminToBeAvailable(t, emptyContainerClient)
-	t.Cleanup(func() { emptyContainerClient.Close() })
 	t.Log("[debug] empty database container started and ready to serve!")
 	//
 
 	// Prepopulated database container
 	t.Log("[debug] starting prepopulated database container...")
 	populatedContainer := GetPrePopulatedDatabase(t)
-	t.Cleanup(populatedContainer.Close)
+	defer populatedContainer.Close()
 	populatedContainerClient := CreateTestClient(populatedContainer, t)
+	defer populatedContainerClient.Close()
 	WaitForAdminToBeAvailable(t, populatedContainerClient)
-	t.Cleanup(func() { populatedContainerClient.Close() })
 	t.Log("[debug] prepopulated database container started and ready to serve!")
 	//
 
@@ -37,11 +39,10 @@ func TestSingleNode(t *testing.T) {
 
 func TestClusterNode(t *testing.T) {
 	db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=leader&tlsverifycert=false", t)
+	defer db.Close()
 
 	WaitForAdminToBeAvailable(t, db)
 	WaitForLeaderToBeElected(t, db)
-
-	t.Cleanup(func() { db.Close() })
 
 	ClusterTests(t)
 	ReadStreamTests(t, db, nil)

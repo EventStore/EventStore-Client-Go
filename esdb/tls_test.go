@@ -78,6 +78,8 @@ func testTLSDefaultsWithCertificate(container *Container) TestCall {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
 
+		defer c.Close()
+
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
 		opts := esdb.ReadAllOptions{
@@ -85,7 +87,11 @@ func testTLSDefaultsWithCertificate(container *Container) TestCall {
 			Direction:      esdb.Backwards,
 			ResolveLinkTos: true,
 		}
-		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
+		stream, err := c.ReadAll(context.Background(), opts, numberOfEvents)
+		require.NoError(t, err)
+		defer stream.Close()
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
 		require.True(t, errors.Is(err, io.EOF))
 	}
 }
@@ -102,6 +108,8 @@ func testTLSWithoutCertificateAndVerify(container *Container) TestCall {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
 
+		defer c.Close()
+
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
 		opts := esdb.ReadAllOptions{
@@ -109,7 +117,12 @@ func testTLSWithoutCertificateAndVerify(container *Container) TestCall {
 			Direction:      esdb.Backwards,
 			ResolveLinkTos: true,
 		}
-		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
+		stream, err := c.ReadAll(context.Background(), opts, numberOfEvents)
+		require.NoError(t, err)
+		defer stream.Close()
+
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
 		require.True(t, errors.Is(err, io.EOF))
 	}
 }
@@ -125,6 +138,8 @@ func testTLSWithoutCertificate(container *Container) TestCall {
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
+
+		defer c.Close()
 
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
@@ -161,6 +176,8 @@ func testTLSWithCertificate(container *Container) TestCall {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
 
+		defer c.Close()
+
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
 		opts := esdb.ReadAllOptions{
@@ -168,7 +185,11 @@ func testTLSWithCertificate(container *Container) TestCall {
 			Direction:      esdb.Backwards,
 			ResolveLinkTos: true,
 		}
-		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
+		stream, err := c.ReadAll(context.Background(), opts, numberOfEvents)
+		require.NoError(t, err)
+		defer stream.Close()
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
 		require.True(t, errors.Is(err, io.EOF))
 	}
 }
@@ -191,6 +212,8 @@ func testTLSWithCertificateFromAbsoluteFile(container *Container) TestCall {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
 
+		defer c.Close()
+
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
 		opts := esdb.ReadAllOptions{
@@ -198,7 +221,12 @@ func testTLSWithCertificateFromAbsoluteFile(container *Container) TestCall {
 			Direction:      esdb.Backwards,
 			ResolveLinkTos: true,
 		}
-		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
+		stream, err := c.ReadAll(context.Background(), opts, numberOfEvents)
+		require.NoError(t, err)
+		defer stream.Close()
+
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
 		require.True(t, errors.Is(err, io.EOF))
 	}
 }
@@ -215,6 +243,8 @@ func testTLSWithCertificateFromRelativeFile(container *Container) TestCall {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
 
+		defer c.Close()
+
 		WaitForAdminToBeAvailable(t, c)
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
@@ -223,7 +253,11 @@ func testTLSWithCertificateFromRelativeFile(container *Container) TestCall {
 			Direction:      esdb.Backwards,
 			ResolveLinkTos: true,
 		}
-		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
+		stream, err := c.ReadAll(context.Background(), opts, numberOfEvents)
+		require.NoError(t, err)
+		defer stream.Close()
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
 		require.True(t, errors.Is(err, io.EOF))
 	}
 }
@@ -250,6 +284,8 @@ func testTLSWithInvalidCertificate(container *Container) TestCall {
 			t.Fatalf("Unexpected error: %s", err.Error())
 		}
 
+		defer c.Close()
+
 		numberOfEventsToRead := 1
 		numberOfEvents := uint64(numberOfEventsToRead)
 		opts := esdb.ReadAllOptions{
@@ -258,7 +294,9 @@ func testTLSWithInvalidCertificate(container *Container) TestCall {
 			ResolveLinkTos: true,
 		}
 		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
+		esdbErr, ok := esdb.FromError(err)
+		require.False(t, ok)
+		require.NotNil(t, esdbErr)
+		assert.Contains(t, esdbErr.Error(), "certificate signed by unknown authority")
 	}
 }

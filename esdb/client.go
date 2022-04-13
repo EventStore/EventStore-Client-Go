@@ -190,6 +190,7 @@ func (client *Client) GetStreamMetadata(
 		return nil, esdbErr
 	}
 
+	defer stream.Close()
 	event, err := stream.Recv()
 
 	if errors.Is(err, io.EOF) {
@@ -703,7 +704,7 @@ func readInternal(
 	parent context.Context,
 	client *Client,
 	options options,
-	handle connectionHandle,
+	handle *connectionHandle,
 	streamsClient api.StreamsClient,
 	readRequest *api.ReadReq,
 ) (*ReadStream, error) {
@@ -715,48 +716,20 @@ func readInternal(
 		defer cancel()
 
 		err = client.grpcClient.handleError(handle, headers, trailers, err)
-		return nil, fmt.Errorf("failed to construct read stream. Reason: %w", err)
-	}
-
-	msg, err := result.Recv()
-	if err != nil {
-		defer cancel()
-		values := trailers.Get("exception")
-
-		if values != nil && values[0] == "stream-deleted" {
-			values = trailers.Get("stream-name")
-			streamName := ""
-
-			if values != nil {
-				streamName = values[0]
-			}
-
-			return nil, &Error{code: ErrorStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
+		return nil, &Error{
+			code: ErrorUnknown,
+			err:  fmt.Errorf("failed to construct read stream. Reason: %w", err),
 		}
-
-		return nil, err
 	}
 
-	switch msg.Content.(type) {
-	case *api.ReadResp_Event:
-		resolvedEvent := getResolvedEventFromProto(msg.GetEvent())
-		params := readStreamParams{
-			client:   client.grpcClient,
-			handle:   handle,
-			cancel:   cancel,
-			inner:    result,
-			headers:  headers,
-			trailers: trailers,
-		}
-
-		stream := newReadStream(params, resolvedEvent)
-		return stream, nil
-	case *api.ReadResp_StreamNotFound_:
-		streamName := string(msg.Content.(*api.ReadResp_StreamNotFound_).StreamNotFound.StreamIdentifier.StreamName)
-		defer cancel()
-		return nil, &Error{code: ErrorResourceNotFound, err: fmt.Errorf("stream '%s' is not found", streamName)}
+	params := readStreamParams{
+		client:   client.grpcClient,
+		handle:   handle,
+		cancel:   cancel,
+		inner:    result,
+		headers:  &headers,
+		trailers: &trailers,
 	}
 
-	defer cancel()
-	return nil, fmt.Errorf("unexpected code path in readInternal")
+	return newReadStream(params), nil
 }

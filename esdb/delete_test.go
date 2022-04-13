@@ -69,9 +69,14 @@ func detectStreamDeleted(db *esdb.Client) TestCall {
 		_, err = db.TombstoneStream(context.Background(), streamID, esdb.TombstoneStreamOptions{})
 		require.Nil(t, err)
 
-		_, err = db.ReadStream(context.Background(), streamID, esdb.ReadStreamOptions{}, 1)
+		stream, err := db.ReadStream(context.Background(), streamID, esdb.ReadStreamOptions{}, 1)
+		require.NoError(t, err)
+		defer stream.Close()
+
+		evt, err := stream.Recv()
+		require.Nil(t, evt)
 		esdbErr, ok := esdb.FromError(err)
-		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorStreamDeleted)
+		require.False(t, ok)
+		require.Equal(t, esdbErr.Code(), esdb.ErrorStreamDeleted)
 	}
 }
