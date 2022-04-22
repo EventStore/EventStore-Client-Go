@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -74,6 +73,15 @@ type Configuration struct {
 	// The amount of time (in milliseconds) a non-streaming operation should take to complete before resulting in a
 	// DeadlineExceeded. Defaults to 10 seconds.
 	DefaultDeadline *time.Duration
+
+	// Logging abstraction used by the client.
+	Logger LoggingFunc
+}
+
+func (conf *Configuration) applyLogger(level LogLevel, format string, args ...interface{}) {
+	if conf.Logger != nil {
+		conf.Logger(level, format, args)
+	}
 }
 
 // ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
@@ -85,6 +93,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		KeepAliveInterval:   10 * time.Second,
 		KeepAliveTimeout:    10 * time.Second,
 		NodePreference:      NodePreference_Leader,
+		Logger:              ConsoleLogging(),
 	}
 
 	schemeIndex := strings.Index(connectionString, SchemeSeparator)
@@ -243,7 +252,7 @@ func parseSetting(k, v string, config *Configuration) error {
 		}
 
 		if config.KeepAliveInterval >= 0 && config.KeepAliveInterval < 10*time.Second {
-			log.Printf("Specified KeepAliveInterval of %d is less than recommended 10_000 ms", config.KeepAliveInterval)
+			config.applyLogger(LogWarn, "specified KeepAliveInterval of %d is less than recommended 10_000 ms", config.KeepAliveInterval)
 		}
 	case "keepalivetimeout":
 		err := parseKeepAliveSetting(k, v, &config.KeepAliveTimeout)

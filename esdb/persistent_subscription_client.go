@@ -50,7 +50,7 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 			asyncConnection := NewPersistentSubscription(
 				readClient,
 				readResult.GetSubscriptionConfirmation().SubscriptionId,
-				cancel)
+				cancel, client.inner.logger)
 
 			return asyncConnection, nil
 		}

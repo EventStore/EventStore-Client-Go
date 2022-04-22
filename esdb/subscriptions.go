@@ -3,7 +3,6 @@ package esdb
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"sync/atomic"
 
@@ -63,7 +62,7 @@ func (sub *Subscription) Recv() *SubscriptionEvent {
 
 	result, err := sub.inner.Recv()
 	if err != nil {
-		log.Printf("[error] subscription has dropped. Reason: %v", err)
+		sub.client.grpcClient.logger.error("subscription has dropped. Reason: %v", err)
 
 		dropped := SubscriptionDropped{
 			Error: err,

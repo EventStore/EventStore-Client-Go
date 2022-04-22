@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"log"
 	"sync"
 
 	"github.com/EventStore/EventStore-Client-Go/v2/protos/persistent"
@@ -29,6 +28,7 @@ type PersistentSubscription struct {
 	once           *sync.Once
 	closed         *int32
 	cancel         context.CancelFunc
+	logger         *logger
 }
 
 func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
@@ -44,7 +44,7 @@ func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
 	if err != nil {
 		atomic.StoreInt32(connection.closed, 1)
 
-		log.Printf("[error] subscription has dropped. Reason: %v", err)
+		connection.logger.error("subscription has dropped. Reason: %v", err)
 
 		dropped := SubscriptionDropped{
 			Error: err,
@@ -146,6 +146,7 @@ func NewPersistentSubscription(
 	client persistent.PersistentSubscriptions_ReadClient,
 	subscriptionId string,
 	cancel context.CancelFunc,
+	logger *logger,
 ) *PersistentSubscription {
 	once := new(sync.Once)
 	closed := new(int32)
@@ -157,5 +158,6 @@ func NewPersistentSubscription(
 		once:           once,
 		closed:         closed,
 		cancel:         cancel,
+		logger:         logger,
 	}
 }
