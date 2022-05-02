@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -29,6 +28,7 @@ type grpcClient struct {
 	channel   chan msg
 	closeFlag *int32
 	once      *sync.Once
+	logger    *logger
 }
 
 func (client *grpcClient) handleError(handle *connectionHandle, headers metadata.MD, trailers metadata.MD, err error) error {
@@ -54,7 +54,7 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 				}
 
 				client.channel <- msg
-				log.Printf("[error] Not leader exception, reconnecting to %v", endpoint)
+				client.logger.error("not leader exception, reconnecting to %v", endpoint)
 				return &Error{code: ErrorNotLeader}
 			}
 		}
@@ -71,7 +71,7 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 		return &Error{code: code}
 	}
 
-	log.Printf("[error] unexpected exception: %v", err)
+	client.logger.error("unexpected exception: %v", err)
 
 	msg := reconnect{
 		correlation: handle.Id(),
@@ -176,7 +176,7 @@ func newConnectionHandle(id uuid.UUID, serverInfo *ServerInfo, connection *grpc.
 	}
 }
 
-func connectionStateMachine(config Configuration, closeFlag *int32, channel chan msg) {
+func connectionStateMachine(config Configuration, closeFlag *int32, channel chan msg, logger *logger) {
 	state := newConnectionState(config)
 
 	for {
@@ -187,7 +187,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 				err := state.connection.Close()
 
 				if err != nil {
-					log.Printf("[warn] error when closing gRPC connection: %v", err)
+					logger.warn("error when closing gRPC connection. %v", err)
 				}
 			}
 
@@ -199,7 +199,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 			{
 				// Means we need to create a grpc connection.
 				if state.correlation == uuid.Nil {
-					conn, serverInfo, err := discoverNode(state.config)
+					conn, serverInfo, err := discoverNode(state.config, logger)
 
 					if err != nil {
 						atomic.StoreInt32(closeFlag, 1)
@@ -234,7 +234,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 				if evt.endpoint == nil {
 					// Means that in the next iteration cycle, the discovery process will start.
 					state.correlation = uuid.Nil
-					log.Printf("[info] Starting a new discovery process")
+					logger.info("starting a new discovery process")
 					continue
 				}
 
@@ -243,18 +243,18 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 					state.connection = nil
 				}
 
-				log.Printf("[info] Connecting to leader node %s ...", evt.endpoint.String())
+				logger.info("Connecting to leader node %s ...", evt.endpoint.String())
 				conn, err := createGrpcConnection(&state.config, evt.endpoint.String())
 
 				if err != nil {
-					log.Printf("[error] exception when connecting to suggested node %s", evt.endpoint.String())
+					logger.error("exception when connecting to suggested node %s", evt.endpoint.String())
 					state.correlation = uuid.Nil
 					continue
 				}
 
 				serverInfo, err := getSupportedMethods(context.Background(), &state.config, conn)
 				if err != nil {
-					log.Printf("[error] exception when fetching server features from suggested node %s: %v", evt.endpoint.String(), err)
+					logger.error("exception when fetching server features from suggested node %s: %v", evt.endpoint.String(), err)
 					state.correlation = uuid.Nil
 					continue
 				}
@@ -263,7 +263,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 				state.connection = conn
 				state.serverInfo = serverInfo
 
-				log.Printf("[info] Successfully connected to leader node %s", evt.endpoint.String())
+				logger.info("successfully connected to leader node %s", evt.endpoint.String())
 			}
 		}
 	}
@@ -432,7 +432,7 @@ func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 	}
 }
 
-func discoverNode(conf Configuration) (*grpc.ClientConn, *ServerInfo, error) {
+func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *ServerInfo, error) {
 	var connection *grpc.ClientConn = nil
 	var serverInfo *ServerInfo = nil
 	var err error
@@ -461,12 +461,12 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, *ServerInfo, error) {
 
 	for attempt < conf.MaxDiscoverAttempts {
 		attempt += 1
-		log.Printf("[info] discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
+		logger.info("discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
 		for _, candidate := range candidates {
-			log.Printf("[debug] trying candidate '%s'...", candidate)
+			logger.debug("trying candidate '%s'...", candidate)
 			connection, err = createGrpcConnection(&conf, candidate)
 			if err != nil {
-				log.Printf("[warn] Error when creating a grpc connection for candidate %s: %v", candidate, err)
+				logger.warn("error when creating a grpc connection for candidate %s: %v", candidate, err)
 
 				continue
 			}
@@ -478,7 +478,7 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, *ServerInfo, error) {
 
 				s, ok := status.FromError(err)
 				if !ok || (s != nil && s.Code() != codes.OK) {
-					log.Printf("[warn] Error when reading gossip from candidate %s: %v", candidate, err)
+					logger.warn("error when reading gossip from candidate %s: %v", candidate, err)
 					cancel()
 					continue
 				}
@@ -488,37 +488,37 @@ func discoverNode(conf Configuration) (*grpc.ClientConn, *ServerInfo, error) {
 				selected, err := pickBestCandidate(info, conf.NodePreference)
 
 				if err != nil {
-					log.Printf("[warn] Eror when picking best candidate out of %s gossip response: %v", candidate, err)
+					logger.warn("error when picking best candidate out of %s gossip response: %v", candidate, err)
 					continue
 				}
 
 				selectedAddress := fmt.Sprintf("%s:%d", selected.GetHttpEndPoint().GetAddress(), selected.GetHttpEndPoint().GetPort())
-				log.Printf("[info] Best candidate found. %s (%s)", selectedAddress, selected.State.String())
+				logger.info("best candidate found. %s (%s)", selectedAddress, selected.State.String())
 				if candidate != selectedAddress {
 					candidate = selectedAddress
 					_ = connection.Close()
 					connection, err = createGrpcConnection(&conf, selectedAddress)
 
 					if err != nil {
-						log.Printf("[warn] Error when creating gRPC connection for the selected candidate '%s': %v", selectedAddress, err)
+						logger.warn("error when creating gRPC connection for the selected candidate '%s': %v", selectedAddress, err)
 						continue
 					}
 				}
 			}
 
-			log.Printf("[debug] Attempting node supported features retrieval on '%s'...", candidate)
+			logger.debug("attempting node supported features retrieval on '%s'...", candidate)
 			serverInfo, err = getSupportedMethods(context.Background(), &conf, connection)
 			if err != nil {
-				log.Printf("[warn] Error when creating reading server features from the best candidate '%s': %v", candidate, err)
+				logger.warn("error when creating reading server features from the best candidate '%s': %v", candidate, err)
 				_ = connection.Close()
 				connection = nil
 				continue
 			}
 
 			if serverInfo != nil {
-				log.Printf("[debug] Retrieved supported features on node '%s' successfully", candidate)
+				logger.debug("retrieved supported features on node '%s' successfully", candidate)
 			} else {
-				log.Printf("[debug] Selected node '%s' doesn't support a supported features endpoint", candidate)
+				logger.debug("selected node '%s' doesn't support a supported features endpoint", candidate)
 			}
 
 			break

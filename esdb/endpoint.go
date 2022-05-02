@@ -67,14 +67,18 @@ func ParseEndPoint(s string) (*EndPoint, error) {
 func NewGrpcClient(config Configuration) *grpcClient {
 	channel := make(chan msg)
 	closeFlag := new(int32)
+	logger := logger{
+		callback: config.Logger,
+	}
 
 	atomic.StoreInt32(closeFlag, 0)
 
-	go connectionStateMachine(config, closeFlag, channel)
+	go connectionStateMachine(config, closeFlag, channel, &logger)
 
 	return &grpcClient{
 		channel:   channel,
 		closeFlag: closeFlag,
 		once:      new(sync.Once),
+		logger:    &logger,
 	}
 }
