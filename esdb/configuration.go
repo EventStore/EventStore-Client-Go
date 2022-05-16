@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	SchemeDefaultPort       = 2113
-	SchemaHostsSeparator    = ","
-	SchemeName              = "esdb"
-	SchemeNameWithDiscover  = "esdb+discover"
-	SchemePathSeparator     = "/"
-	SchemePortSeparator     = ":"
-	SchemeQuerySeparator    = "?"
-	SchemeSeparator         = "://"
-	SchemeSettingSeparator  = "&"
-	SchemeUserInfoSeparator = "@"
+	schemeDefaultPort       = 2113
+	schemaHostsSeparator    = ","
+	schemeName              = "esdb"
+	schemeNameWithDiscover  = "esdb+discover"
+	schemePathSeparator     = "/"
+	schemePortSeparator     = ":"
+	schemeQuerySeparator    = "?"
+	schemeSeparator         = "://"
+	schemeSettingSeparator  = "&"
+	schemeUserInfoSeparator = "@"
 )
 
 // Configuration describes how to connect to an instance of EventStoreDB.
@@ -92,22 +92,22 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		MaxDiscoverAttempts: 10,
 		KeepAliveInterval:   10 * time.Second,
 		KeepAliveTimeout:    10 * time.Second,
-		NodePreference:      NodePreference_Leader,
+		NodePreference:      NodePreferenceLeader,
 		Logger:              ConsoleLogging(),
 	}
 
-	schemeIndex := strings.Index(connectionString, SchemeSeparator)
+	schemeIndex := strings.Index(connectionString, schemeSeparator)
 	if schemeIndex == -1 {
 		return nil, fmt.Errorf("The scheme is missing from the connection string")
 	}
 
 	scheme := connectionString[:schemeIndex]
-	if scheme != SchemeName && scheme != SchemeNameWithDiscover {
+	if scheme != schemeName && scheme != schemeNameWithDiscover {
 		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb:// or esdb+discover://")
 	}
-	currentConnectionString := connectionString[schemeIndex+len(SchemeSeparator):]
+	currentConnectionString := connectionString[schemeIndex+len(schemeSeparator):]
 
-	config.DnsDiscover = scheme == SchemeNameWithDiscover
+	config.DnsDiscover = scheme == schemeNameWithDiscover
 
 	userInfoIndex, err := parseUserInfo(currentConnectionString, config)
 	if err != nil {
@@ -118,8 +118,8 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 	}
 
 	var host, path, settings string
-	settingsIndex := strings.Index(currentConnectionString, SchemeQuerySeparator)
-	hostIndex := strings.IndexAny(currentConnectionString, SchemePathSeparator+SchemeQuerySeparator)
+	settingsIndex := strings.Index(currentConnectionString, schemeQuerySeparator)
+	hostIndex := strings.IndexAny(currentConnectionString, schemePathSeparator+schemeQuerySeparator)
 	if hostIndex == -1 {
 		host = currentConnectionString
 		currentConnectionString = ""
@@ -130,10 +130,10 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 
 	if settingsIndex != -1 {
 		path = currentConnectionString[hostIndex:settingsIndex]
-		settings = strings.TrimLeft(currentConnectionString[settingsIndex:], SchemeQuerySeparator)
+		settings = strings.TrimLeft(currentConnectionString[settingsIndex:], schemeQuerySeparator)
 	}
 
-	path = strings.TrimLeft(path, SchemePathSeparator)
+	path = strings.TrimLeft(path, schemePathSeparator)
 	if len(path) > 0 {
 		return nil, fmt.Errorf("The specified path must be either an empty string or a forward slash (/) but the following path was found instead: '%s'", path)
 	}
@@ -152,7 +152,7 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 }
 
 func parseUserInfo(s string, config *Configuration) (int, error) {
-	userInfoIndex := strings.Index(s, SchemeUserInfoSeparator)
+	userInfoIndex := strings.Index(s, schemeUserInfoSeparator)
 	if userInfoIndex != -1 {
 		userInfo := s[0:userInfoIndex]
 		tokens := strings.Split(userInfo, ":")
@@ -173,7 +173,7 @@ func parseUserInfo(s string, config *Configuration) (int, error) {
 		config.Username = username
 		config.Password = password
 
-		return userInfoIndex + len(SchemeUserInfoSeparator), nil
+		return userInfoIndex + len(schemeUserInfoSeparator), nil
 	}
 
 	return -1, nil
@@ -185,7 +185,7 @@ func parseSettings(settings string, config *Configuration) error {
 	}
 
 	kvPairs := make(map[string]string)
-	settingTokens := strings.Split(settings, SchemeSettingSeparator)
+	settingTokens := strings.Split(settings, schemeSettingSeparator)
 
 	for _, settingToken := range settingTokens {
 		key, value, err := parseKeyValuePair(settingToken)
@@ -328,13 +328,13 @@ func parseIntSetting(k, v string, i *int) error {
 func parseNodePreference(v string, config *Configuration) error {
 	switch strings.ToLower(v) {
 	case "follower":
-		config.NodePreference = NodePreference_Follower
+		config.NodePreference = NodePreferenceFollower
 	case "leader":
-		config.NodePreference = NodePreference_Leader
+		config.NodePreference = NodePreferenceLeader
 	case "random":
-		config.NodePreference = NodePreference_Random
+		config.NodePreference = NodePreferenceRandom
 	case "readonlyreplica":
-		config.NodePreference = NodePreference_ReadOnlyReplica
+		config.NodePreference = NodePreferenceReadOnlyReplica
 	default:
 		return fmt.Errorf("Invalid NodePreference: '%s'", v)
 	}
@@ -344,7 +344,7 @@ func parseNodePreference(v string, config *Configuration) error {
 
 func parseHost(host string, config *Configuration) error {
 	endpoints := make([]*EndPoint, 0)
-	hosts := strings.Split(host, SchemaHostsSeparator)
+	hosts := strings.Split(host, schemaHostsSeparator)
 	for _, host := range hosts {
 		endpoint, err := ParseEndPoint(host)
 
@@ -390,13 +390,18 @@ func parseDurationAsMs(k, v string, d *time.Duration) error {
 	return nil
 }
 
+// NodePreference indicates which order of preferred nodes for connecting to.
 type NodePreference string
 
 const (
-	NodePreference_Leader          NodePreference = "Leader"
-	NodePreference_Follower        NodePreference = "Follower"
-	NodePreference_ReadOnlyReplica NodePreference = "ReadOnlyReplica"
-	NodePreference_Random          NodePreference = "Random"
+	// NodePreferenceLeader When attempting connection, prefers leader nodes.
+	NodePreferenceLeader NodePreference = "Leader"
+	// NodePreferenceFollower When attempting connection, prefers follower nodes.
+	NodePreferenceFollower NodePreference = "Follower"
+	// NodePreferenceReadOnlyReplica When attempting connection, prefers read only replica nodes.
+	NodePreferenceReadOnlyReplica NodePreference = "ReadOnlyReplica"
+	// NodePreferenceRandom When attempting connection, has no node preference.
+	NodePreferenceRandom NodePreference = "Random"
 )
 
 func (nodePreference NodePreference) String() string {

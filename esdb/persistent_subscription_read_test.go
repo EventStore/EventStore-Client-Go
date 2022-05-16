@@ -479,7 +479,7 @@ func persistentSubscription_ReadExistingStream_NackToReceiveNewEvents(clientInst
 
 		// since buffer size is two, after reading two outstanding messages
 		// we must acknowledge a message in order to receive third one
-		err = readConnectionClient.Nack("test reason", esdb.Nack_Park, firstReadEvent)
+		err = readConnectionClient.Nack("test reason", esdb.NackActionPark, firstReadEvent)
 		require.NoError(t, err)
 
 		thirdReadEvent := readConnectionClient.Recv()
@@ -500,7 +500,7 @@ func persistentSubscriptionToAll_Read(clientInstance *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
+			if err.Code() == esdb.ErrorCodeUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}

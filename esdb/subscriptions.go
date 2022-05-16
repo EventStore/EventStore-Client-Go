@@ -9,10 +9,7 @@ import (
 	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
 )
 
-type request struct {
-	channel chan *SubscriptionEvent
-}
-
+// Subscription is a subscription's handle.
 type Subscription struct {
 	client *Client
 	id     string
@@ -22,7 +19,7 @@ type Subscription struct {
 	closed *int32
 }
 
-func NewSubscription(client *Client, cancel context.CancelFunc, inner api.Streams_ReadClient, id string) *Subscription {
+func newSubscription(client *Client, cancel context.CancelFunc, inner api.Streams_ReadClient, id string) *Subscription {
 	once := new(sync.Once)
 	closed := new(int32)
 
@@ -38,10 +35,12 @@ func NewSubscription(client *Client, cancel context.CancelFunc, inner api.Stream
 	}
 }
 
+// Id returns subscription's id.
 func (sub *Subscription) Id() string {
 	return sub.id
 }
 
+// Close drops the subscription and cleans up allocated resources.
 func (sub *Subscription) Close() error {
 	sub.once.Do(func() {
 		atomic.StoreInt32(sub.closed, 1)
@@ -51,6 +50,7 @@ func (sub *Subscription) Close() error {
 	return nil
 }
 
+// Recv awaits for the next incoming subscription's event.
 func (sub *Subscription) Recv() *SubscriptionEvent {
 	if atomic.LoadInt32(sub.closed) != 0 {
 		return &SubscriptionEvent{

@@ -77,6 +77,6 @@ func detectStreamDeleted(db *esdb.Client) TestCall {
 		require.Nil(t, evt)
 		esdbErr, ok := esdb.FromError(err)
 		require.False(t, ok)
-		require.Equal(t, esdbErr.Code(), esdb.ErrorStreamDeleted)
+		require.Equal(t, esdbErr.Code(), esdb.ErrorCodeStreamDeleted)
 	}
 }

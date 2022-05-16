@@ -206,7 +206,7 @@ func readStreamNotFound(db *esdb.Client) TestCall {
 		esdbErr, ok := esdb.FromError(err)
 
 		require.False(t, ok)
-		require.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
+		require.Equal(t, esdbErr.Code(), esdb.ErrorCodeResourceNotFound)
 	}
 }
 

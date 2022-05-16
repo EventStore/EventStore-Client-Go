@@ -12,16 +12,23 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-type Nack_Action int32
+// NackAction persistent subscription acknowledgement error type.
+type NackAction int32
 
 const (
-	Nack_Unknown Nack_Action = 0
-	Nack_Park    Nack_Action = 1
-	Nack_Retry   Nack_Action = 2
-	Nack_Skip    Nack_Action = 3
-	Nack_Stop    Nack_Action = 4
+	// NackActionUnknown client does not know what action to take, let the server decide.
+	NackActionUnknown NackAction = 0
+	// NackActionPark park message, do not resend.
+	NackActionPark NackAction = 1
+	// NackActionRetry explicitly retry the message.
+	NackActionRetry NackAction = 2
+	// NackActionSkip skip this message, do not resend, do not park the message.
+	NackActionSkip NackAction = 3
+	// NackActionStop stop the subscription.
+	NackActionStop NackAction = 4
 )
 
+// PersistentSubscription persistent subscription handle.
 type PersistentSubscription struct {
 	client         persistent.PersistentSubscriptions_ReadClient
 	subscriptionId string
@@ -31,6 +38,7 @@ type PersistentSubscription struct {
 	logger         *logger
 }
 
+// Recv awaits for the next incoming persistent subscription event.
 func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
 	if atomic.LoadInt32(connection.closed) != 0 {
 		return &PersistentSubscriptionEvent{
@@ -71,6 +79,7 @@ func (connection *PersistentSubscription) Recv() *PersistentSubscriptionEvent {
 	panic("unreachable code")
 }
 
+// Close drops the persistent subscription and free allocated resources.
 func (connection *PersistentSubscription) Close() error {
 	connection.once.Do(func() {
 		atomic.StoreInt32(connection.closed, 1)
@@ -80,6 +89,7 @@ func (connection *PersistentSubscription) Close() error {
 	return nil
 }
 
+// Ack acknowledges events have been successfully processed.
 func (connection *PersistentSubscription) Ack(messages ...*ResolvedEvent) error {
 	if len(messages) == 0 {
 		return nil
@@ -105,7 +115,8 @@ func (connection *PersistentSubscription) Ack(messages ...*ResolvedEvent) error 
 	return nil
 }
 
-func (connection *PersistentSubscription) Nack(reason string, action Nack_Action, messages ...*ResolvedEvent) error {
+// Nack acknowledges events failed processing.
+func (connection *PersistentSubscription) Nack(reason string, action NackAction, messages ...*ResolvedEvent) error {
 	if len(messages) == 0 {
 		return nil
 	}
@@ -142,7 +153,7 @@ func messageIdSliceToProto(messageIds ...uuid.UUID) []*shared.UUID {
 	return result
 }
 
-func NewPersistentSubscription(
+func newPersistentSubscription(
 	client persistent.PersistentSubscriptions_ReadClient,
 	subscriptionId string,
 	cancel context.CancelFunc,

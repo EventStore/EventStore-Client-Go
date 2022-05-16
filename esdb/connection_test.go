@@ -41,6 +41,6 @@ func closeConnection(container *Container) TestCall {
 
 		esdbErr, ok := esdb.FromError(err)
 		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorConnectionClosed)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorCodeConnectionClosed)
 	}
 }

@@ -17,12 +17,12 @@ func (client *Client) httpListAllPersistentSubscriptions(options ListPersistentS
 		return nil, err
 	}
 
-	var subs []PersistentSubscriptionInfoHttpJson
+	var subs []persistentSubscriptionInfoHttpJson
 
 	err = json.Unmarshal(body, &subs)
 
 	if err != nil {
-		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
+		return nil, &Error{code: ErrorCodeParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	var infos []PersistentSubscriptionInfo
@@ -46,12 +46,12 @@ func (client *Client) httpListPersistentSubscriptionsForStream(streamName string
 		return nil, err
 	}
 
-	var subs []PersistentSubscriptionInfoHttpJson
+	var subs []persistentSubscriptionInfoHttpJson
 
 	err = json.Unmarshal(body, &subs)
 
 	if err != nil {
-		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
+		return nil, &Error{code: ErrorCodeParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	var infos []PersistentSubscriptionInfo
@@ -75,12 +75,12 @@ func (client *Client) httpGetPersistentSubscriptionInfo(streamName string, group
 		return nil, err
 	}
 
-	var src PersistentSubscriptionInfoHttpJson
+	var src persistentSubscriptionInfoHttpJson
 
 	err = json.Unmarshal(body, &src)
 
 	if err != nil {
-		return nil, &Error{code: ErrorParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
+		return nil, &Error{code: ErrorCodeParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	info, err := fromHttpJsonInfo(src)
@@ -125,7 +125,7 @@ func (client *Client) getBaseUrl() (string, error) {
 	}
 
 	var protocol string
-	if client.Config.DisableTLS {
+	if client.config.DisableTLS {
 		protocol = "http"
 	} else {
 		protocol = "https"
@@ -186,10 +186,10 @@ func (client *Client) httpExecute(method string, path string, auth *Credentials,
 	if auth != nil {
 		creds = auth
 	} else {
-		if client.Config.Username != "" {
+		if client.config.Username != "" {
 			creds = &Credentials{
-				Login:    client.Config.Username,
-				Password: client.Config.Password,
+				Login:    client.config.Username,
+				Password: client.config.Password,
 			}
 		}
 	}
@@ -206,16 +206,16 @@ func (client *Client) httpExecute(method string, path string, auth *Credentials,
 	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
 		switch resp.StatusCode {
 		case 401:
-			return nil, &Error{code: ErrorAccessDenied}
+			return nil, &Error{code: ErrorCodeAccessDenied}
 		case 404:
-			return nil, &Error{code: ErrorResourceNotFound}
+			return nil, &Error{code: ErrorCodeResourceNotFound}
 		default:
 			{
 				if resp.StatusCode >= 500 && resp.StatusCode < 600 {
-					return nil, &Error{code: ErrorInternalServer, err: fmt.Errorf("server returned a '%v' response", resp.StatusCode)}
+					return nil, &Error{code: ErrorCodeInternalServer, err: fmt.Errorf("server returned a '%v' response", resp.StatusCode)}
 				}
 
-				return nil, &Error{code: ErrorInternalClient, err: fmt.Errorf("unexpected response code '%v'", resp.StatusCode)}
+				return nil, &Error{code: ErrorCodeInternalClient, err: fmt.Errorf("unexpected response code '%v'", resp.StatusCode)}
 			}
 		}
 	}
@@ -223,7 +223,7 @@ func (client *Client) httpExecute(method string, path string, auth *Credentials,
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, &Error{code: ErrorUnknown, err: err}
+		return nil, &Error{code: ErrorCodeUnknown, err: err}
 	}
 
 	return body, nil
@@ -235,7 +235,7 @@ func parsePosition(input string) (*Position, error) {
 
 	if commitIdx != 0 || prepareIdx == -1 {
 		return nil, &Error{
-			code: ErrorParsing,
+			code: ErrorCodeParsing,
 			err:  fmt.Errorf("error when parsing a position string representation: '%s'", input),
 		}
 	}
@@ -243,7 +243,7 @@ func parsePosition(input string) (*Position, error) {
 	commit, err := strconv.Atoi(input[2:prepareIdx])
 	if err != nil {
 		return nil, &Error{
-			code: ErrorParsing,
+			code: ErrorCodeParsing,
 			err:  fmt.Errorf("error when parsing commit position: %w", err),
 		}
 	}
@@ -251,7 +251,7 @@ func parsePosition(input string) (*Position, error) {
 	prepare, err := strconv.Atoi(input[prepareIdx+3:])
 	if err != nil {
 		return nil, &Error{
-			code: ErrorParsing,
+			code: ErrorCodeParsing,
 			err:  fmt.Errorf("error when parsing prepare position: %w", err),
 		}
 	}
@@ -269,7 +269,7 @@ func parseRevisionOrPosition(input string) (interface{}, error) {
 	}
 
 	return nil, &Error{
-		code: ErrorParsing,
+		code: ErrorCodeParsing,
 		err:  fmt.Errorf("error when trying to parse a stream revision or position"),
 	}
 }
@@ -282,7 +282,7 @@ func parseEventRevision(input string) (uint64, error) {
 	}
 
 	return 0, &Error{
-		code: ErrorParsing,
+		code: ErrorCodeParsing,
 		err:  err,
 	}
 }
@@ -298,13 +298,13 @@ func parseStreamPosition(input string) (interface{}, error) {
 	return parseRevisionOrPosition(input)
 }
 
-func fromHttpJsonInfo(src PersistentSubscriptionInfoHttpJson) (*PersistentSubscriptionInfo, error) {
-	var settings *SubscriptionSettings
+func fromHttpJsonInfo(src persistentSubscriptionInfoHttpJson) (*PersistentSubscriptionInfo, error) {
+	var settings *PersistentSubscriptionSettings
 	var stats *PersistentSubscriptionStats
 	info := PersistentSubscriptionInfo{}
 
 	if src.Config != nil {
-		settings = &SubscriptionSettings{}
+		settings = &PersistentSubscriptionSettings{}
 		settings.ResolveLinkTos = src.Config.ResolveLinkTos
 		settings.ExtraStatistics = src.Config.ExtraStatistics
 		settings.MessageTimeout = int32(src.Config.MessageTimeout)

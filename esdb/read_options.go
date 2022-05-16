@@ -4,16 +4,22 @@ import (
 	"time"
 )
 
+// ReadStreamOptions options of the read stream request.
 type ReadStreamOptions struct {
-	Direction      Direction
-	From           StreamPosition
+	// Direction of the read request.
+	Direction Direction
+	// Starting position of the read request.
+	From StreamPosition
+	// Whether the read request should resolve linkTo events to their linked events.
 	ResolveLinkTos bool
-	Authenticated  *Credentials
-	Deadline       *time.Duration
+	// Asks for authenticated request.
+	Authenticated *Credentials
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (o *ReadStreamOptions) kind() operationKind {
-	return StreamingOperation
+	return streamingOperation
 }
 
 func (o *ReadStreamOptions) credentials() *Credentials {
@@ -30,16 +36,22 @@ func (o *ReadStreamOptions) setDefaults() {
 	}
 }
 
+// ReadAllOptions options of the read $all request.
 type ReadAllOptions struct {
-	Direction      Direction
-	From           AllPosition
+	// Direction of the read request.
+	Direction Direction
+	// Starting position of the read request.
+	From AllPosition
+	// Whether the read request should resolve linkTo events to their linked events.
 	ResolveLinkTos bool
-	Authenticated  *Credentials
-	Deadline       *time.Duration
+	// Asks for authenticated request.
+	Authenticated *Credentials
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (o *ReadAllOptions) kind() operationKind {
-	return StreamingOperation
+	return streamingOperation
 }
 
 func (o *ReadAllOptions) credentials() *Credentials {

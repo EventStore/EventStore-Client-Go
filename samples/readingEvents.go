@@ -109,7 +109,7 @@ func ReadFromStreamPositionCheck(db *esdb.Client) {
 		event, err := stream.Recv()
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorResourceNotFound {
+			if err.Code() == esdb.ErrorCodeResourceNotFound {
 				fmt.Print("Stream not found")
 			} else if errors.Is(err, io.EOF) {
 				break

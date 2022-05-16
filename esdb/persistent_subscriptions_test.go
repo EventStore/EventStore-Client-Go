@@ -114,7 +114,7 @@ func createPersistentStreamSubscription_FailsIfAlreadyExists(clientInstance *esd
 
 		esdbErr, ok := esdb.FromError(err)
 		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceAlreadyExists)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorCodeResourceAlreadyExists)
 	}
 }
 
@@ -163,7 +163,7 @@ func updatePersistentStreamSubscription(clientInstance *esdb.Client) TestCall {
 
 		settings := esdb.SubscriptionSettingsDefault()
 		settings.HistoryBufferSize = settings.HistoryBufferSize + 1
-		settings.ConsumerStrategyName = esdb.ConsumerStrategy_DispatchToSingle
+		settings.ConsumerStrategyName = esdb.ConsumerStrategyDispatchToSingle
 		settings.MaxSubscriberCount = settings.MaxSubscriberCount + 1
 		settings.ReadBatchSize = settings.ReadBatchSize + 1
 		settings.CheckpointAfter = settings.CheckpointAfter + 1
@@ -229,7 +229,7 @@ func deletePersistentSubscription_ErrIfSubscriptionDoesNotExist(clientInstance *
 
 		esdbErr, ok := esdb.FromError(err)
 		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorResourceNotFound)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorCodeResourceNotFound)
 	}
 }
 
@@ -322,7 +322,7 @@ func persistentAllCreate(client *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
+			if err.Code() == esdb.ErrorCodeUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}
@@ -342,7 +342,7 @@ func persistentAllUpdate(client *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
+			if err.Code() == esdb.ErrorCodeUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}
@@ -371,7 +371,7 @@ func persistentAllDelete(client *esdb.Client) TestCall {
 		)
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature && IsESDBVersion20() {
+			if err.Code() == esdb.ErrorCodeUnsupportedFeature && IsESDBVersion20() {
 				t.Skip()
 			}
 		}
@@ -414,7 +414,7 @@ func persistentReplayParkedMessages(client *esdb.Client) TestCall {
 			}
 
 			if event.EventAppeared != nil {
-				err = sub.Nack("because reasons", esdb.Nack_Park, event.EventAppeared.Event)
+				err = sub.Nack("because reasons", esdb.NackActionPark, event.EventAppeared.Event)
 				require.NoError(t, err)
 				i++
 			}
@@ -455,7 +455,7 @@ func persistentReplayParkedMessagesToAll(client *esdb.Client) TestCall {
 		err := client.CreatePersistentSubscriptionToAll(context.Background(), groupName, esdb.PersistentAllSubscriptionOptions{})
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature {
+			if err.Code() == esdb.ErrorCodeUnsupportedFeature {
 				t.Skip()
 			}
 		}
@@ -483,7 +483,7 @@ func persistentReplayParkedMessagesToAll(client *esdb.Client) TestCall {
 
 			if event.EventAppeared != nil {
 				if event.EventAppeared.Event.OriginalEvent().StreamID == streamName {
-					err = sub.Nack("because reasons", esdb.Nack_Park, event.EventAppeared.Event)
+					err = sub.Nack("because reasons", esdb.NackActionPark, event.EventAppeared.Event)
 					require.NoError(t, err)
 					i++
 				} else {
@@ -595,7 +595,7 @@ func persistentListSubsToAll(client *esdb.Client) TestCall {
 			err = client.CreatePersistentSubscriptionToAll(context.Background(), name, esdb.PersistentAllSubscriptionOptions{})
 
 			if err, ok := esdb.FromError(err); !ok {
-				if err.Code() == esdb.ErrorUnsupportedFeature {
+				if err.Code() == esdb.ErrorCodeUnsupportedFeature {
 					t.Skip()
 				}
 			}
@@ -648,7 +648,7 @@ func persistentGetInfoToAll(client *esdb.Client) TestCall {
 		err := client.CreatePersistentSubscriptionToAll(context.Background(), groupName, esdb.PersistentAllSubscriptionOptions{})
 
 		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorUnsupportedFeature {
+			if err.Code() == esdb.ErrorCodeUnsupportedFeature {
 				t.Skip()
 			}
 		}

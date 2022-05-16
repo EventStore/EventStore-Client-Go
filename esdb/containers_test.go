@@ -318,7 +318,7 @@ func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
 
 		if err != nil {
 			if esdbError, ok := esdb.FromError(err); !ok {
-				if esdbError.Code() == esdb.ErrorResourceNotFound || esdbError.Code() == esdb.ErrorUnauthenticated {
+				if esdbError.Code() == esdb.ErrorCodeResourceNotFound || esdbError.Code() == esdb.ErrorCodeUnauthenticated {
 					time.Sleep(500 * time.Microsecond)
 					t.Logf("[debug] not available retrying...")
 					cancel()

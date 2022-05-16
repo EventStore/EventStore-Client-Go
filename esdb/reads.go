@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// ReadStream read stream iterator.
 type ReadStream struct {
 	once   *sync.Once
 	closed *int32
@@ -27,6 +28,7 @@ type readStreamParams struct {
 	trailers *metadata.MD
 }
 
+// Close closes the iterator and release allocated resources.
 func (stream *ReadStream) Close() {
 	stream.once.Do(func() {
 		atomic.StoreInt32(stream.closed, 1)
@@ -34,6 +36,7 @@ func (stream *ReadStream) Close() {
 	})
 }
 
+// Recv awaits for the next incoming event.
 func (stream *ReadStream) Recv() (*ResolvedEvent, error) {
 	if atomic.LoadInt32(stream.closed) != 0 {
 		return nil, io.EOF
@@ -58,7 +61,7 @@ func (stream *ReadStream) Recv() (*ResolvedEvent, error) {
 	case *api.ReadResp_StreamNotFound_:
 		atomic.StoreInt32(stream.closed, 1)
 		streamName := string(msg.Content.(*api.ReadResp_StreamNotFound_).StreamNotFound.StreamIdentifier.StreamName)
-		return nil, &Error{code: ErrorResourceNotFound, err: fmt.Errorf("stream '%s' is not found", streamName)}
+		return nil, &Error{code: ErrorCodeResourceNotFound, err: fmt.Errorf("stream '%s' is not found", streamName)}
 	}
 
 	panic("unreachable code")

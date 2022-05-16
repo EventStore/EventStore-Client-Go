@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// LogLevel log statement level.
 type LogLevel = string
 
 const (
@@ -15,8 +16,10 @@ const (
 	LogError LogLevel = "error"
 )
 
+// LoggingFunc main logging abstraction.
 type LoggingFunc = func(level LogLevel, format string, args ...interface{})
 
+// ConsoleLogging will print out log statements in stdout.
 func ConsoleLogging() LoggingFunc {
 	return func(level LogLevel, format string, args ...interface{}) {
 		scoped := fmt.Sprintf("[%s]", level)
@@ -25,6 +28,7 @@ func ConsoleLogging() LoggingFunc {
 	}
 }
 
+// NoopLogging disables logging.
 func NoopLogging() LoggingFunc {
 	return func(scope string, format string, args ...interface{}) {
 
