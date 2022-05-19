@@ -460,10 +460,6 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *Server
 	}
 
 	for attempt < conf.MaxDiscoverAttempts {
-		if attempt > 0 {
-			time.Sleep(time.Duration(conf.DiscoveryInterval) * time.Millisecond)
-		}
-
 		attempt += 1
 		logger.info("discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
 		for _, candidate := range candidates {
@@ -531,6 +527,8 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *Server
 		if connection != nil {
 			break
 		}
+
+		time.Sleep(time.Duration(conf.DiscoveryInterval) * time.Millisecond)
 	}
 
 	if connection == nil {
