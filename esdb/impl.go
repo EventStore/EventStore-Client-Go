@@ -527,6 +527,8 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *Server
 		if connection != nil {
 			break
 		}
+
+		time.Sleep(time.Duration(conf.DiscoveryInterval) * time.Millisecond)
 	}
 
 	if connection == nil {
