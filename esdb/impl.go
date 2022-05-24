@@ -467,7 +467,6 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *Server
 			connection, err = createGrpcConnection(&conf, candidate)
 			if err != nil {
 				logger.warn("error when creating a grpc connection for candidate %s: %v", candidate, err)
-
 				continue
 			}
 
@@ -521,11 +520,7 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *Server
 				logger.debug("selected node '%s' doesn't support a supported features endpoint", candidate)
 			}
 
-			break
-		}
-
-		if connection != nil {
-			break
+			return connection, serverInfo, nil
 		}
 
 		time.Sleep(time.Duration(conf.DiscoveryInterval) * time.Millisecond)
