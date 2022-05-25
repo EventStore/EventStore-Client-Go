@@ -15,7 +15,7 @@ import (
 func createTestEvent() esdb.EventData {
 	event := esdb.EventData{
 		EventType:   "TestEvent",
-		ContentType: esdb.BinaryContentType,
+		ContentType: esdb.ContentTypeBinary,
 		EventID:     uuid.Must(uuid.NewV4()),
 		Data:        []byte{0xb, 0xe, 0xe, 0xf},
 		Metadata:    []byte{0xd, 0xe, 0xa, 0xd},
@@ -109,7 +109,7 @@ func appendWithInvalidStreamRevision(db *esdb.Client) TestCall {
 		_, err := db.AppendToStream(context, streamID.String(), opts, createTestEvent())
 		esdbErr, ok := esdb.FromError(err)
 		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorWrongExpectedVersion)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorCodeWrongExpectedVersion)
 	}
 }
 
@@ -143,7 +143,7 @@ func appendToSystemStreamWithIncorrectCredentials(container *Container) TestCall
 		_, err = db.AppendToStream(context, streamID.String(), opts, createTestEvent())
 		esdbErr, ok := esdb.FromError(err)
 		assert.False(t, ok)
-		assert.Equal(t, esdbErr.Code(), esdb.ErrorUnauthenticated)
+		assert.Equal(t, esdbErr.Code(), esdb.ErrorCodeUnauthenticated)
 	}
 }
 

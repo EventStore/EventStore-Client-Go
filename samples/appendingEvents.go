@@ -32,7 +32,7 @@ func AppendToStream(db *esdb.Client) {
 	}
 
 	result, err := db.AppendToStream(context.Background(), "some-stream", options, esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -55,7 +55,7 @@ func AppendWithSameId(db *esdb.Client) {
 
 	id := uuid.Must(uuid.NewV4())
 	event := esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		EventID:     id,
 		Data:        bytes,
@@ -94,7 +94,7 @@ func AppendWithNoStream(db *esdb.Client) {
 	}
 
 	_, err = db.AppendToStream(context.Background(), "same-event-stream", options, esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -113,7 +113,7 @@ func AppendWithNoStream(db *esdb.Client) {
 
 	// attempt to append the same event again
 	_, err = db.AppendToStream(context.Background(), "same-event-stream", options, esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -156,7 +156,7 @@ func AppendWithConcurrencyCheck(db *esdb.Client) {
 	}
 
 	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -171,7 +171,7 @@ func AppendWithConcurrencyCheck(db *esdb.Client) {
 	}
 
 	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -190,7 +190,7 @@ func AppendToStreamOverridingUserCredentials(db *esdb.Client) {
 	}
 
 	event := esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	}

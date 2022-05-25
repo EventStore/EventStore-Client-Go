@@ -55,19 +55,19 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 
 				client.channel <- msg
 				client.logger.error("not leader exception, reconnecting to %v", endpoint)
-				return &Error{code: ErrorNotLeader}
+				return &Error{code: ErrorCodeNotLeader}
 			}
 		}
 	}
 
 	if values != nil && values[0] == "stream-deleted" {
 		streamName := trailers.Get("stream-name")[0]
-		return &Error{code: ErrorStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
+		return &Error{code: ErrorCodeStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
 	}
 
 	code := errToCode(err)
 
-	if code != ErrorUnknown {
+	if code != ErrorCodeUnknown {
 		return &Error{code: code}
 	}
 
@@ -85,7 +85,7 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 func (client *grpcClient) getConnectionHandle() (*connectionHandle, error) {
 	if atomic.LoadInt32(client.closeFlag) != 0 {
 		return nil, &Error{
-			code: ErrorConnectionClosed,
+			code: ErrorCodeConnectionClosed,
 			err:  fmt.Errorf("connection is closed"),
 		}
 	}
@@ -120,7 +120,7 @@ func newGetConnectionMsg() getConnection {
 type connectionState struct {
 	correlation uuid.UUID
 	connection  *grpc.ClientConn
-	serverInfo  *ServerInfo
+	serverInfo  *serverInfo
 	config      Configuration
 	lastError   error
 }
@@ -141,7 +141,7 @@ type msg interface {
 type connectionHandle struct {
 	id         uuid.UUID
 	connection *grpc.ClientConn
-	serverInfo *ServerInfo
+	serverInfo *serverInfo
 	err        error
 }
 
@@ -155,7 +155,7 @@ func (handle *connectionHandle) Connection() *grpc.ClientConn {
 
 func (handle *connectionHandle) SupportsFeature(feature int) bool {
 	if handle.serverInfo != nil {
-		return handle.serverInfo.FeatureFlags&feature != 0
+		return handle.serverInfo.featureFlags&feature != 0
 	}
 
 	return false
@@ -168,7 +168,7 @@ func newErroredConnectionHandle(err error) connectionHandle {
 	}
 }
 
-func newConnectionHandle(id uuid.UUID, serverInfo *ServerInfo, connection *grpc.ClientConn) connectionHandle {
+func newConnectionHandle(id uuid.UUID, serverInfo *serverInfo, connection *grpc.ClientConn) connectionHandle {
 	return connectionHandle{
 		id:         id,
 		connection: connection,
@@ -311,29 +311,29 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 	return conn, nil
 }
 
-type ServerVersion struct {
-	Major int
-	Minor int
-	Patch int
+type serverVersion struct {
+	major int
+	minor int
+	patch int
 }
 
 const (
-	FEATURE_NOTHING                                   = 0
-	FEATURE_BATCH_APPEND                              = 1
-	FEATURE_PERSISTENT_SUBSCRIPTION_LIST              = 2
-	FEATURE_PERSISTENT_SUBSCRIPTION_REPLAY            = 4
-	FEATURE_PERSISTENT_SUBSCRIPTION_RESTART_SUBSYSTEM = 8
-	FEATURE_PERSISTENT_SUBSCRIPTION_GET_INFO          = 16
-	FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL            = 32
-	FEATURE_PERSISTENT_SUBSCRIPTION_MANAGEMENT        = FEATURE_PERSISTENT_SUBSCRIPTION_LIST | FEATURE_PERSISTENT_SUBSCRIPTION_GET_INFO | FEATURE_PERSISTENT_SUBSCRIPTION_RESTART_SUBSYSTEM | FEATURE_PERSISTENT_SUBSCRIPTION_REPLAY
+	featureNothing                                = 0
+	featureBatchAppend                            = 1
+	featurePersistentSubscriptionList             = 2
+	featurePersistentSubscriptionReplay           = 4
+	featurePersistentSubscriptionRestartSubsystem = 8
+	featurePersistentSubscriptionGetInfo          = 16
+	featurePersistentSubscriptionToAll            = 32
+	featurePersistentSubscriptionManagement       = featurePersistentSubscriptionList | featurePersistentSubscriptionGetInfo | featurePersistentSubscriptionRestartSubsystem | featurePersistentSubscriptionReplay
 )
 
-type ServerInfo struct {
-	Version      ServerVersion
-	FeatureFlags int
+type serverInfo struct {
+	version      serverVersion
+	featureFlags int
 }
 
-func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.ClientConn) (*ServerInfo, error) {
+func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.ClientConn) (*serverInfo, error) {
 	client := server_features.NewServerFeaturesClient(conn)
 	newCtx, cancel := context.WithTimeout(ctx, time.Duration(conf.GossipTimeout)*time.Second)
 	defer cancel()
@@ -349,9 +349,9 @@ func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.Cl
 		return nil, err
 	}
 
-	info := ServerInfo{
-		Version:      ServerVersion{},
-		FeatureFlags: FEATURE_NOTHING,
+	info := serverInfo{
+		version:      serverVersion{},
+		featureFlags: featureNothing,
 	}
 
 	for idx, value := range strings.Split(methods.EventStoreServerVersion, ".") {
@@ -367,11 +367,11 @@ func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.Cl
 
 		switch idx {
 		case 0:
-			info.Version.Major = num
+			info.version.major = num
 		case 1:
-			info.Version.Minor = num
+			info.version.minor = num
 		default:
-			info.Version.Patch = num
+			info.version.patch = num
 		}
 	}
 
@@ -379,24 +379,24 @@ func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.Cl
 		switch method.ServiceName {
 		case "event_store.client.streams.streams":
 			if method.MethodName == "batchappend" {
-				info.FeatureFlags |= FEATURE_BATCH_APPEND
+				info.featureFlags |= featureBatchAppend
 			}
 		case "event_store.client.persistent_subscriptions.persistentsubscriptions":
 			switch method.MethodName {
 			case "create":
 				for _, feat := range method.Features {
 					if feat == "all" {
-						info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_TO_ALL
+						info.featureFlags |= featurePersistentSubscriptionToAll
 					}
 				}
 			case "getinfo":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_GET_INFO
+				info.featureFlags |= featurePersistentSubscriptionGetInfo
 			case "replayparked":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_REPLAY
+				info.featureFlags |= featurePersistentSubscriptionReplay
 			case "list":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_LIST
+				info.featureFlags |= featurePersistentSubscriptionList
 			case "restartsubsystem":
-				info.FeatureFlags |= FEATURE_PERSISTENT_SUBSCRIPTION_RESTART_SUBSYSTEM
+				info.featureFlags |= featurePersistentSubscriptionRestartSubsystem
 			default:
 			}
 		default:
@@ -432,9 +432,9 @@ func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 	}
 }
 
-func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *ServerInfo, error) {
+func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *serverInfo, error) {
 	var connection *grpc.ClientConn = nil
-	var serverInfo *ServerInfo = nil
+	var serverInfo *serverInfo = nil
 	var err error
 	var candidates []string
 
@@ -541,19 +541,19 @@ func errToCode(err error) ErrorCode {
 	var code ErrorCode
 	switch status.Code(err) {
 	case codes.Unauthenticated:
-		code = ErrorUnauthenticated
+		code = ErrorCodeUnauthenticated
 	case codes.Unimplemented:
-		code = ErrorUnsupportedFeature
+		code = ErrorCodeUnsupportedFeature
 	case codes.NotFound:
-		code = ErrorResourceNotFound
+		code = ErrorCodeResourceNotFound
 	case codes.PermissionDenied:
-		code = ErrorAccessDenied
+		code = ErrorCodeAccessDenied
 	case codes.DeadlineExceeded:
-		code = ErrorDeadlineExceeded
+		code = ErrorCodeDeadlineExceeded
 	case codes.AlreadyExists:
-		code = ErrorResourceAlreadyExists
+		code = ErrorCodeResourceAlreadyExists
 	default:
-		code = ErrorUnknown
+		code = ErrorCodeUnknown
 	}
 
 	return code
@@ -608,15 +608,15 @@ func pickBestCandidate(response *gossipApi.ClusterInfo, nodePreference NodePrefe
 		return nil, fmt.Errorf("no nodes are eligable to be a candidate")
 	}
 	switch nodePreference {
-	case NodePreference_Leader:
+	case NodePreferenceLeader:
 		{
 			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_Leader)
 		}
-	case NodePreference_Follower:
+	case NodePreferenceFollower:
 		{
 			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_Follower)
 		}
-	case NodePreference_ReadOnlyReplica:
+	case NodePreferenceReadOnlyReplica:
 		{
 			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_ReadOnlyReplica)
 			allowedMembers = sortByState(allowedMembers, gossipApi.MemberInfo_PreReadOnlyReplica)

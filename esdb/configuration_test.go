@@ -18,7 +18,7 @@ func TestConnectionStringDefaults(t *testing.T) {
 	assert.Equal(t, 10, config.MaxDiscoverAttempts)
 	assert.Equal(t, 10*time.Second, config.KeepAliveInterval)
 	assert.Equal(t, 10*time.Second, config.KeepAliveTimeout)
-	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceLeader, config.NodePreference)
 }
 
 func TestConnectionStringWithNoSchema(t *testing.T) {
@@ -244,19 +244,19 @@ func TestConnectionStringWithInvalidSettings(t *testing.T) {
 func TestConnectionStringWithDifferentNodePreferences(t *testing.T) {
 	config, err := esdb.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=leader")
 	assert.NoError(t, err)
-	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceLeader, config.NodePreference)
 
 	config, err = esdb.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=Follower")
 	assert.NoError(t, err)
-	assert.Equal(t, esdb.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceFollower, config.NodePreference)
 
 	config, err = esdb.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=rAndom")
 	assert.NoError(t, err)
-	assert.Equal(t, esdb.NodePreference_Random, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceRandom, config.NodePreference)
 
 	config, err = esdb.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=ReadOnlyReplica")
 	assert.NoError(t, err)
-	assert.Equal(t, esdb.NodePreference_ReadOnlyReplica, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceReadOnlyReplica, config.NodePreference)
 
 	config, err = esdb.ParseConnectionString("esdb://user:pass@127.0.0.1/?nodePreference=invalid")
 	require.Error(t, err)
@@ -288,7 +288,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, 13, config.MaxDiscoverAttempts)
 	assert.Equal(t, 37, config.DiscoveryInterval)
 	assert.Equal(t, 33, config.GossipTimeout)
-	assert.Equal(t, esdb.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceFollower, config.NodePreference)
 	assert.Equal(t, true, config.SkipCertificateVerification)
 
 	config, err = esdb.ParseConnectionString("esdb://hostname:4321/?tls=fAlse")
@@ -297,7 +297,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Empty(t, config.Password)
 	assert.Equal(t, "hostname:4321", config.Address)
 	assert.Empty(t, config.GossipSeeds)
-	assert.Equal(t, esdb.NodePreference_Leader, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceLeader, config.NodePreference)
 	assert.Equal(t, true, config.DisableTLS)
 	assert.Equal(t, false, config.SkipCertificateVerification)
 
@@ -307,7 +307,7 @@ func TestConnectionStringWithValidSingleNodeConnectionString(t *testing.T) {
 	assert.Equal(t, "pass", config.Password)
 	assert.Equal(t, "host:2113", config.Address)
 	assert.Empty(t, config.GossipSeeds)
-	assert.Equal(t, esdb.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceFollower, config.NodePreference)
 	assert.Equal(t, false, config.DisableTLS)
 	assert.Equal(t, true, config.SkipCertificateVerification)
 	assert.Equal(t, true, config.DnsDiscover)
@@ -356,7 +356,7 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Equal(t, endpointParse("host1:1234"), config.GossipSeeds[0])
 	assert.Equal(t, endpointParse("host2:4321"), config.GossipSeeds[1])
 	assert.Equal(t, endpointParse("host3:3231"), config.GossipSeeds[2])
-	assert.Equal(t, esdb.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceFollower, config.NodePreference)
 
 	config, err = esdb.ParseConnectionString("esdb://host1,host2,host3?tls=false")
 	assert.NoError(t, err)
@@ -384,7 +384,7 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Empty(t, config.Address)
 	assert.Equal(t, 13, config.MaxDiscoverAttempts)
 	assert.Equal(t, 37, config.DiscoveryInterval)
-	assert.Equal(t, esdb.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceFollower, config.NodePreference)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
 	assert.Equal(t, endpointParse("127.0.0.1:2113"), config.GossipSeeds[0])
@@ -398,7 +398,7 @@ func TestConnectionStringWithValidClusterConnectionString(t *testing.T) {
 	assert.Empty(t, config.Address)
 	assert.Equal(t, 13, config.MaxDiscoverAttempts)
 	assert.Equal(t, 37, config.DiscoveryInterval)
-	assert.Equal(t, esdb.NodePreference_Follower, config.NodePreference)
+	assert.Equal(t, esdb.NodePreferenceFollower, config.NodePreference)
 	require.NotEmpty(t, config.GossipSeeds)
 	assert.Len(t, config.GossipSeeds, 3)
 	assert.Equal(t, endpointParse("host1:2113"), config.GossipSeeds[0])

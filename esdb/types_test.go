@@ -1,7 +1,6 @@
 package esdb_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -25,25 +24,15 @@ func TestConsistentMetadataSerializationStreamAcl(t *testing.T) {
 	expected.SetAcl(acl)
 	expected.AddCustomProperty("foo", "bar")
 
-	props, err := expected.ToMap()
-
-	assert.NoError(t, err, "failed to generate a map")
-
-	bytes, err := json.Marshal(props)
+	bytes, err := expected.ToJson()
 
 	assert.NoError(t, err, "failed to serialize in JSON")
 
-	var outProps map[string]interface{}
-
-	err = json.Unmarshal(bytes, &outProps)
-
-	assert.NoError(t, err, "failed to deserializing props")
-
-	meta, err := esdb.StreamMetadataFromMap(outProps)
+	meta, err := esdb.StreamMetadataFromJson(bytes)
 
 	assert.NoError(t, err, "failed to parse Metadata from props")
 
-	assert.Equal(t, expected, meta, "consistency serialization failure")
+	assert.Equal(t, expected, *meta, "consistency serialization failure")
 }
 
 func TestConsistentMetadataSerializationUserStreamAcl(t *testing.T) {
@@ -55,25 +44,15 @@ func TestConsistentMetadataSerializationUserStreamAcl(t *testing.T) {
 	expected.SetAcl(esdb.UserStreamAcl)
 	expected.AddCustomProperty("foo", "bar")
 
-	props, err := expected.ToMap()
-
-	assert.NoError(t, err, "failed to generate a map")
-
-	bytes, err := json.Marshal(props)
+	bytes, err := expected.ToJson()
 
 	assert.NoError(t, err, "failed to serialize in JSON")
 
-	var outProps map[string]interface{}
-
-	err = json.Unmarshal(bytes, &outProps)
-
-	assert.NoError(t, err, "failed to deserializing props")
-
-	meta, err := esdb.StreamMetadataFromMap(outProps)
+	meta, err := esdb.StreamMetadataFromJson(bytes)
 
 	assert.NoError(t, err, "failed to parse Metadata from props")
 
-	assert.Equal(t, expected, meta, "consistency serialization failure")
+	assert.Equal(t, expected, *meta, "consistency serialization failure")
 }
 
 func TestConsistentMetadataSerializationSystemStreamAcl(t *testing.T) {
@@ -85,23 +64,13 @@ func TestConsistentMetadataSerializationSystemStreamAcl(t *testing.T) {
 	expected.SetAcl(esdb.SystemStreamAcl)
 	expected.AddCustomProperty("foo", "bar")
 
-	props, err := expected.ToMap()
-
-	assert.NoError(t, err, "failed to generate a map")
-
-	bytes, err := json.Marshal(props)
+	bytes, err := expected.ToJson()
 
 	assert.NoError(t, err, "failed to serialize in JSON")
 
-	var outProps map[string]interface{}
-
-	err = json.Unmarshal(bytes, &outProps)
-
-	assert.NoError(t, err, "failed to deserializing props")
-
-	meta, err := esdb.StreamMetadataFromMap(outProps)
+	meta, err := esdb.StreamMetadataFromJson(bytes)
 
 	assert.NoError(t, err, "failed to parse Metadata from props")
 
-	assert.Equal(t, expected, meta, "consistency serialization failure")
+	assert.Equal(t, expected, *meta, "consistency serialization failure")
 }

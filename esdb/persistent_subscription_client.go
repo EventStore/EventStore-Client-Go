@@ -47,7 +47,7 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 	switch readResult.Content.(type) {
 	case *persistent.ReadResp_SubscriptionConfirmation_:
 		{
-			asyncConnection := NewPersistentSubscription(
+			asyncConnection := newPersistentSubscription(
 				readClient,
 				readResult.GetSubscriptionConfirmation().SubscriptionId,
 				cancel, client.inner.logger)
@@ -57,7 +57,7 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 	}
 
 	defer cancel()
-	return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription confirmation error")}
+	return nil, &Error{code: ErrorCodeUnknown, err: fmt.Errorf("persistent subscription confirmation error")}
 }
 
 func (client *persistentClient) CreateStreamSubscription(
@@ -68,7 +68,7 @@ func (client *persistentClient) CreateStreamSubscription(
 	streamName string,
 	groupName string,
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) error {
 	createSubscriptionConfig := createPersistentRequestProto(streamName, groupName, position, settings)
 	var headers, trailers metadata.MD
@@ -90,7 +90,7 @@ func (client *persistentClient) CreateAllSubscription(
 	handle *connectionHandle,
 	groupName string,
 	position AllPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 	filter *SubscriptionFilterOptions,
 ) error {
 	protoConfig, err := createPersistentRequestAllOptionsProto(groupName, position, settings, filter)
@@ -119,7 +119,7 @@ func (client *persistentClient) UpdateStreamSubscription(
 	streamName string,
 	groupName string,
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) error {
 	updateSubscriptionConfig := updatePersistentRequestStreamProto(streamName, groupName, position, settings)
 	var headers, trailers metadata.MD
@@ -142,7 +142,7 @@ func (client *persistentClient) UpdateAllSubscription(
 	handle *connectionHandle,
 	groupName string,
 	position AllPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) error {
 	updateSubscriptionConfig := updatePersistentRequestAllOptionsProto(groupName, position, settings)
 
@@ -401,7 +401,7 @@ func subscriptionInfoFromWire(wire *persistent.SubscriptionInfo) (*PersistentSub
 	stats.OutstandingMessagesCount = int64(wire.OutstandingMessagesCount)
 	stats.ParkedMessagesCount = wire.ParkedMessageCount
 
-	settings := SubscriptionSettings{}
+	settings := PersistentSubscriptionSettings{}
 
 	if wire.LastCheckpointedEventPosition != "" {
 		if wire.EventSource == "$all" {
@@ -445,7 +445,7 @@ func subscriptionInfoFromWire(wire *persistent.SubscriptionInfo) (*PersistentSub
 
 	if err != nil {
 		return nil, &Error{
-			code: ErrorParsing,
+			code: ErrorCodeParsing,
 			err:  fmt.Errorf("error when parsing StartFrom"),
 		}
 	}

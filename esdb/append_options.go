@@ -4,14 +4,18 @@ import (
 	"time"
 )
 
+// AppendToStreamOptions options of the append stream request.
 type AppendToStreamOptions struct {
+	// Asks the server to check that the stream receiving the event is at the given expected version.
 	ExpectedRevision ExpectedRevision
-	Authenticated    *Credentials
-	Deadline         *time.Duration
+	// Asks for authenticated request.
+	Authenticated *Credentials
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (o *AppendToStreamOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (o *AppendToStreamOptions) credentials() *Credentials {

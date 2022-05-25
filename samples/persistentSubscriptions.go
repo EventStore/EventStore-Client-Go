@@ -102,7 +102,7 @@ func connectToPersistentSubscriptionWithManualAcks(client *esdb.Client) {
 func updatePersistentSubscription(client *esdb.Client) {
 	// #region update-persistent-subscription
 	options := esdb.PersistentStreamSubscriptionOptions{
-		Settings: &esdb.SubscriptionSettings{
+		Settings: &esdb.PersistentSubscriptionSettings{
 			ResolveLinkTos:       true,
 			CheckpointLowerBound: 20,
 		},

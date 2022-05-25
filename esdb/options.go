@@ -11,8 +11,8 @@ import (
 type operationKind int
 
 const (
-	RegularOperation operationKind = iota
-	StreamingOperation
+	regularOperation operationKind = iota
+	streamingOperation
 )
 
 type options interface {
@@ -26,9 +26,9 @@ func configureGrpcCall(ctx context.Context, conf *Configuration, options options
 
 	if options.deadline() != nil {
 		duration = *options.deadline()
-	} else if options.kind() != StreamingOperation && conf.DefaultDeadline != nil {
+	} else if options.kind() != streamingOperation && conf.DefaultDeadline != nil {
 		duration = *conf.DefaultDeadline
-	} else if options.kind() == StreamingOperation {
+	} else if options.kind() == streamingOperation {
 		duration = time.Duration(math.MaxInt64)
 	} else {
 		duration = 10 * time.Second

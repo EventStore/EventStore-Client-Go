@@ -2,15 +2,20 @@ package esdb
 
 import "time"
 
+// PersistentStreamSubscriptionOptions options for most of the persistent subscription requests.
 type PersistentStreamSubscriptionOptions struct {
-	Settings      *SubscriptionSettings
-	StartFrom     StreamPosition
+	// Persistent subscription's request.
+	Settings *PersistentSubscriptionSettings
+	// Starting position of the subscription.
+	StartFrom StreamPosition
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	Deadline      *time.Duration
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (o *PersistentStreamSubscriptionOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (o *PersistentStreamSubscriptionOptions) credentials() *Credentials {
@@ -27,17 +32,24 @@ func (o *PersistentStreamSubscriptionOptions) setDefaults() {
 	}
 }
 
+// PersistentAllSubscriptionOptions options for most of the persistent subscription requests.
 type PersistentAllSubscriptionOptions struct {
-	Settings        *SubscriptionSettings
-	StartFrom       AllPosition
+	// Persistent subscription's request.
+	Settings *PersistentSubscriptionSettings
+	// Starting position of the subscription.
+	StartFrom AllPosition
+	// Max search window.
 	MaxSearchWindow int
-	Filter          *SubscriptionFilter
-	Authenticated   *Credentials
-	Deadline        *time.Duration
+	// Applies a server-side filter to determine if an event of the subscription should be yielded.
+	Filter *SubscriptionFilter
+	// Asks for authenticated request.
+	Authenticated *Credentials
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (o *PersistentAllSubscriptionOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (o *PersistentAllSubscriptionOptions) credentials() *Credentials {
@@ -60,14 +72,18 @@ func (o *PersistentAllSubscriptionOptions) setDefaults() {
 	}
 }
 
+// SubscribeToPersistentSubscriptionOptions options of the subscribe to persistent subscription request.
 type SubscribeToPersistentSubscriptionOptions struct {
-	BufferSize    uint32
+	// Buffer size.
+	BufferSize uint32
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	Deadline      *time.Duration
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (o *SubscribeToPersistentSubscriptionOptions) kind() operationKind {
-	return StreamingOperation
+	return streamingOperation
 }
 
 func (o *SubscribeToPersistentSubscriptionOptions) credentials() *Credentials {
@@ -84,13 +100,16 @@ func (o *SubscribeToPersistentSubscriptionOptions) setDefaults() {
 	}
 }
 
+// DeletePersistentSubscriptionOptions options of the delete persistent subscription's request.
 type DeletePersistentSubscriptionOptions struct {
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	Deadline      *time.Duration
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (d DeletePersistentSubscriptionOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (d DeletePersistentSubscriptionOptions) credentials() *Credentials {
@@ -101,14 +120,18 @@ func (d DeletePersistentSubscriptionOptions) deadline() *time.Duration {
 	return d.Deadline
 }
 
+// ReplayParkedMessagesOptions options of the replay parked messages request.
 type ReplayParkedMessagesOptions struct {
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	StopAt        int
-	Deadline      *time.Duration
+	// Replays the parked messages until the event revision within the parked messages stream is reached.
+	StopAt int
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (r ReplayParkedMessagesOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (r ReplayParkedMessagesOptions) credentials() *Credentials {
@@ -119,13 +142,16 @@ func (r ReplayParkedMessagesOptions) deadline() *time.Duration {
 	return r.Deadline
 }
 
+// ListPersistentSubscriptionsOptions options of the list persistent subscription request.
 type ListPersistentSubscriptionsOptions struct {
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	Deadline      *time.Duration
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (l ListPersistentSubscriptionsOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (l ListPersistentSubscriptionsOptions) credentials() *Credentials {
@@ -136,13 +162,16 @@ func (l ListPersistentSubscriptionsOptions) deadline() *time.Duration {
 	return l.Deadline
 }
 
+// GetPersistentSubscriptionOptions options of the get persistent subscription info request.
 type GetPersistentSubscriptionOptions struct {
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	Deadline      *time.Duration
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (g GetPersistentSubscriptionOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (g GetPersistentSubscriptionOptions) credentials() *Credentials {
@@ -153,13 +182,16 @@ func (g GetPersistentSubscriptionOptions) deadline() *time.Duration {
 	return g.Deadline
 }
 
+// RestartPersistentSubscriptionSubsystemOptions options of the restart persistent subscription subsystem request.
 type RestartPersistentSubscriptionSubsystemOptions struct {
+	// Asks for authenticated request.
 	Authenticated *Credentials
-	Deadline      *time.Duration
+	// A length of time to use for gRPC deadlines.
+	Deadline *time.Duration
 }
 
 func (g RestartPersistentSubscriptionSubsystemOptions) kind() operationKind {
-	return RegularOperation
+	return regularOperation
 }
 
 func (g RestartPersistentSubscriptionSubsystemOptions) credentials() *Credentials {

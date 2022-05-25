@@ -4,18 +4,26 @@ import (
 	uuid "github.com/gofrs/uuid"
 )
 
+// ContentType event's content type.
 type ContentType int
 
 const (
-	BinaryContentType ContentType = 0
-	JsonContentType   ContentType = 1
+	// ContentTypeBinary binary content type.
+	ContentTypeBinary ContentType = 0
+	// ContentTypeJson JSON content type.
+	ContentTypeJson ContentType = 1
 )
 
-// EventData ...
+// EventData represents an event that will be sent to EventStoreDB.
 type EventData struct {
-	EventID     uuid.UUID
-	EventType   string
+	// Event's unique identifier.
+	EventID uuid.UUID
+	// Event's type.
+	EventType string
+	// Event's content type.
 	ContentType ContentType
-	Data        []byte
-	Metadata    []byte
+	// Event's payload data.
+	Data []byte
+	// Event's metadata.
+	Metadata []byte
 }

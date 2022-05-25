@@ -64,7 +64,7 @@ func toAppendHeader(streamID string, streamRevision ExpectedRevision) *api.Appen
 // toProposedMessage ...
 func toProposedMessage(event EventData) *api.AppendReq_ProposedMessage {
 	contentType := "application/octet-stream"
-	if event.ContentType == JsonContentType {
+	if event.ContentType == ContentTypeJson {
 		contentType = "application/json"
 	}
 
@@ -367,8 +367,8 @@ func toAllSubscriptionRequest(from AllPosition, resolveLinks bool, filterOptions
 	return readReq, nil
 }
 
-// EventIDFromProto ...
-func EventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
+// eventIDFromProto ...
+func eventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
 	id := recordedEvent.GetId()
 	idString := id.GetString_()
 	return uuid.FromStringOrNil(idString)
@@ -415,7 +415,7 @@ func recordedEventFromProto(result *api.ReadResp_ReadEvent) RecordedEvent {
 func getRecordedEventFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) RecordedEvent {
 	streamIdentifier := recordedEvent.GetStreamIdentifier()
 	return RecordedEvent{
-		EventID:        EventIDFromProto(recordedEvent),
+		EventID:        eventIDFromProto(recordedEvent),
 		EventType:      recordedEvent.Metadata[systemMetadataKeysType],
 		ContentType:    getContentTypeFromProto(recordedEvent),
 		StreamID:       string(streamIdentifier.StreamName),
@@ -579,7 +579,7 @@ func updatePersistentRequestStreamProto(
 	streamName string,
 	groupName string,
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.UpdateReq {
 	return &persistent.UpdateReq{
 		Options: updatePersistentSubscriptionStreamConfigProto(streamName, groupName, position, settings),
@@ -589,7 +589,7 @@ func updatePersistentRequestStreamProto(
 func updatePersistentRequestAllOptionsProto(
 	groupName string,
 	position AllPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.UpdateReq {
 	options := updatePersistentRequestAllOptionsSettingsProto(position)
 
@@ -631,7 +631,7 @@ func updatePersistentSubscriptionStreamConfigProto(
 	streamName string,
 	groupName string,
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.UpdateReq_Options {
 	return &persistent.UpdateReq_Options{
 		StreamOption: updatePersistentSubscriptionStreamSettingsProto(streamName, groupName, position),
@@ -677,7 +677,7 @@ func updatePersistentSubscriptionStreamSettingsProto(
 }
 
 func updatePersistentSubscriptionSettingsProto(
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.UpdateReq_Settings {
 	return &persistent.UpdateReq_Settings{
 		ResolveLinks:          settings.ResolveLinkTos,
@@ -699,12 +699,12 @@ func updatePersistentRequestConsumerStrategyProto(
 	strategy ConsumerStrategy,
 ) persistent.UpdateReq_ConsumerStrategy {
 	switch strategy {
-	case ConsumerStrategy_DispatchToSingle:
+	case ConsumerStrategyDispatchToSingle:
 		return persistent.UpdateReq_DispatchToSingle
-	case ConsumerStrategy_Pinned:
+	case ConsumerStrategyPinned:
 		return persistent.UpdateReq_Pinned
 	// FIXME: support Pinned by correlation case ConsumerStrategy_PinnedByCorrelation:
-	case ConsumerStrategy_RoundRobin:
+	case ConsumerStrategyRoundRobin:
 		return persistent.UpdateReq_RoundRobin
 	default:
 		panic(fmt.Sprintf("Could not map strategy %v to proto", strategy))
@@ -741,7 +741,7 @@ func createPersistentRequestProto(
 	streamName string,
 	groupName string,
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.CreateReq {
 	return &persistent.CreateReq{
 		Options: createPersistentSubscriptionStreamConfigProto(streamName, groupName, position, settings),
@@ -751,7 +751,7 @@ func createPersistentRequestProto(
 func createPersistentRequestAllOptionsProto(
 	groupName string,
 	position AllPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 	filter *SubscriptionFilterOptions,
 ) (*persistent.CreateReq, error) {
 	options, err := createPersistentRequestAllOptionsSettingsProto(position, filter)
@@ -811,7 +811,7 @@ func createPersistentSubscriptionStreamConfigProto(
 	streamName string,
 	groupName string,
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.CreateReq_Options {
 	return &persistent.CreateReq_Options{
 		StreamOption: createPersistentSubscriptionStreamSettingsProto(streamName, position),
@@ -856,7 +856,7 @@ func createPersistentSubscriptionStreamSettingsProto(
 
 func createPersistentSubscriptionSettingsProto(
 	position StreamPosition,
-	settings SubscriptionSettings,
+	settings PersistentSubscriptionSettings,
 ) *persistent.CreateReq_Settings {
 	var revision uint64 = 0
 
@@ -895,11 +895,11 @@ func createPersistentSubscriptionSettingsProto(
 
 func consumerStrategyProto(strategy ConsumerStrategy) persistent.CreateReq_ConsumerStrategy {
 	switch strategy {
-	case ConsumerStrategy_DispatchToSingle:
+	case ConsumerStrategyDispatchToSingle:
 		return persistent.CreateReq_DispatchToSingle
-	case ConsumerStrategy_Pinned:
+	case ConsumerStrategyPinned:
 		return persistent.CreateReq_Pinned
-	case ConsumerStrategy_RoundRobin:
+	case ConsumerStrategyRoundRobin:
 		return persistent.CreateReq_RoundRobin
 	default:
 		panic(fmt.Sprintf("Could not map strategy %v to proto", strategy))
@@ -923,11 +923,11 @@ func createRequestFilterOptionsProto(
 	options *SubscriptionFilterOptions,
 ) (*persistent.CreateReq_AllOptions_FilterOptions, error) {
 	if len(options.SubscriptionFilter.Prefixes) == 0 && len(options.SubscriptionFilter.Regex) == 0 {
-		return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
+		return nil, &Error{code: ErrorCodeUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
 
 	}
 	if len(options.SubscriptionFilter.Prefixes) > 0 && len(options.SubscriptionFilter.Regex) > 0 {
-		return nil, &Error{code: ErrorUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
+		return nil, &Error{code: ErrorCodeUnknown, err: fmt.Errorf("persistent subscription to $all must provide regex or prefixes")}
 	}
 	filterOptions := persistent.CreateReq_AllOptions_FilterOptions{
 		CheckpointIntervalMultiplier: uint32(options.CheckpointInterval),

@@ -40,7 +40,7 @@ func Run() {
 	}
 
 	eventData := esdb.EventData{
-		ContentType: esdb.JsonContentType,
+		ContentType: esdb.ContentTypeJson,
 		EventType:   "TestEvent",
 		Data:        data,
 	}

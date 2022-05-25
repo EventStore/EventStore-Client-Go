@@ -10,15 +10,20 @@ import (
 	"sync/atomic"
 )
 
+// EndPoint is database node endpoint.
 type EndPoint struct {
+	// Endpoint's hostname.
 	Host string
+	// Endpoint's port.
 	Port uint16
 }
 
+// String Endpoint string representation.
 func (e *EndPoint) String() string {
 	return fmt.Sprintf("%s:%d", e.Host, e.Port)
 }
 
+// ParseEndPoint parses an endpoint string representation. For example: "{hostname}:{port}"
 func ParseEndPoint(s string) (*EndPoint, error) {
 	if strings.TrimSpace(s) == "" {
 		return nil, fmt.Errorf("an empty host is specified")
@@ -64,7 +69,7 @@ func ParseEndPoint(s string) (*EndPoint, error) {
 	return endpoint, nil
 }
 
-func NewGrpcClient(config Configuration) *grpcClient {
+func newGrpcClient(config Configuration) *grpcClient {
 	channel := make(chan msg)
 	closeFlag := new(int32)
 	logger := logger{
