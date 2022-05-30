@@ -1,4 +1,4 @@
-module github.com/EventStore/EventStore-Client-Go/v2
+module github.com/EventStore/EventStore-Client-Go/v3
 
 go 1.16
 

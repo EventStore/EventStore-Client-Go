@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
+	api "github.com/EventStore/EventStore-Client-Go/v3/protos/streams"
 )
 
 // Subscription is a subscription's handle.

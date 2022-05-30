@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 )
 
 func TLSTests(t *testing.T, emptyDBContainer *Container) {

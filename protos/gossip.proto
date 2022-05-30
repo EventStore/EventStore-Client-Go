@@ -1,7 +1,7 @@
 syntax = "proto3";
 package event_store.client.gossip;
 option java_package = "com.eventstore.dbclient.proto.gossip";
-option go_package = "github.com/EventStore/EventStore-Client-Go/v2/protos/gossip";
+option go_package = "github.com/EventStore/EventStore-Client-Go/v3/protos/gossip";
 
 import "shared.proto";
 

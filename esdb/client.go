@@ -9,11 +9,11 @@ import (
 	"io"
 	"strconv"
 
-	persistentProto "github.com/EventStore/EventStore-Client-Go/v2/protos/persistent"
+	persistentProto "github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
+	api "github.com/EventStore/EventStore-Client-Go/v3/protos/streams"
 )
 
 // Client Represents a client to a single node. A client instance maintains a full duplex communication to EventStoreDB.
