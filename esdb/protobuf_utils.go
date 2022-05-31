@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/v2/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/v2/protos/shared"
-	api "github.com/EventStore/EventStore-Client-Go/v2/protos/streams"
+	"github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
+	api "github.com/EventStore/EventStore-Client-Go/v3/protos/streams"
 	"github.com/gofrs/uuid"
 )
 

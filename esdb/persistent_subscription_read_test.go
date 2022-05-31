@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 	"github.com/stretchr/testify/require"
 )
 

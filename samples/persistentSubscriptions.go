@@ -3,7 +3,7 @@ package samples
 import (
 	"context"
 
-	"github.com/EventStore/EventStore-Client-Go/v2/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 )
 
 func createPersistentSubscription(client *esdb.Client) {
