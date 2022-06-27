@@ -2,6 +2,7 @@ package esdb
 
 import (
 	"context"
+	"google.golang.org/grpc/metadata"
 	"math"
 	"time"
 
@@ -19,6 +20,7 @@ type options interface {
 	kind() operationKind
 	credentials() *Credentials
 	deadline() *time.Duration
+	requiresLeader() bool
 }
 
 func configureGrpcCall(ctx context.Context, conf *Configuration, options options, grpcOptions []grpc.CallOption) ([]grpc.CallOption, context.Context, context.CancelFunc) {
@@ -42,6 +44,11 @@ func configureGrpcCall(ctx context.Context, conf *Configuration, options options
 			username: options.credentials().Login,
 			password: options.credentials().Password,
 		}))
+	}
+
+	if options.requiresLeader() || conf.NodePreference == NodePreferenceLeader {
+		md := metadata.New(map[string]string{"requires-leader": "true"})
+		newCtx = metadata.NewIncomingContext(newCtx, md)
 	}
 
 	return grpcOptions, newCtx, cancel

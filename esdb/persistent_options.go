@@ -12,6 +12,8 @@ type PersistentStreamSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *PersistentStreamSubscriptionOptions) kind() operationKind {
@@ -32,6 +34,10 @@ func (o *PersistentStreamSubscriptionOptions) setDefaults() {
 	}
 }
 
+func (o *PersistentStreamSubscriptionOptions) requiresLeader() bool {
+	return o.RequiresLeader
+}
+
 // PersistentAllSubscriptionOptions options for most of the persistent subscription requests.
 type PersistentAllSubscriptionOptions struct {
 	// Persistent subscription's request.
@@ -46,6 +52,8 @@ type PersistentAllSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *PersistentAllSubscriptionOptions) kind() operationKind {
@@ -58,6 +66,10 @@ func (o *PersistentAllSubscriptionOptions) credentials() *Credentials {
 
 func (o *PersistentAllSubscriptionOptions) deadline() *time.Duration {
 	return o.Deadline
+}
+
+func (o *PersistentAllSubscriptionOptions) requiresLeader() bool {
+	return o.RequiresLeader
 }
 
 func (o *PersistentAllSubscriptionOptions) setDefaults() {
@@ -80,6 +92,8 @@ type SubscribeToPersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *SubscribeToPersistentSubscriptionOptions) kind() operationKind {
@@ -94,6 +108,10 @@ func (o *SubscribeToPersistentSubscriptionOptions) deadline() *time.Duration {
 	return o.Deadline
 }
 
+func (o *SubscribeToPersistentSubscriptionOptions) requiresLeader() bool {
+	return o.RequiresLeader
+}
+
 func (o *SubscribeToPersistentSubscriptionOptions) setDefaults() {
 	if o.BufferSize == 0 {
 		o.BufferSize = 10
@@ -106,18 +124,24 @@ type DeletePersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
-func (d DeletePersistentSubscriptionOptions) kind() operationKind {
+func (d *DeletePersistentSubscriptionOptions) kind() operationKind {
 	return regularOperation
 }
 
-func (d DeletePersistentSubscriptionOptions) credentials() *Credentials {
+func (d *DeletePersistentSubscriptionOptions) credentials() *Credentials {
 	return d.Authenticated
 }
 
-func (d DeletePersistentSubscriptionOptions) deadline() *time.Duration {
+func (d *DeletePersistentSubscriptionOptions) deadline() *time.Duration {
 	return d.Deadline
+}
+
+func (d *DeletePersistentSubscriptionOptions) requiresLeader() bool {
+	return d.RequiresLeader
 }
 
 // ReplayParkedMessagesOptions options of the replay parked messages request.
@@ -128,18 +152,24 @@ type ReplayParkedMessagesOptions struct {
 	StopAt int
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
-func (r ReplayParkedMessagesOptions) kind() operationKind {
+func (r *ReplayParkedMessagesOptions) kind() operationKind {
 	return regularOperation
 }
 
-func (r ReplayParkedMessagesOptions) credentials() *Credentials {
+func (r *ReplayParkedMessagesOptions) credentials() *Credentials {
 	return r.Authenticated
 }
 
-func (r ReplayParkedMessagesOptions) deadline() *time.Duration {
+func (r *ReplayParkedMessagesOptions) deadline() *time.Duration {
 	return r.Deadline
+}
+
+func (r *ReplayParkedMessagesOptions) requiresLeader() bool {
+	return r.RequiresLeader
 }
 
 // ListPersistentSubscriptionsOptions options of the list persistent subscription request.
@@ -148,18 +178,24 @@ type ListPersistentSubscriptionsOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
-func (l ListPersistentSubscriptionsOptions) kind() operationKind {
+func (l *ListPersistentSubscriptionsOptions) kind() operationKind {
 	return regularOperation
 }
 
-func (l ListPersistentSubscriptionsOptions) credentials() *Credentials {
+func (l *ListPersistentSubscriptionsOptions) credentials() *Credentials {
 	return l.Authenticated
 }
 
-func (l ListPersistentSubscriptionsOptions) deadline() *time.Duration {
+func (l *ListPersistentSubscriptionsOptions) deadline() *time.Duration {
 	return l.Deadline
+}
+
+func (l *ListPersistentSubscriptionsOptions) requiresLeader() bool {
+	return l.RequiresLeader
 }
 
 // GetPersistentSubscriptionOptions options of the get persistent subscription info request.
@@ -168,18 +204,24 @@ type GetPersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
-func (g GetPersistentSubscriptionOptions) kind() operationKind {
+func (g *GetPersistentSubscriptionOptions) kind() operationKind {
 	return regularOperation
 }
 
-func (g GetPersistentSubscriptionOptions) credentials() *Credentials {
+func (g *GetPersistentSubscriptionOptions) credentials() *Credentials {
 	return g.Authenticated
 }
 
-func (g GetPersistentSubscriptionOptions) deadline() *time.Duration {
+func (g *GetPersistentSubscriptionOptions) deadline() *time.Duration {
 	return g.Deadline
+}
+
+func (g *GetPersistentSubscriptionOptions) requiresLeader() bool {
+	return g.RequiresLeader
 }
 
 // RestartPersistentSubscriptionSubsystemOptions options of the restart persistent subscription subsystem request.
@@ -188,16 +230,22 @@ type RestartPersistentSubscriptionSubsystemOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
-func (g RestartPersistentSubscriptionSubsystemOptions) kind() operationKind {
+func (g *RestartPersistentSubscriptionSubsystemOptions) kind() operationKind {
 	return regularOperation
 }
 
-func (g RestartPersistentSubscriptionSubsystemOptions) credentials() *Credentials {
+func (g *RestartPersistentSubscriptionSubsystemOptions) credentials() *Credentials {
 	return g.Authenticated
 }
 
-func (g RestartPersistentSubscriptionSubsystemOptions) deadline() *time.Duration {
+func (g *RestartPersistentSubscriptionSubsystemOptions) deadline() *time.Duration {
 	return g.Deadline
+}
+
+func (g *RestartPersistentSubscriptionSubsystemOptions) requiresLeader() bool {
+	return g.RequiresLeader
 }

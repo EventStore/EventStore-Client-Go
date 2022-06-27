@@ -12,6 +12,8 @@ type AppendToStreamOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *AppendToStreamOptions) kind() operationKind {
@@ -24,6 +26,10 @@ func (o *AppendToStreamOptions) credentials() *Credentials {
 
 func (o *AppendToStreamOptions) deadline() *time.Duration {
 	return o.Deadline
+}
+
+func (o *AppendToStreamOptions) requiresLeader() bool {
+	return o.RequiresLeader
 }
 
 func (o *AppendToStreamOptions) setDefaults() {

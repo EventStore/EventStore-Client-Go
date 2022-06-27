@@ -10,6 +10,8 @@ type TombstoneStreamOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *TombstoneStreamOptions) kind() operationKind {
@@ -22,6 +24,10 @@ func (o *TombstoneStreamOptions) credentials() *Credentials {
 
 func (o *TombstoneStreamOptions) deadline() *time.Duration {
 	return o.Deadline
+}
+
+func (o *TombstoneStreamOptions) requiresLeader() bool {
+	return o.RequiresLeader
 }
 
 func (o *TombstoneStreamOptions) setDefaults() {
