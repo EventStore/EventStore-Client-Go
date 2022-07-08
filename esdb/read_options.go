@@ -16,6 +16,8 @@ type ReadStreamOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *ReadStreamOptions) kind() operationKind {
@@ -28,6 +30,10 @@ func (o *ReadStreamOptions) credentials() *Credentials {
 
 func (o *ReadStreamOptions) deadline() *time.Duration {
 	return o.Deadline
+}
+
+func (o *ReadStreamOptions) requiresLeader() bool {
+	return o.RequiresLeader
 }
 
 func (o *ReadStreamOptions) setDefaults() {
@@ -48,6 +54,8 @@ type ReadAllOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	RequiresLeader bool
 }
 
 func (o *ReadAllOptions) kind() operationKind {
@@ -60,6 +68,10 @@ func (o *ReadAllOptions) credentials() *Credentials {
 
 func (o *ReadAllOptions) deadline() *time.Duration {
 	return o.Deadline
+}
+
+func (o *ReadAllOptions) requiresLeader() bool {
+	return o.RequiresLeader
 }
 
 func (o *ReadAllOptions) setDefaults() {

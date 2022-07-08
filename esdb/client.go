@@ -648,7 +648,7 @@ func (client *Client) replayParkedMessages(ctx context.Context, streamName strin
 
 	if handle.SupportsFeature(featurePersistentSubscriptionManagement) {
 		persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentSubscriptionClient.replayParkedMessages(ctx, client.config, handle, finalStreamName, groupName, options)
+		return persistentSubscriptionClient.replayParkedMessages(ctx, client.config, handle, finalStreamName, groupName, &options)
 	}
 
 	return client.httpReplayParkedMessages(streamName, groupName, options)
@@ -682,7 +682,7 @@ func (client *Client) listPersistentSubscriptionsInternal(ctx context.Context, s
 
 	if handle.SupportsFeature(featurePersistentSubscriptionManagement) {
 		persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentSubscriptionClient.listPersistentSubscriptions(ctx, client.config, handle, streamName, options)
+		return persistentSubscriptionClient.listPersistentSubscriptions(ctx, client.config, handle, streamName, &options)
 	}
 
 	if streamName != nil {
@@ -715,7 +715,7 @@ func (client *Client) getPersistentSubscriptionInfoInternal(ctx context.Context,
 
 	if handle.SupportsFeature(featurePersistentSubscriptionManagement) {
 		persistentSubscriptionClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentSubscriptionClient.getPersistentSubscriptionInfo(ctx, client.config, handle, streamName, groupName, options)
+		return persistentSubscriptionClient.getPersistentSubscriptionInfo(ctx, client.config, handle, streamName, groupName, &options)
 	}
 
 	if streamName == nil {
@@ -735,7 +735,7 @@ func (client *Client) RestartPersistentSubscriptionSubsystem(ctx context.Context
 
 	if handle.SupportsFeature(featurePersistentSubscriptionManagement) {
 		persistentClient := newPersistentClient(client.grpcClient, persistentProto.NewPersistentSubscriptionsClient(handle.Connection()))
-		return persistentClient.restartSubsystem(ctx, client.config, handle, options)
+		return persistentClient.restartSubsystem(ctx, client.config, handle, &options)
 	}
 
 	return client.httpRestartSubsystem(options)

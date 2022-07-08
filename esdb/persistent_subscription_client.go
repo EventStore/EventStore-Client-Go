@@ -207,7 +207,7 @@ func (client *persistentClient) listPersistentSubscriptions(
 	conf *Configuration,
 	handle *connectionHandle,
 	streamName *string,
-	options ListPersistentSubscriptionsOptions,
+	options options,
 ) ([]PersistentSubscriptionInfo, error) {
 	listOptions := &persistent.ListReq_Options{}
 
@@ -241,10 +241,10 @@ func (client *persistentClient) listPersistentSubscriptions(
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
 	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
 	defer cancel()
-	if options.Authenticated != nil {
+	if options.credentials() != nil {
 		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: options.Authenticated.Login,
-			password: options.Authenticated.Password,
+			username: options.credentials().Login,
+			password: options.credentials().Password,
 		}))
 	}
 
@@ -274,7 +274,7 @@ func (client *persistentClient) getPersistentSubscriptionInfo(
 	handle *connectionHandle,
 	streamName *string,
 	groupName string,
-	options GetPersistentSubscriptionOptions,
+	options options,
 ) (*PersistentSubscriptionInfo, error) {
 	getInfoOptions := &persistent.GetInfoReq_Options{}
 
@@ -294,10 +294,10 @@ func (client *persistentClient) getPersistentSubscriptionInfo(
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
 	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions)
 	defer cancel()
-	if options.Authenticated != nil {
+	if options.credentials() != nil {
 		callOptions = append(callOptions, grpc.PerRPCCredentials(basicAuth{
-			username: options.Authenticated.Login,
-			password: options.Authenticated.Password,
+			username: options.credentials().Login,
+			password: options.credentials().Password,
 		}))
 	}
 
@@ -321,7 +321,7 @@ func (client *persistentClient) replayParkedMessages(
 	handle *connectionHandle,
 	streamName *string,
 	groupName string,
-	options ReplayParkedMessagesOptions,
+	options *ReplayParkedMessagesOptions,
 ) error {
 	replayOptions := &persistent.ReplayParkedReq_Options{}
 
@@ -368,7 +368,7 @@ func (client *persistentClient) restartSubsystem(
 	parent context.Context,
 	conf *Configuration,
 	handle *connectionHandle,
-	options RestartPersistentSubscriptionSubsystemOptions,
+	options *RestartPersistentSubscriptionSubsystemOptions,
 ) error {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
