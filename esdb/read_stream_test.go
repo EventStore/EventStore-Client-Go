@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"math"
 	"testing"
 	"time"
 
@@ -92,6 +93,13 @@ func readStreamEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 
 		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
 
+		serverVersion, err := db.GetServerVersion()
+		if err != nil {
+			t.Fatalf("Failed to retrieve server version %+v", err)
+		}
+
+		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22;
+
 		for i := 0; i < numberOfEventsToRead; i++ {
 			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
 			assert.Equal(t, testEvents[i].Event.EventType, events[i].OriginalEvent().EventType)
@@ -99,8 +107,14 @@ func readStreamEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 			assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].OriginalEvent().EventNumber)
 			assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].OriginalEvent().CreatedDate.Nanosecond())
 			assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].OriginalEvent().CreatedDate.Unix())
-			assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
-			assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
+			if isAtLeast22_6 {
+				assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
+				assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
+			} else {
+				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Commit)
+				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Prepare)
+			}
+
 			assert.Equal(t, testEvents[i].Event.ContentType, events[i].OriginalEvent().ContentType)
 		}
 	}
@@ -149,6 +163,13 @@ func readStreamEventsBackwardsFromEndPosition(db *esdb.Client) TestCall {
 
 		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
 
+		serverVersion, err := db.GetServerVersion()
+		if err != nil {
+			t.Fatalf("Failed to retrieve server version %+v", err)
+		}
+
+		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22;
+
 		for i := 0; i < numberOfEventsToRead; i++ {
 			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
 			assert.Equal(t, testEvents[i].Event.EventType, events[i].OriginalEvent().EventType)
@@ -156,8 +177,13 @@ func readStreamEventsBackwardsFromEndPosition(db *esdb.Client) TestCall {
 			assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].OriginalEvent().EventNumber)
 			assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].OriginalEvent().CreatedDate.Nanosecond())
 			assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].OriginalEvent().CreatedDate.Unix())
-			assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
-			assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
+			if isAtLeast22_6 {
+				assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
+				assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
+			} else {
+				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Commit)
+				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Prepare)
+			}
 			assert.Equal(t, testEvents[i].Event.ContentType, events[i].OriginalEvent().ContentType)
 		}
 	}

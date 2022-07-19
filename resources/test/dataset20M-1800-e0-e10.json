@@ -54,8 +54,8 @@
         "nanos": 245917000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11607400,
+        "commit": 11607400
       },
       "contentType": "application/json"
     }
@@ -115,8 +115,8 @@
         "nanos": 245936000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11607557,
+        "commit": 11607557
       },
       "contentType": "application/json"
     }
@@ -176,8 +176,8 @@
         "nanos": 245940000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11607714,
+        "commit": 11607714
       },
       "contentType": "application/json"
     }
@@ -237,8 +237,8 @@
         "nanos": 245943000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11607871,
+        "commit": 11607871
       },
       "contentType": "application/json"
     }
@@ -298,8 +298,8 @@
         "nanos": 245955000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11608028,
+        "commit": 11608028
       },
       "contentType": "application/json"
     }
@@ -359,8 +359,8 @@
         "nanos": 245958000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11608185,
+        "commit": 11608185
       },
       "contentType": "application/json"
     }
@@ -420,8 +420,8 @@
         "nanos": 245962000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11608342,
+        "commit": 11608342
       },
       "contentType": "application/json"
     }
@@ -481,8 +481,8 @@
         "nanos": 245964000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11608499,
+        "commit": 11608499
       },
       "contentType": "application/json"
     }
@@ -542,8 +542,8 @@
         "nanos": 245968000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11608656,
+        "commit": 11608656
       },
       "contentType": "application/json"
     }
@@ -603,8 +603,8 @@
         "nanos": 245970000
       },
       "position": {
-        "prepare": 18446744073709551615,
-        "commit": 18446744073709551615
+        "prepare": 11608813,
+        "commit": 11608813
       },
       "contentType": "application/json"
     }
