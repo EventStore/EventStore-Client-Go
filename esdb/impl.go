@@ -161,6 +161,22 @@ func (handle *connectionHandle) SupportsFeature(feature int) bool {
 	return false
 }
 
+func (handle *connectionHandle) GetServerVersion() (*ServerVersion, error) {
+	if handle.Id() == uuid.Nil {
+		return nil, &Error{
+			code: ErrorCodeConnectionClosed,
+			err:  fmt.Errorf("connection is closed"),
+		}
+	}
+
+	if handle.serverInfo == nil {
+		// old server without support for server features api
+		return &ServerVersion{}, nil
+	}
+
+	return &handle.serverInfo.version, nil
+}
+
 func newErroredConnectionHandle(err error) connectionHandle {
 	return connectionHandle{
 		id:  uuid.Nil,
@@ -311,12 +327,6 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 	return conn, nil
 }
 
-type serverVersion struct {
-	major int
-	minor int
-	patch int
-}
-
 const (
 	featureNothing                                = 0
 	featureBatchAppend                            = 1
@@ -329,7 +339,7 @@ const (
 )
 
 type serverInfo struct {
-	version      serverVersion
+	version      ServerVersion
 	featureFlags int
 }
 
@@ -350,7 +360,7 @@ func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.Cl
 	}
 
 	info := serverInfo{
-		version:      serverVersion{},
+		version:      ServerVersion{},
 		featureFlags: featureNothing,
 	}
 
@@ -367,11 +377,11 @@ func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.Cl
 
 		switch idx {
 		case 0:
-			info.version.major = num
+			info.version.Major = num
 		case 1:
-			info.version.minor = num
+			info.version.Minor = num
 		default:
-			info.version.patch = num
+			info.version.Patch = num
 		}
 	}
 
