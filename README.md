@@ -84,3 +84,5 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 [docker compose]: https://www.docker.com/
 
 [es]: https://eventstore.com
+
+CI test for QA 22.10
