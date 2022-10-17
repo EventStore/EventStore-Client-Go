@@ -59,31 +59,33 @@ func (e *Error) Error() string {
 
 	switch e.code {
 	case ErrorCodeUnsupportedFeature:
-		msg = "ErrorCodeUnsupportedFeature a request not supported by the targeted EventStoreDB node was sent."
+		msg = "[ErrorCodeUnsupportedFeature] request not supported by the targeted EventStoreDB node"
 	case ErrorCodeDeadlineExceeded:
-		msg = "ErrorCodeDeadlineExceeded a gRPC deadline exceeded error."
+		msg = "[ErrorCodeDeadlineExceeded] gRPC deadline exceeded error"
 	case ErrorCodeUnauthenticated:
-		msg = "ErrorCodeUnauthenticated a request requires authentication and the authentication failed."
+		msg = "[ErrorCodeUnauthenticated] request requires authentication and the authentication failed"
 	case ErrorCodeResourceNotFound:
-		msg = "ErrorCodeResourceNotFound a remote resource was not found or because its access was denied."
+		msg = "[ErrorCodeResourceNotFound] a remote resource was not found or its access was denied"
 	case ErrorCodeResourceAlreadyExists:
-		msg = "ErrorCodeResourceAlreadyExists a creation request was made for a resource that already exists."
+		msg = "[ErrorCodeResourceAlreadyExists] a creation request was made for a resource that already exists"
 	case ErrorCodeConnectionClosed:
-		msg = "ErrorCodeConnectionClosed when a connection is already closed."
+		msg = "[ErrorCodeConnectionClosed] the connection is already closed"
 	case ErrorCodeWrongExpectedVersion:
-		msg = "ErrorCodeWrongExpectedVersion when an append request failed the optimistic concurrency on the server."
+		msg = "[ErrorCodeWrongExpectedVersion] an append request failed the optimistic concurrency on the server"
 	case ErrorCodeAccessDenied:
-		msg = "ErrorCodeAccessDenied a request requires the right ACL."
+		msg = "[ErrorCodeAccessDenied] the request requires the right ACL"
 	case ErrorCodeStreamDeleted:
-		msg = "ErrorCodeStreamDeleted requested stream is deleted."
+		msg = "[ErrorCodeStreamDeleted] requested stream is deleted"
 	case ErrorCodeParsing:
-		msg = "ErrorCodeParsing error when parsing data."
+		msg = "[ErrorCodeParsing] error when parsing data"
 	case ErrorCodeInternalClient:
-		msg = "ErrorCodeInternalClient unexpected error from the client library, worthy of a GitHub issue."
+		msg = "[ErrorCodeInternalClient] unexpected error from the client library, worthy of a GitHub issue"
 	case ErrorCodeInternalServer:
-		msg = "ErrorCodeInternalServer unexpected error from the server, worthy of a GitHub issue."
+		msg = "[ErrorCodeInternalServer] unexpected error from the server, worthy of a GitHub issue"
 	case ErrorCodeNotLeader:
-		msg = "ErrorCodeNotLeader when a request needing a leader node was executed on a follower node."
+		msg = "[ErrorCodeNotLeader] the request needing a leader node was executed on a follower node"
+	default:
+		msg = fmt.Sprintf("[ErrorCode %d] (sorry, this error code is not supported by the Error() method)", e.code)
 	}
 
 	if e.err != nil {
