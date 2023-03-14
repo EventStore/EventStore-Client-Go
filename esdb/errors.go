@@ -36,6 +36,10 @@ const (
 	ErrorCodeInternalServer
 	// ErrorCodeNotLeader when a request needing a leader node was executed on a follower node.
 	ErrorCodeNotLeader
+	// ErrorAborted when the server aborted the request.
+	ErrorAborted
+	// ErrorUnavailable when the EventStoreDB node became unavailable.
+	ErrorUnavailable
 )
 
 // Error main client error type.
