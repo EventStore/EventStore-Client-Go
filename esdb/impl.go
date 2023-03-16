@@ -65,21 +65,18 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 		return &Error{code: ErrorCodeStreamDeleted, err: fmt.Errorf("stream '%s' is deleted", streamName)}
 	}
 
-	code := errToCode(err)
-
-	if code != ErrorCodeUnknown {
-		return &Error{code: code}
-	}
-
 	client.logger.error("unexpected exception: %v", err)
 
-	msg := reconnect{
-		correlation: handle.Id(),
+	code := errToCode(err)
+	if code == ErrorUnavailable {
+		msg := reconnect{
+			correlation: handle.Id(),
+		}
+
+		client.channel <- msg
 	}
 
-	client.channel <- msg
-
-	return err
+	return &Error{code: code, err: err}
 }
 
 func (client *grpcClient) getConnectionHandle() (*connectionHandle, error) {
@@ -562,6 +559,10 @@ func errToCode(err error) ErrorCode {
 		code = ErrorCodeDeadlineExceeded
 	case codes.AlreadyExists:
 		code = ErrorCodeResourceAlreadyExists
+	case codes.Aborted:
+		code = ErrorAborted
+	case codes.Unavailable:
+		code = ErrorUnavailable
 	default:
 		code = ErrorCodeUnknown
 	}
