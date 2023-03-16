@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"google.golang.org/grpc/credentials/insecure"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -289,24 +290,31 @@ type reconnect struct {
 
 func (msg reconnect) isMsg() {}
 
+const maxInboundMessageLength = 17 * 1_024 * 1_024 // 17 MiB
+
 func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
+	var transport credentials.TransportCredentials
 
 	if conf.DisableTLS {
-		opts = append(opts, grpc.WithInsecure())
+		transport = insecure.NewCredentials()
 	} else {
-		opts = append(opts,
-			grpc.WithTransportCredentials(credentials.NewTLS(
-				&tls.Config{
-					InsecureSkipVerify: conf.SkipCertificateVerification,
-					RootCAs:            conf.RootCAs,
-				})))
+		transport = credentials.NewTLS(
+			&tls.Config{
+				InsecureSkipVerify: conf.SkipCertificateVerification,
+				RootCAs:            conf.RootCAs,
+			})
 	}
 
-	opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
-		username: conf.Username,
-		password: conf.Password,
-	}))
+	opts = append(opts, grpc.WithTransportCredentials(transport))
+	opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxInboundMessageLength)))
+
+	if conf.Username != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(basicAuth{
+			username: conf.Username,
+			password: conf.Password,
+		}))
+	}
 
 	if conf.KeepAliveInterval >= 0 {
 		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
