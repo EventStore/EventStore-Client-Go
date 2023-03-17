@@ -48,6 +48,7 @@ func ReadStreamTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClient
 		t.Run("readStreamReturnsEOFAfterCompletion", readStreamReturnsEOFAfterCompletion(emptyDBClient))
 		t.Run("readStreamNotFound", readStreamNotFound(emptyDBClient))
 		t.Run("readStreamWithMaxAge", readStreamWithMaxAge(emptyDBClient))
+		t.Run("readStreamWithCredentialsOverride", readStreamWithCredentialsOverride(emptyDBClient))
 	})
 }
 
@@ -98,7 +99,7 @@ func readStreamEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 			t.Fatalf("Failed to retrieve server version %+v", err)
 		}
 
-		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22;
+		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22
 
 		for i := 0; i < numberOfEventsToRead; i++ {
 			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
@@ -168,7 +169,7 @@ func readStreamEventsBackwardsFromEndPosition(db *esdb.Client) TestCall {
 			t.Fatalf("Failed to retrieve server version %+v", err)
 		}
 
-		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22;
+		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22
 
 		for i := 0; i < numberOfEventsToRead; i++ {
 			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
@@ -260,5 +261,26 @@ func readStreamWithMaxAge(db *esdb.Client) TestCall {
 		require.Nil(t, evt)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, io.EOF))
+	}
+}
+
+func readStreamWithCredentialsOverride(db *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		streamName := NAME_GENERATOR.Generate()
+		opts := esdb.AppendToStreamOptions{
+			Authenticated: &esdb.Credentials{
+				Login:    "admin",
+				Password: "changeit",
+			},
+		}
+		_, err := db.AppendToStream(context.Background(), streamName, opts, createTestEvent())
+
+		assert.NoError(t, err)
+
+		streamName = NAME_GENERATOR.Generate()
+		opts.Authenticated.Password = "invalid"
+		_, err = db.AppendToStream(context.Background(), streamName, opts, createTestEvent())
+
+		assert.Error(t, err)
 	}
 }

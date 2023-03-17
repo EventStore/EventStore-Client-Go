@@ -28,11 +28,14 @@ func PersistentSubTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBCli
 		t.Run("persistentAllUpdate", persistentAllUpdate(emptyDBClient))
 		t.Run("persistentAllDelete", persistentAllDelete(emptyDBClient))
 		t.Run("persistentListAllSubs", persistentListAllSubs(emptyDBClient))
+		t.Run("persistentListAllSubsWithCredentialsOverride", persistentListAllSubsWithCredentialsOverride(emptyDBClient))
 		t.Run("persistentReplayParkedMessages", persistentReplayParkedMessages(emptyDBClient))
+		t.Run("persistentReplayParkedMessagesWithCredentialsOverride", persistentReplayParkedMessagesWithCredentialsOverride(emptyDBClient))
 		t.Run("persistentReplayParkedMessagesToAll", persistentReplayParkedMessagesToAll(emptyDBClient))
 		t.Run("persistentListSubsForStream", persistentListSubsForStream(emptyDBClient))
 		t.Run("persistentListSubsToAll", persistentListSubsToAll(emptyDBClient))
 		t.Run("persistentGetInfo", persistentGetInfo(emptyDBClient))
+		t.Run("persistentGetInfoWithCredentialsOverride", persistentGetInfoWithCredentialsOverride(emptyDBClient))
 		t.Run("persistentGetInfoToAll", persistentGetInfoToAll(emptyDBClient))
 		t.Run("persistentGetInfoEncoding", persistentGetInfoEncoding(emptyDBClient))
 		t.Run("persistentRestartSubsystem", persistentRestartSubsystem(emptyDBClient))
@@ -446,6 +449,57 @@ func persistentReplayParkedMessages(client *esdb.Client) TestCall {
 	}
 }
 
+func persistentReplayParkedMessagesWithCredentialsOverride(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+		streamName := NAME_GENERATOR.Generate()
+		eventCount := 2
+
+		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		sub, err := client.SubscribeToPersistentSubscription(context.Background(), streamName, groupName, esdb.SubscribeToPersistentSubscriptionOptions{})
+		defer sub.Close()
+
+		require.NoError(t, err)
+
+		events := testCreateEvents(uint32(eventCount))
+
+		_, err = client.AppendToStream(context.Background(), streamName, esdb.AppendToStreamOptions{}, events...)
+
+		require.NoError(t, err)
+
+		i := 0
+		for i < eventCount {
+			event := sub.Recv()
+
+			if event.SubscriptionDropped != nil {
+				t.FailNow()
+			}
+
+			if event.EventAppeared != nil {
+				err = sub.Nack("because reasons", esdb.NackActionPark, event.EventAppeared.Event)
+				require.NoError(t, err)
+				i++
+			}
+		}
+
+		// We let the server the time to park those events.
+		time.Sleep(5 * time.Second)
+
+		opts := esdb.ReplayParkedMessagesOptions{
+			Authenticated: &esdb.Credentials{
+				Login:    "admin",
+				Password: "changeit",
+			},
+		}
+		err = client.ReplayParkedMessages(context.Background(), streamName, groupName, opts)
+
+		require.NoError(t, err)
+	}
+}
+
 func persistentReplayParkedMessagesToAll(client *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		streamName := NAME_GENERATOR.Generate()
@@ -549,6 +603,27 @@ func persistentListAllSubs(client *esdb.Client) TestCall {
 	}
 }
 
+func persistentListAllSubsWithCredentialsOverride(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		groupName := NAME_GENERATOR.Generate()
+		streamName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		opts := esdb.ListPersistentSubscriptionsOptions{
+			Authenticated: &esdb.Credentials{
+				Login:    "admin",
+				Password: "changeit",
+			},
+		}
+		_, err = client.ListAllPersistentSubscriptions(context.Background(), opts)
+
+		require.NoError(t, err)
+	}
+}
+
 func persistentListSubsForStream(client *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		streamName := NAME_GENERATOR.Generate()
@@ -633,6 +708,30 @@ func persistentGetInfo(client *esdb.Client) TestCall {
 		require.NoError(t, err)
 
 		sub, err := client.GetPersistentSubscriptionInfo(context.Background(), streamName, groupName, esdb.GetPersistentSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		require.Equal(t, streamName, sub.EventSource)
+		require.Equal(t, groupName, sub.GroupName)
+	}
+}
+
+func persistentGetInfoWithCredentialsOverride(client *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		streamName := NAME_GENERATOR.Generate()
+		groupName := NAME_GENERATOR.Generate()
+
+		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+
+		require.NoError(t, err)
+
+		opts := esdb.GetPersistentSubscriptionOptions{
+			Authenticated: &esdb.Credentials{
+				Login:    "admin",
+				Password: "changeit",
+			},
+		}
+		sub, err := client.GetPersistentSubscriptionInfo(context.Background(), streamName, groupName, opts)
 
 		require.NoError(t, err)
 

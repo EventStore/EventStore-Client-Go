@@ -137,9 +137,18 @@ func (container *Container) Close() {
 	}
 }
 
+func GetInsecureDatabase(t *testing.T) *Container {
+	options := getDockerOptions()
+	options.Env = []string{
+		"EVENTSTORE_INSECURE=true",
+	}
+
+	return getDatabase(t, options, false)
+}
+
 func GetEmptyDatabase(t *testing.T) *Container {
 	options := getDockerOptions()
-	return getDatabase(t, options)
+	return getDatabase(t, options, true)
 }
 
 func GetPrePopulatedDatabase(t *testing.T) *Container {
@@ -148,11 +157,11 @@ func GetPrePopulatedDatabase(t *testing.T) *Container {
 		"EVENTSTORE_DB=/data/integration-tests",
 		"EVENTSTORE_MEM_DB=false",
 	}
-	return getDatabase(t, options)
+	return getDatabase(t, options, true)
 }
 
 // TODO - Keep retrying when the healthcheck failed. We should try creating a new container instead of failing the test.
-func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
+func getDatabase(t *testing.T, options *dockertest.RunOptions, secureHealthCheck bool) *Container {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		t.Fatalf("Could not connect to docker. Reason: %v", err)
@@ -193,7 +202,12 @@ func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
 				}
 			}
 
-			healthCheckEndpoint := fmt.Sprintf("https://%s/health/alive", endpoint)
+			scheme := "https"
+			if !secureHealthCheck {
+				scheme = "http"
+			}
+
+			healthCheckEndpoint := fmt.Sprintf("%s://%s/health/alive", scheme, endpoint)
 			_, err := http.Get(healthCheckEndpoint)
 			return err
 		})
@@ -286,7 +300,15 @@ func getRootDir() (string, error) {
 }
 
 func CreateTestClient(container *Container, t *testing.T) *esdb.Client {
-	config, err := esdb.ParseConnectionString(fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint))
+	return createTestClient(fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint), container, t)
+}
+
+func CreateInsecureTestClient(container *Container, t *testing.T) *esdb.Client {
+	return createTestClient(fmt.Sprintf("esdb://%s?tls=false", container.Endpoint), container, t)
+}
+
+func createTestClient(conn string, container *Container, t *testing.T) *esdb.Client {
+	config, err := esdb.ParseConnectionString(conn)
 	if err != nil {
 		t.Fatalf("Unexpected configuration error: %s", err.Error())
 	}
@@ -355,11 +377,13 @@ func WaitForLeaderToBeElected(t *testing.T, db *esdb.Client) {
 		}
 
 		if err != nil {
-			if err.Error() == "not leader exception" {
-				time.Sleep(500 * time.Microsecond)
-				t.Logf("[debug] not available retrying...")
-				cancel()
-				continue
+			if esdbError, ok := esdb.FromError(err); !ok {
+				if esdbError.Code() == esdb.ErrorCodeNotLeader || esdbError.Code() == esdb.ErrorUnavailable {
+					time.Sleep(500 * time.Microsecond)
+					t.Logf("[debug] not available retrying...")
+					cancel()
+					continue
+				}
 			}
 
 			panic(err)

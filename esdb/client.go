@@ -53,7 +53,7 @@ func (client *Client) AppendToStream(
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(context, client.config, &opts, callOptions)
+	callOptions, ctx, cancel := configureGrpcCall(context, client.config, &opts, callOptions, client.grpcClient)
 	defer cancel()
 
 	appendOperation, err := streamsClient.Append(ctx, callOptions...)
@@ -240,7 +240,7 @@ func (client *Client) DeleteStream(
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions)
+	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions, client.grpcClient)
 	defer cancel()
 	deleteRequest := toDeleteRequest(streamID, opts.ExpectedRevision)
 	deleteResponse, err := streamsClient.Delete(ctx, deleteRequest, callOptions...)
@@ -270,7 +270,7 @@ func (client *Client) TombstoneStream(
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions)
+	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions, client.grpcClient)
 	defer cancel()
 	tombstoneRequest := toTombstoneRequest(streamID, opts.ExpectedRevision)
 	tombstoneResponse, err := streamsClient.Tombstone(ctx, tombstoneRequest, callOptions...)
@@ -333,7 +333,7 @@ func (client *Client) SubscribeToStream(
 	}
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions)
+	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions, client.grpcClient)
 
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	subscriptionRequest, err := toStreamSubscriptionRequest(streamID, opts.From, opts.ResolveLinkTos, nil)
@@ -379,7 +379,7 @@ func (client *Client) SubscribeToAll(
 	streamsClient := api.NewStreamsClient(handle.Connection())
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions)
+	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, &opts, callOptions, client.grpcClient)
 
 	var filterOptions *SubscriptionFilterOptions = nil
 	if opts.Filter != nil {
@@ -751,7 +751,7 @@ func readInternal(
 ) (*ReadStream, error) {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, options, callOptions)
+	callOptions, ctx, cancel := configureGrpcCall(parent, client.config, options, callOptions, client.grpcClient)
 	result, err := streamsClient.Read(ctx, readRequest, callOptions...)
 	if err != nil {
 		defer cancel()
