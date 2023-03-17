@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Add unique test in `Error()` for each `ErrorCode`. [EventStore-Client-Go#130](https://github.com/EventStore/EventStore-Client-Go/pull/130)
 
+### Changed
+- Increase max receive message length to match the max event size in EventStoreDB [EventStore-Client-Go#135](https://github.com/EventStore/EventStore-Client-Go/pull/135)
+
+### Fixed
+- Do not start discovery process on ABORT gRPC error. [EventStore-Client-Go#134](https://github.com/EventStore/EventStore-Client-Go/pull/134)
+
 ## [3.0.0] - 2022-07-20
 
 ### Added
