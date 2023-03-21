@@ -43,7 +43,7 @@ type EventStoreDockerConfig struct {
 
 const (
 	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "ghcr.io/eventstore/testdata"
-	DEFAULT_EVENTSTORE_DOCKER_TAG        = "ci"
+	DEFAULT_EVENTSTORE_DOCKER_TAG        = "latest"
 	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2113"
 )
 
