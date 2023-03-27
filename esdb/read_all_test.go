@@ -18,6 +18,7 @@ func ReadAllTests(t *testing.T, populatedDBClient *esdb.Client) {
 		t.Run("readAllEventsForwardsFromNonZeroPosition", readAllEventsForwardsFromNonZeroPosition(populatedDBClient))
 		t.Run("readAllEventsBackwardsFromZeroPosition", readAllEventsBackwardsFromZeroPosition(populatedDBClient))
 		t.Run("readAllEventsBackwardsFromNonZeroPosition", readAllEventsBackwardsFromNonZeroPosition(populatedDBClient))
+		t.Run("readAllEventsWithCredentialsOverride", readAllEventsWithCredentialOverride(populatedDBClient))
 	})
 }
 
@@ -213,6 +214,48 @@ func readAllEventsBackwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 			assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
 			assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
 			assert.Equal(t, testEvents[i].Event.ContentType, events[i].OriginalEvent().ContentType)
+		}
+	}
+}
+
+func readAllEventsWithCredentialOverride(db *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		eventsContent, err := ioutil.ReadFile("../resources/test/all-back-c3386-p3386.json")
+		require.NoError(t, err)
+
+		var testEvents []TestEvent
+		err = json.Unmarshal(eventsContent, &testEvents)
+		require.NoError(t, err)
+
+		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		defer cancel()
+
+		numberOfEventsToRead := 10
+		numberOfEvents := uint64(numberOfEventsToRead)
+
+		opts := esdb.ReadAllOptions{
+			Authenticated: &esdb.Credentials{
+				Login:    "admin",
+				Password: "changeit",
+			},
+			From:           esdb.Position{Commit: 3_386, Prepare: 3_386},
+			Direction:      esdb.Forwards,
+			ResolveLinkTos: false,
+		}
+
+		stream, err := db.ReadAll(context, opts, numberOfEvents)
+
+		if err != nil {
+			t.Fatalf("Unexpected failure %+v", err)
+		}
+
+		defer stream.Close()
+
+		// collect all events to see if no error occurs
+		_, err = collectStreamEvents(stream)
+
+		if err != nil {
+			t.Fatalf("Unexpected failure %+v", err)
 		}
 	}
 }

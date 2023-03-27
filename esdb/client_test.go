@@ -25,7 +25,17 @@ func TestSingleNode(t *testing.T) {
 	t.Log("[debug] prepopulated database container started and ready to serve!")
 	//
 
-	// Those ReadAll tests need to be executed first because those are based on $all specific order.
+	// Insecure empty database container
+	t.Log("[debug] starting insecure database container...")
+	insecureContainer := GetInsecureDatabase(t)
+	defer insecureContainer.Close()
+	insecureContainerClient := CreateInsecureTestClient(insecureContainer, t)
+	defer insecureContainerClient.Close()
+	WaitForLeaderToBeElected(t, insecureContainerClient)
+	t.Log("[debug] insecure database container started and ready to serve!")
+	//
+
+	//// Those ReadAll tests need to be executed first because those are based on $all specific order.
 	ReadAllTests(t, populatedContainerClient)
 	ReadStreamTests(t, emptyContainerClient, populatedContainerClient)
 	SubscriptionTests(t, emptyContainerClient, populatedContainerClient)
@@ -35,6 +45,7 @@ func TestSingleNode(t *testing.T) {
 	PersistentSubReadTests(t, emptyContainerClient)
 	PersistentSubTests(t, emptyContainerClient, populatedContainerClient)
 	TLSTests(t, emptyContainer)
+	AuthenticationTests(t, emptyContainerClient, insecureContainerClient)
 }
 
 func TestClusterNode(t *testing.T) {

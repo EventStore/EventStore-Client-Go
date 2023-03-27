@@ -2,11 +2,11 @@ package esdb
 
 import (
 	"context"
-	"google.golang.org/grpc/metadata"
 	"math"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type operationKind int
@@ -23,7 +23,7 @@ type options interface {
 	requiresLeader() bool
 }
 
-func configureGrpcCall(ctx context.Context, conf *Configuration, options options, grpcOptions []grpc.CallOption) ([]grpc.CallOption, context.Context, context.CancelFunc) {
+func configureGrpcCall(ctx context.Context, conf *Configuration, options options, grpcOptions []grpc.CallOption, auth perCallCredentials) ([]grpc.CallOption, context.Context, context.CancelFunc) {
 	var duration time.Duration
 
 	if options.deadline() != nil {
@@ -39,12 +39,7 @@ func configureGrpcCall(ctx context.Context, conf *Configuration, options options
 	deadline := time.Now().Add(duration)
 	newCtx, cancel := context.WithDeadline(ctx, deadline)
 
-	if options.credentials() != nil {
-		grpcOptions = append(grpcOptions, grpc.PerRPCCredentials(basicAuth{
-			username: options.credentials().Login,
-			password: options.credentials().Password,
-		}))
-	}
+	auth.setCallCredentials(options.credentials())
 
 	if options.requiresLeader() || conf.NodePreference == NodePreferenceLeader {
 		md := metadata.New(map[string]string{"requires-leader": "true"})

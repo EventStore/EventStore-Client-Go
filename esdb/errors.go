@@ -88,6 +88,9 @@ func (e *Error) Error() string {
 		msg = "[ErrorCodeInternalServer] unexpected error from the server, worthy of a GitHub issue"
 	case ErrorCodeNotLeader:
 		msg = "[ErrorCodeNotLeader] the request needing a leader node was executed on a follower node"
+	case ErrorUnavailable:
+		msg = "[ErrorUnavailable] the server is not ready to accept requests"
+
 	default:
 		msg = fmt.Sprintf("[ErrorCode %d] (sorry, this error code is not supported by the Error() method)", e.code)
 	}

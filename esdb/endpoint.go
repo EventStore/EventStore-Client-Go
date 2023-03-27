@@ -78,12 +78,15 @@ func newGrpcClient(config Configuration) *grpcClient {
 
 	atomic.StoreInt32(closeFlag, 0)
 
-	go connectionStateMachine(config, closeFlag, channel, &logger)
+	auth := NewBasicPerCallAuth(config.Username, config.Password)
+
+	go connectionStateMachine(config, closeFlag, channel, &logger, auth)
 
 	return &grpcClient{
 		channel:   channel,
 		closeFlag: closeFlag,
 		once:      new(sync.Once),
 		logger:    &logger,
+		auth:      auth,
 	}
 }

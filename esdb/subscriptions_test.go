@@ -20,6 +20,7 @@ func SubscriptionTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClie
 		t.Run("allSubscriptionWithFilterDeliversCorrectEvents", allSubscriptionWithFilterDeliversCorrectEvents(populatedDBClient))
 		t.Run("subscriptionAllFilter", subscriptionAllFilter(emptyDBClient))
 		t.Run("connectionClosing", connectionClosing(populatedDBClient))
+		t.Run("subscriptionAllWithCredentialsOverride", subscriptionAllWithCredentialsOverride(populatedDBClient))
 	})
 }
 
@@ -210,6 +211,24 @@ func connectionClosing(db *esdb.Client) TestCall {
 		droppedEvent.Add(1)
 		timedOut := waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out waiting for dropped event")
+	}
+}
+
+func subscriptionAllWithCredentialsOverride(db *esdb.Client) TestCall {
+	return func(t *testing.T) {
+		opts := esdb.SubscribeToAllOptions{
+			Authenticated: &esdb.Credentials{
+				Login:    "admin",
+				Password: "changeit",
+			},
+			From:   esdb.Start{},
+			Filter: esdb.ExcludeSystemEventsFilter(),
+		}
+		_, err := db.SubscribeToAll(context.Background(), opts)
+
+		if err != nil {
+			t.Error(err)
+		}
 	}
 }
 
