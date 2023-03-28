@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - Do not start discovery process on ABORT gRPC error. [EventStore-Client-Go#134](https://github.com/EventStore/EventStore-Client-Go/pull/134)
+- Configuring `WithPerRPCCredentials` more than once causes authentication to fail. [EventStore-Client-Go#136](https://github.com/EventStore/EventStore-Client-Go/pull/136)
 
 ## [3.0.0] - 2022-07-20
 
