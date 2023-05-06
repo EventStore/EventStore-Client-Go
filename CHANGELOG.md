@@ -8,11 +8,13 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Increase max receive message length to match the max event size in EventStoreDB [EventStore-Client-Go#135](https://github.com/EventStore/EventStore-Client-Go/pull/135)
+- Update container version when testing. [EventStore-Client-Go#137](https://github.com/EventStore/EventStore-Client-Go/pull/137)
 
 ### Fixed
 - Do not start discovery process on ABORT gRPC error. [EventStore-Client-Go#134](https://github.com/EventStore/EventStore-Client-Go/pull/134)
 - Configuring `WithPerRPCCredentials` more than once causes authentication to fail. [EventStore-Client-Go#136](https://github.com/EventStore/EventStore-Client-Go/pull/136)
 - Stop using deprecated runner. [EventStore-Client-Go#139](https://github.com/EventStore/EventStore-Client-Go/pull/139)
+- CI build stuck because specified runner is not available anymore. [EventStore-Client-Go#140](https://github.com/EventStore/EventStore-Client-Go/pull/140)
 
 ## [3.0.0] - 2022-07-20
 
