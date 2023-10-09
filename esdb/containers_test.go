@@ -53,18 +53,17 @@ var defaultEventStoreDockerConfig = EventStoreDockerConfig{
 	Port:       DEFAULT_EVENTSTORE_DOCKER_PORT,
 }
 
+func GetEnvOrDefault(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
+
 func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_REPOSITORY_ENV); exists {
-		config.Repository = value
-	}
-
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV); exists {
-		config.Tag = value
-	}
-
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_PORT_ENV); exists {
-		config.Port = value
-	}
+	config.Repository = GetEnvOrDefault(EVENTSTORE_DOCKER_REPOSITORY_ENV, config.Repository)
+	config.Tag = GetEnvOrDefault(EVENTSTORE_DOCKER_TAG_ENV, config.Tag)
+	config.Port = GetEnvOrDefault(EVENTSTORE_DOCKER_PORT_ENV, config.Port)
 
 	fmt.Println(spew.Sdump(config))
 	return config
@@ -79,40 +78,29 @@ type ESDBVersion struct {
 type VersionPredicateFn = func(ESDBVersion) bool
 
 func IsESDB_Version(predicate VersionPredicateFn) bool {
-	if value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV); exists {
-		if value == "ci" {
-			return false
-		}
-
-		parts := strings.Split(value, "-")
-		versionNumbers := strings.Split(parts[0], ".")
-		maj, err := strconv.Atoi(versionNumbers[0])
-
-		if err != nil {
-			panic(err)
-		}
-
-		min, err := strconv.Atoi(versionNumbers[1])
-
-		if err != nil {
-			panic(err)
-		}
-
-		patch, err := strconv.Atoi(versionNumbers[2])
-
-		if err != nil {
-			panic(err)
-		}
-
-		version := ESDBVersion{
-			Maj:   maj,
-			Min:   min,
-			Patch: patch,
-		}
-		return predicate(version)
+	value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV)
+	if !exists || value == "ci" {
+		return false
 	}
 
-	return false
+	parts := strings.Split(value, "-")
+	versionNumbers := strings.Split(parts[0], ".")
+
+	version := ESDBVersion{
+		Maj:   mustConvertToInt(versionNumbers[0]),
+		Min:   mustConvertToInt(versionNumbers[1]),
+		Patch: mustConvertToInt(versionNumbers[2]),
+	}
+
+	return predicate(version)
+}
+
+func mustConvertToInt(s string) int {
+	val, err := strconv.Atoi(s)
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 func IsESDBVersion20() bool {
@@ -123,10 +111,21 @@ func IsESDBVersion20() bool {
 
 func getDockerOptions() *dockertest.RunOptions {
 	config := readEnvironmentVariables(defaultEventStoreDockerConfig)
+
+	var envs []string
+	if isInsecure, exists := os.LookupEnv("EVENTSTORE_INSECURE"); exists {
+		envs = append(envs, fmt.Sprintf("EVENTSTORE_INSECURE=%s", isInsecure))
+	}
+
+	if len(envs) == 0 {
+		envs = append(envs, fmt.Sprintf("EVENTSTORE_INSECURE=%s", "true"))
+	}
+
 	return &dockertest.RunOptions{
 		Repository:   config.Repository,
 		Tag:          config.Tag,
 		ExposedPorts: []string{config.Port},
+		Env:          envs,
 	}
 }
 
@@ -137,39 +136,20 @@ func (container *Container) Close() {
 	}
 }
 
-func GetInsecureDatabase(t *testing.T) *Container {
-	options := getDockerOptions()
-	options.Env = []string{
-		"EVENTSTORE_INSECURE=true",
-	}
-
-	return getDatabase(t, options, false)
-}
-
-func GetEmptyDatabase(t *testing.T) *Container {
-	options := getDockerOptions()
-	return getDatabase(t, options, true)
-}
-
-func GetPrePopulatedDatabase(t *testing.T) *Container {
-	options := getDockerOptions()
-	options.Env = []string{
-		"EVENTSTORE_DB=/data/integration-tests",
-		"EVENTSTORE_MEM_DB=false",
-	}
-	return getDatabase(t, options, true)
-}
-
 // TODO - Keep retrying when the healthcheck failed. We should try creating a new container instead of failing the test.
-func getDatabase(t *testing.T, options *dockertest.RunOptions, secureHealthCheck bool) *Container {
+func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		t.Fatalf("Could not connect to docker. Reason: %v", err)
 	}
 
-	err = setTLSContext(options)
-	if err != nil {
-		t.Fatal(err)
+	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+
+	if !isInsecure {
+		err = setTLSContext(options)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	fmt.Println("Starting docker container...")
@@ -203,7 +183,7 @@ func getDatabase(t *testing.T, options *dockertest.RunOptions, secureHealthCheck
 			}
 
 			scheme := "https"
-			if !secureHealthCheck {
+			if isInsecure {
 				scheme = "http"
 			}
 
@@ -299,12 +279,68 @@ func getRootDir() (string, error) {
 	return path.Clean(path.Join(currentDir, "../")), nil
 }
 
-func CreateTestClient(container *Container, t *testing.T) *esdb.Client {
-	return createTestClient(fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false", container.Endpoint), container, t)
+func GetClient(t *testing.T, container *Container) *esdb.Client {
+	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+	isCluster := GetEnvOrDefault("CLUSTER", "false") == "true"
+
+	if isCluster {
+		return CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=leader&tlsverifycert=false", t)
+	} else if isInsecure {
+		return createTestClient(fmt.Sprintf("esdb://%s?tls=false", container.Endpoint), container, t)
+	}
+
+	return createTestClient(fmt.Sprintf("esdb://admin:changeit@%s?tlsverifycert=false&tls=true", container.Endpoint), container, t)
 }
 
-func CreateInsecureTestClient(container *Container, t *testing.T) *esdb.Client {
-	return createTestClient(fmt.Sprintf("esdb://%s?tls=false", container.Endpoint), container, t)
+func CreateEmptyDatabase(t *testing.T) (*Container, *esdb.Client) {
+	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+	var container *Container
+	var client *esdb.Client
+
+	if GetEnvOrDefault("CLUSTER", "false") == "true" {
+		container = nil
+		client = GetClient(t, container)
+	} else {
+		if isInsecure {
+			t.Log("[debug] starting insecure database container...")
+		} else {
+			t.Log("[debug] starting empty database container...")
+		}
+
+		options := getDockerOptions()
+		container = getDatabase(t, options)
+		client = GetClient(t, container)
+	}
+
+	WaitForAdminToBeAvailable(t, client)
+	WaitForLeaderToBeElected(t, client)
+
+	return container, client
+}
+
+func CreatePopulatedDatabase(t *testing.T) (*Container, *esdb.Client) {
+	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+
+	if GetEnvOrDefault("CLUSTER", "false") == "true" {
+		return nil, nil
+	} else {
+		if isInsecure {
+			t.Log("[debug] starting prepopulated insecure database container...")
+		} else {
+			t.Log("[debug] starting prepopulated database container...")
+		}
+
+		options := getDockerOptions()
+		options.Env = append(options.Env, "EVENTSTORE_DB=/data/integration-tests", "EVENTSTORE_MEM_DB=false")
+
+		container := getDatabase(t, options)
+		client := GetClient(t, container)
+
+		WaitForAdminToBeAvailable(t, client)
+
+		return container, client
+	}
+
 }
 
 func createTestClient(conn string, container *Container, t *testing.T) *esdb.Client {

@@ -266,6 +266,12 @@ func readStreamWithMaxAge(db *esdb.Client) TestCall {
 
 func readStreamWithCredentialsOverride(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
+		isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+
+		if isInsecure {
+			t.Skip()
+		}
+
 		streamName := NAME_GENERATOR.Generate()
 		opts := esdb.AppendToStreamOptions{
 			Authenticated: &esdb.Credentials{

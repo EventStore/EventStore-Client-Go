@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -24,7 +25,7 @@ func ReadAllTests(t *testing.T, populatedDBClient *esdb.Client) {
 
 func readAllEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../resources/test/all-e0-e10.json")
+		eventsContent, err := os.ReadFile("../resources/test/all-e0-e10.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -120,7 +121,7 @@ func readAllEventsForwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 
 func readAllEventsBackwardsFromZeroPosition(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../resources/test/all-back-e0-e10.json")
+		eventsContent, err := os.ReadFile("../resources/test/all-back-e0-e10.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
