@@ -703,16 +703,66 @@ func persistentGetInfo(client *esdb.Client) TestCall {
 		streamName := NAME_GENERATOR.Generate()
 		groupName := NAME_GENERATOR.Generate()
 
-		err := client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{})
+		setts := esdb.SubscriptionSettingsDefault()
+		setts.CheckpointLowerBound = 1
+		setts.CheckpointUpperBound = 1
+
+		var events []esdb.EventData
+
+		for i := 0; i < 50; i++ {
+			events = append(events, createTestEvent())
+		}
+
+		_, err := client.AppendToStream(context.Background(), streamName, esdb.AppendToStreamOptions{}, events...)
 
 		require.NoError(t, err)
 
-		sub, err := client.GetPersistentSubscriptionInfo(context.Background(), streamName, groupName, esdb.GetPersistentSubscriptionOptions{})
+		err = client.CreatePersistentSubscription(context.Background(), streamName, groupName, esdb.PersistentStreamSubscriptionOptions{
+			StartFrom: esdb.Start{},
+			Settings:  &setts,
+		})
 
 		require.NoError(t, err)
 
-		require.Equal(t, streamName, sub.EventSource)
-		require.Equal(t, groupName, sub.GroupName)
+		var receivedEvents sync.WaitGroup
+
+		subscription, err := client.SubscribeToPersistentSubscription(
+			context.Background(), streamName, groupName, esdb.SubscribeToPersistentSubscriptionOptions{
+				BufferSize: 2,
+			})
+
+		require.NoError(t, err)
+
+		go func() {
+			current := 1
+
+			for {
+				subEvent := subscription.Recv()
+
+				if subEvent.EventAppeared != nil {
+					current++
+
+					subscription.Ack(subEvent.EventAppeared.Event)
+
+					if current >= 10 {
+						receivedEvents.Done()
+						break
+					}
+
+					continue
+				}
+			}
+		}()
+
+		require.NoError(t, err)
+		receivedEvents.Add(1)
+		timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
+		require.False(t, timedOut, "Timed out waiting for initial set of events")
+		info, err := client.GetPersistentSubscriptionInfo(context.Background(), streamName, groupName, esdb.GetPersistentSubscriptionOptions{})
+		require.NoError(t, err)
+		require.Equal(t, streamName, info.EventSource)
+		require.Equal(t, groupName, info.GroupName)
+		subscription.Close()
 	}
 }
 

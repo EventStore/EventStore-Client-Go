@@ -397,7 +397,7 @@ func subscriptionInfoFromWire(wire *persistent.SubscriptionInfo) (*PersistentSub
 			}
 
 			stats.LastCheckpointedEventRevision = new(uint64)
-			*stats.LastKnownEventRevision = lastRev
+			*stats.LastCheckpointedEventRevision = lastRev
 		}
 	}
 
