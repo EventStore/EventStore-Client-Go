@@ -47,17 +47,8 @@ To also regenerate protobuf and gRPC files while building
 
 ## Run tests
 
-Run docker compose for generating certificates:
-
-```shell
-docker-compose up
-docker-compose down
 ```
-
-```shell
-docker-compose -f cluster-docker-compose.yml up -d 
-go test ./esdb
-docker-compose -f cluster-docker-compose.yml down
+make test
 ```
 
 By default the tests use `ghcr.io/eventstore/eventstore:ci`. To override this, set the `EVENTSTORE_DOCKER_TAG_ENV` environment variable to the tag you wish to use:

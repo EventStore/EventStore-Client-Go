@@ -115,7 +115,9 @@ func appendWithInvalidStreamRevision(db *esdb.Client) TestCall {
 
 func appendToSystemStreamWithIncorrectCredentials(container *Container) TestCall {
 	return func(t *testing.T) {
-		if container == nil {
+		isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+
+		if container == nil || isInsecure {
 			t.Skip()
 		}
 

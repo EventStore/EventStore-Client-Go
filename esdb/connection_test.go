@@ -18,7 +18,7 @@ func ConnectionTests(t *testing.T, emptyDB *Container) {
 
 func closeConnection(container *Container) TestCall {
 	return func(t *testing.T) {
-		db := CreateTestClient(container, t)
+		db := GetClient(t, container)
 
 		testEvent := createTestEvent()
 		testEvent.EventID = uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872")

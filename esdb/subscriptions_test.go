@@ -26,6 +26,10 @@ func SubscriptionTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClie
 
 func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
+		if db == nil {
+			t.Skip()
+		}
+
 		streamID := "dataset20M-0"
 		testEvent := createTestEvent()
 		testEvent.EventID = uuid.FromStringOrNil("84c8e36c-4e64-11ea-8b59-b7f658acfc9f")
@@ -90,6 +94,10 @@ type Position struct {
 
 func allSubscriptionWithFilterDeliversCorrectEvents(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
+		if db == nil {
+			t.Skip()
+		}
+
 		positionsContent, err := ioutil.ReadFile("../resources/test/all-positions-filtered-stream-194-e0-e30.json")
 		require.NoError(t, err)
 		versionsContent, err := ioutil.ReadFile("../resources/test/all-versions-filtered-stream-194-e0-e30.json")
@@ -177,6 +185,10 @@ func subscriptionAllFilter(db *esdb.Client) TestCall {
 
 func connectionClosing(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
+		if db == nil {
+			t.Skip()
+		}
+
 		var droppedEvent sync.WaitGroup
 
 		subscription, err := db.SubscribeToStream(context.Background(), "dataset20M-0", esdb.SubscribeToStreamOptions{
@@ -216,6 +228,10 @@ func connectionClosing(db *esdb.Client) TestCall {
 
 func subscriptionAllWithCredentialsOverride(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
+		if db == nil {
+			t.Skip()
+		}
+
 		opts := esdb.SubscribeToAllOptions{
 			Authenticated: &esdb.Credentials{
 				Login:    "admin",

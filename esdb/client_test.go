@@ -4,61 +4,89 @@ import (
 	"testing"
 )
 
-func TestSingleNode(t *testing.T) {
-	// Empty database container
-	t.Log("[debug] starting empty database container...")
-	emptyContainer := GetEmptyDatabase(t)
-	defer emptyContainer.Close()
-	emptyContainerClient := CreateTestClient(emptyContainer, t)
-	defer emptyContainerClient.Close()
-	WaitForAdminToBeAvailable(t, emptyContainerClient)
-	t.Log("[debug] empty database container started and ready to serve!")
-	//
+func TestStreams(t *testing.T) {
+	emptyContainer, emptyClient := CreateEmptyDatabase(t)
 
-	// Prepopulated database container
-	t.Log("[debug] starting prepopulated database container...")
-	populatedContainer := GetPrePopulatedDatabase(t)
-	defer populatedContainer.Close()
-	populatedContainerClient := CreateTestClient(populatedContainer, t)
-	defer populatedContainerClient.Close()
-	WaitForAdminToBeAvailable(t, populatedContainerClient)
-	t.Log("[debug] prepopulated database container started and ready to serve!")
-	//
+	if emptyContainer != nil {
+		defer emptyContainer.Close()
+	}
 
-	// Insecure empty database container
-	t.Log("[debug] starting insecure database container...")
-	insecureContainer := GetInsecureDatabase(t)
-	defer insecureContainer.Close()
-	insecureContainerClient := CreateInsecureTestClient(insecureContainer, t)
-	defer insecureContainerClient.Close()
-	WaitForLeaderToBeElected(t, insecureContainerClient)
-	t.Log("[debug] insecure database container started and ready to serve!")
-	//
+	if emptyClient != nil {
+		defer emptyClient.Close()
+	}
 
-	//// Those ReadAll tests need to be executed first because those are based on $all specific order.
-	ReadAllTests(t, populatedContainerClient)
-	ReadStreamTests(t, emptyContainerClient, populatedContainerClient)
-	SubscriptionTests(t, emptyContainerClient, populatedContainerClient)
-	AppendTests(t, emptyContainer, emptyContainerClient)
+	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
+
+	if populatedContainer != nil {
+		defer populatedContainer.Close()
+	}
+
+	if populatedClient != nil {
+		defer populatedClient.Close()
+	}
+
+	isCluster := GetEnvOrDefault("CLUSTER", "false") == "true"
+	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
+
+	if isCluster {
+		ClusterTests(t)
+	}
+
+	AppendTests(t, emptyContainer, emptyClient)
+	ReadStreamTests(t, emptyClient, populatedClient)
+	SubscriptionTests(t, emptyClient, populatedClient)
+	DeleteTests(t, emptyClient)
 	ConnectionTests(t, emptyContainer)
-	DeleteTests(t, emptyContainerClient)
-	PersistentSubReadTests(t, emptyContainerClient)
-	PersistentSubTests(t, emptyContainerClient, populatedContainerClient)
-	TLSTests(t, emptyContainer)
-	AuthenticationTests(t, emptyContainerClient, insecureContainerClient)
+
+	if !isCluster {
+		if !isInsecure {
+			TLSTests(t, emptyContainer)
+			SecureAuthenticationTests(t, emptyClient)
+		} else {
+			InsecureAuthenticationTests(t, emptyClient)
+		}
+	}
 }
 
-func TestClusterNode(t *testing.T) {
-	db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=leader&tlsverifycert=false", t)
-	defer db.Close()
+func TestPersistentSubscriptions(t *testing.T) {
+	emptyContainer, emptyClient := CreateEmptyDatabase(t)
 
-	WaitForAdminToBeAvailable(t, db)
-	WaitForLeaderToBeElected(t, db)
+	if emptyContainer != nil {
+		defer emptyContainer.Close()
+	}
 
-	ClusterTests(t)
-	ReadStreamTests(t, db, nil)
-	AppendTests(t, nil, db)
-	DeleteTests(t, db)
-	PersistentSubReadTests(t, db)
-	PersistentSubTests(t, db, nil)
+	if emptyClient != nil {
+		defer emptyClient.Close()
+	}
+
+	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
+
+	if populatedContainer != nil {
+		defer populatedContainer.Close()
+	}
+
+	if populatedClient != nil {
+		defer populatedClient.Close()
+	}
+
+	PersistentSubReadTests(t, emptyClient)
+	PersistentSubTests(t, emptyClient, populatedClient)
+}
+
+func TestExpectations(t *testing.T) {
+	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
+
+	if populatedContainer != nil {
+		defer populatedContainer.Close()
+	}
+
+	if populatedClient != nil {
+		defer populatedClient.Close()
+	}
+
+	ReadAllTests(t, populatedClient)
+}
+
+func TestMisc(t *testing.T) {
+	// tests that don't require a database
 }

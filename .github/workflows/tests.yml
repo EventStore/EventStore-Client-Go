@@ -1,0 +1,80 @@
+name: tests workflow
+
+on:
+  workflow_call:
+    inputs:
+      esdb_version:
+        required: true
+        type: string
+
+jobs:
+  single_node:
+    name: Single node
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [Streams, PersistentSubscriptions, Expectations]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate certificates
+        run: docker-compose --file docker-compose.yml up
+
+      - name: Run Go Tests
+        run: go test -v ./esdb -run Test${{ matrix.test }}
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
+          EVENTSTORE_INSECURE: true
+
+  secure:
+    name: Secure
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [Streams, PersistentSubscriptions]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate certificates
+        run: docker-compose --file docker-compose.yml up
+
+      - name: Run Go Tests
+        run: go test -v ./esdb -run Test${{ matrix.test }}
+
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
+          EVENTSTORE_INSECURE: false
+
+  cluster:
+    name: Cluster
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [Streams, PersistentSubscriptions]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up cluster with Docker Compose
+        run: |
+          docker-compose -f cluster-docker-compose.yml up -d
+
+      - name: Run Go Tests
+        run: go test -v ./esdb -run Test${{ matrix.test }}
+
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
+          EVENTSTORE_INSECURE: false
+          CLUSTER: true
+
+      - name: Shutdown cluster
+        run: docker-compose -f cluster-docker-compose.yml down
+        if: always()

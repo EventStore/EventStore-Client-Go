@@ -1,0 +1,53 @@
+name: Build and Run Tests
+on: [pull_request]
+jobs:
+  build:
+    name: Code generation & compile
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2019, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Generate protos and build project (Powershell)
+        if: ${{ matrix.os == 'windows-2019' }}
+        run: .\build.ps1 -generateProtos
+        shell: pwsh
+
+      - name: Generate protos and build project (Bash)
+        if: ${{ matrix.os != 'windows-2019' }}
+        run: ./build.sh --generate-protos
+
+      - name: Misc tests
+        run: go test -v ./esdb -run TestMisc
+
+  tests:
+    needs: build
+    name: Tests
+
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [previous-lts, lts, latest]
+
+    uses: ./.github/workflows/tests.yml
+    with:
+      esdb_version: ${{ matrix.version }}
+
+  linting:
+    needs: tests
+    name: Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Linting
+        run: go vet ./...
+
+      - name: Code formatting checks
+        run: diff -u <(echo -n) <(goimports -d ./)
