@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- I've refactored parts of the code to allow tests to run without dependencies on functions that create the DB client. [EventStore-Client-Go#152](https://github.com/EventStore/EventStore-Client-Go/pull/152)
+
 ## [3.1.0] - 2023-07-18
 
 ### Added
