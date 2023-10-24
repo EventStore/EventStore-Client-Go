@@ -60,41 +60,43 @@ func (sub *Subscription) Recv() *SubscriptionEvent {
 		}
 	}
 
-	result, err := sub.inner.Recv()
-	if err != nil {
-		sub.client.grpcClient.logger.error("subscription has dropped. Reason: %v", err)
+	for {
+		result, err := sub.inner.Recv()
+		if err != nil {
+			sub.client.grpcClient.logger.error("subscription has dropped. Reason: %v", err)
 
-		dropped := SubscriptionDropped{
-			Error: err,
-		}
-
-		atomic.StoreInt32(sub.closed, 1)
-		return &SubscriptionEvent{
-			SubscriptionDropped: &dropped,
-		}
-	}
-
-	switch result.Content.(type) {
-	case *api.ReadResp_Checkpoint_:
-		{
-			checkpoint := result.GetCheckpoint()
-			position := Position{
-				Commit:  checkpoint.CommitPosition,
-				Prepare: checkpoint.PreparePosition,
+			dropped := SubscriptionDropped{
+				Error: err,
 			}
 
+			atomic.StoreInt32(sub.closed, 1)
 			return &SubscriptionEvent{
-				CheckPointReached: &position,
+				SubscriptionDropped: &dropped,
 			}
 		}
-	case *api.ReadResp_Event:
-		{
-			resolvedEvent := getResolvedEventFromProto(result.GetEvent())
-			return &SubscriptionEvent{
-				EventAppeared: &resolvedEvent,
-			}
-		}
-	}
 
-	panic("unreachable code")
+		switch result.Content.(type) {
+		case *api.ReadResp_Checkpoint_:
+			{
+				checkpoint := result.GetCheckpoint()
+				position := Position{
+					Commit:  checkpoint.CommitPosition,
+					Prepare: checkpoint.PreparePosition,
+				}
+
+				return &SubscriptionEvent{
+					CheckPointReached: &position,
+				}
+			}
+		case *api.ReadResp_Event:
+			{
+				resolvedEvent := getResolvedEventFromProto(result.GetEvent())
+				return &SubscriptionEvent{
+					EventAppeared: &resolvedEvent,
+				}
+			}
+		}
+
+		sub.client.config.applyLogger(LogWarn, "received unknown message, skipping")
+	}
 }
