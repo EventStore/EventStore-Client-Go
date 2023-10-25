@@ -54,5 +54,9 @@ clusterNode: ## Run tests against a cluster node.
 	@EVENTSTORE_INSECURE=false CLUSTER=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions'
 	@$(DOCKER_COMPOSE_CMD) -f cluster-docker-compose.yml down --remove-orphans
 
-.PHONY: test 
-test: singleNode secureNode clusterNode ## Run all tests.
+.PHONY: misc
+misc: ## Run tests that don't need a server to run.
+	go test -v ./esdb -run TestMisc
+
+.PHONY: test
+test: singleNode secureNode clusterNode misc ## Run all tests.
