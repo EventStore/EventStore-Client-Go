@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - I've refactored parts of the code to allow tests to run without dependencies on functions that create the DB client. [EventStore-Client-Go#152](https://github.com/EventStore/EventStore-Client-Go/pull/152)
 
+### Fixed
+- Fix unknown message when reading a subscription. [EventStore-Client-Go#153](https://github.com/EventStore/EventStore-Client-Go/pull/153)
+
 ## [3.1.0] - 2023-07-18
 
 ### Added
