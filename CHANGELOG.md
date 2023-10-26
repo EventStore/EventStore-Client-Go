@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - Fix unknown message when reading a subscription. [EventStore-Client-Go#153](https://github.com/EventStore/EventStore-Client-Go/pull/153)
+- Retry container creation on health check failure during tests [EventStore-Client-Go#154](https://github.com/EventStore/EventStore-Client-Go/pull/154)
 
 ## [3.1.0] - 2023-07-18
 

@@ -136,15 +136,16 @@ func (container *Container) Close() {
 	}
 }
 
-// TODO - Keep retrying when the healthcheck failed. We should try creating a new container instead of failing the test.
 func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
+	const maxContainerRetries = 5
+	const healthCheckRetries = 10
+
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		t.Fatalf("Could not connect to docker. Reason: %v", err)
 	}
 
 	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
-
 	if !isInsecure {
 		err = setTLSContext(options)
 		if err != nil {
@@ -152,36 +153,24 @@ func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
 		}
 	}
 
-	fmt.Println("Starting docker container...")
-
 	var resource *dockertest.Resource
 	var endpoint string
-	retries := 0
-	retryLimit := 5
 
-	for retries < retryLimit {
-		retries += 1
+	for containerRetry := 0; containerRetry < maxContainerRetries; containerRetry++ {
 		resource, err = pool.RunWithOptions(options)
 		if err != nil {
 			t.Fatalf("Could not start resource. Reason: %v", err)
 		}
 
-		fmt.Printf("Started container with id: %v, name: %s\n",
-			resource.Container.ID,
-			resource.Container.Name)
-
+		fmt.Printf("Started container with ID: %v, name: %s\n", resource.Container.ID, resource.Container.Name)
 		endpoint = fmt.Sprintf("localhost:%s", resource.GetPort("2113/tcp"))
 
 		// Disable certificate verification
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		err = pool.Retry(func() error {
-			if resource != nil && resource.Container != nil {
-				containerInfo, containerError := pool.Client.InspectContainer(resource.Container.ID)
-				if containerError == nil && containerInfo.State.Running == false {
-					return fmt.Errorf("unexpected exit of container check the container logs for more information, container ID: %v", resource.Container.ID)
-				}
-			}
 
+		healthCheckSuccess := false
+
+		for healthRetry := 0; healthRetry < healthCheckRetries; healthRetry++ {
 			scheme := "https"
 			if isInsecure {
 				scheme = "http"
@@ -189,28 +178,25 @@ func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
 
 			healthCheckEndpoint := fmt.Sprintf("%s://%s/health/alive", scheme, endpoint)
 			_, err := http.Get(healthCheckEndpoint)
-			return err
-		})
 
-		if err != nil {
-			log.Printf("[debug] healthCheck failed. Reason: %v\n", err)
-
-			closeErr := resource.Close()
-
-			if closeErr != nil && retries >= retryLimit {
-				t.Fatalf("Failed to closeConnection docker resource. Reason: %v", err)
+			if err == nil {
+				healthCheckSuccess = true
+				break
 			}
 
-			if retries < retryLimit {
-				log.Printf("[debug] heatlhCheck failed retrying...%v/%v", retries, retryLimit)
-				continue
-			}
-
-			t.Fatal("[debug] stopping docker resource")
-		} else {
-			log.Print("[debug] healthCheck succeeded!")
-			break
+			time.Sleep(2 * time.Second)
 		}
+
+		if healthCheckSuccess {
+			break
+		} else {
+			log.Printf("[debug] Health check failed for container %d/%d. Creating a new one...", containerRetry+1, maxContainerRetries)
+			resource.Close()
+		}
+	}
+
+	if !resource.Container.State.Running {
+		t.Fatalf("Failed to get a running container after %d attempts", maxContainerRetries)
 	}
 
 	return &Container{
