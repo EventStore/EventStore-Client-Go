@@ -88,5 +88,5 @@ func TestExpectations(t *testing.T) {
 }
 
 func TestMisc(t *testing.T) {
-	// tests that don't require a database
+	ConnectionStringTests(t)
 }

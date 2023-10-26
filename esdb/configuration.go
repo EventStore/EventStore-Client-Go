@@ -4,22 +4,15 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	url2 "net/url"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	schemeDefaultPort       = 2113
-	schemaHostsSeparator    = ","
-	schemeName              = "esdb"
-	schemeNameWithDiscover  = "esdb+discover"
-	schemePathSeparator     = "/"
-	schemePortSeparator     = ":"
-	schemeQuerySeparator    = "?"
-	schemeSeparator         = "://"
-	schemeSettingSeparator  = "&"
-	schemeUserInfoSeparator = "@"
+	schemeName             = "esdb"
+	schemeNameWithDiscover = "esdb+discover"
 )
 
 // Configuration describes how to connect to an instance of EventStoreDB.
@@ -84,9 +77,8 @@ func (conf *Configuration) applyLogger(level LogLevel, format string, args ...in
 	}
 }
 
-// ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
-func ParseConnectionString(connectionString string) (*Configuration, error) {
-	config := &Configuration{
+func initConfiguration() *Configuration {
+	return &Configuration{
 		DiscoveryInterval:   100,
 		GossipTimeout:       5,
 		MaxDiscoverAttempts: 10,
@@ -95,131 +87,162 @@ func ParseConnectionString(connectionString string) (*Configuration, error) {
 		NodePreference:      NodePreferenceLeader,
 		Logger:              ConsoleLogging(),
 	}
+}
 
-	schemeIndex := strings.Index(connectionString, schemeSeparator)
-	if schemeIndex == -1 {
-		return nil, fmt.Errorf("The scheme is missing from the connection string")
-	}
+// ParseConnectionString creates a Configuration based on an EventStoreDb connection string.
+func ParseConnectionString(connectionString string) (*Configuration, error) {
+	url, err := url2.Parse(connectionString)
 
-	scheme := connectionString[:schemeIndex]
-	if scheme != schemeName && scheme != schemeNameWithDiscover {
-		return nil, fmt.Errorf("An invalid scheme is specified, expecting esdb:// or esdb+discover://")
-	}
-	currentConnectionString := connectionString[schemeIndex+len(schemeSeparator):]
-
-	config.DnsDiscover = scheme == schemeNameWithDiscover
-
-	userInfoIndex, err := parseUserInfo(currentConnectionString, config)
 	if err != nil {
-		return nil, err
-	}
-	if userInfoIndex != -1 {
-		currentConnectionString = currentConnectionString[userInfoIndex:]
+		// The way we support gossip seeds in cluster configuration is not supported by
+		// the URL standard. When it happens, we rewrite the connection string to parse
+		// those seeds properly. It happens when facing connection string like the following:
+		//
+		// esdb://host1:1234,host2:4321,host3:3231
+		if !strings.Contains(connectionString, ",") {
+			return nil, err
+		}
+
+		desugarConnectionString := strings.ReplaceAll(connectionString, ",", "/")
+		url, newErr := url2.Parse(desugarConnectionString)
+
+		// In this case it should mean the connection is truly invalid, so we return
+		// the previous error
+		if newErr != nil {
+			return nil, err
+		}
+
+		if len(url.Host) == 0 {
+			return nil, err
+		}
+
+		config := initConfiguration()
+		endpoints := make([]*EndPoint, 0)
+		ept, err := parseEndpoint(url.Host)
+
+		if err != nil {
+			return nil, err
+		}
+
+		endpoints = append(endpoints, ept)
+
+		for _, host := range strings.Split(url.Path, "/") {
+			if len(host) == 0 {
+				continue
+			}
+
+			ept, err = parseEndpoint(host)
+
+			if err != nil {
+				return nil, err
+			}
+
+			endpoints = append(endpoints, ept)
+		}
+
+		config.GossipSeeds = endpoints
+		return parseFromUrl(config, url)
 	}
 
-	var host, path, settings string
-	settingsIndex := strings.Index(currentConnectionString, schemeQuerySeparator)
-	hostIndex := strings.IndexAny(currentConnectionString, schemePathSeparator+schemeQuerySeparator)
-	if hostIndex == -1 {
-		host = currentConnectionString
-		currentConnectionString = ""
-	} else {
-		host = currentConnectionString[:hostIndex]
-		path = currentConnectionString[hostIndex:]
+	return parseFromUrl(initConfiguration(), url)
+}
+
+func parseEndpoint(host string) (*EndPoint, error) {
+	var endpoint *EndPoint
+
+	if len(host) == 0 {
+		return nil, fmt.Errorf("empty host, if you use multiple gossip seeds, maybe one of them is empty")
 	}
 
-	if settingsIndex != -1 {
-		path = currentConnectionString[hostIndex:settingsIndex]
-		settings = strings.TrimLeft(currentConnectionString[settingsIndex:], schemeQuerySeparator)
+	splits := strings.Split(host, ":")
+
+	switch len(splits) {
+	case 1:
+		endpoint = &EndPoint{
+			Host: host,
+			Port: 2_113,
+		}
+	case 2:
+		if len(splits[1]) != 0 {
+			if p, err := strconv.Atoi(splits[1]); err == nil {
+				endpoint = &EndPoint{
+					Host: splits[0],
+					Port: uint16(p),
+				}
+			} else {
+				return nil, fmt.Errorf("wrong port format '%s': %v", splits[1], err)
+			}
+		} else {
+			return nil, fmt.Errorf("wrong port format: %s", host)
+		}
+	default:
+		return nil, fmt.Errorf("wrong host format: %s", host)
 	}
 
-	path = strings.TrimLeft(path, schemePathSeparator)
-	if len(path) > 0 {
-		return nil, fmt.Errorf("The specified path must be either an empty string or a forward slash (/) but the following path was found instead: '%s'", path)
+	return endpoint, nil
+}
+
+func parseFromUrl(config *Configuration, url *url2.URL) (*Configuration, error) {
+	if url.Scheme != schemeName && url.Scheme != schemeNameWithDiscover {
+		return nil, fmt.Errorf("an invalid scheme is specified, expecting esdb:// or esdb+discover://")
 	}
 
-	err = parseSettings(settings, config)
-	if err != nil {
-		return nil, err
+	config.DnsDiscover = url.Scheme == schemeNameWithDiscover
+
+	if url.User != nil {
+		config.Username = url.User.Username()
+		password, _ := url.User.Password()
+		config.Password = password
+
+		if len(config.Username) == 0 {
+			return nil, fmt.Errorf("credentials were provided with an empty username")
+		}
 	}
 
-	err = parseHost(host, config)
-	if err != nil {
-		return nil, err
+	if len(config.GossipSeeds) == 0 && len(url.Path) > 0 && url.Path != "/" {
+		return nil, fmt.Errorf("unsupported URL path: %v", url.Path)
+	}
+
+	if len(config.GossipSeeds) == 0 && len(url.Host) == 0 {
+		return nil, fmt.Errorf("connection string doesn't have an host")
+	}
+
+	if len(config.GossipSeeds) == 0 {
+		if !strings.Contains(url.Host, ",") {
+			ept, err := parseEndpoint(url.Host)
+
+			if err != nil {
+				return nil, err
+			}
+
+			config.Address = fmt.Sprintf("%v:%d", ept.Host, ept.Port)
+		} else {
+			config.GossipSeeds = make([]*EndPoint, 0)
+
+			for _, host := range strings.Split(url.Host, ",") {
+				ept, err := parseEndpoint(host)
+
+				if err != nil {
+					return nil, err
+				}
+
+				config.GossipSeeds = append(config.GossipSeeds, ept)
+			}
+		}
+	}
+
+	for key, values := range url.Query() {
+		if len(values) == 0 {
+			continue
+		}
+
+		err := parseSetting(key, values[0], config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return config, nil
-}
-
-func parseUserInfo(s string, config *Configuration) (int, error) {
-	userInfoIndex := strings.Index(s, schemeUserInfoSeparator)
-	if userInfoIndex != -1 {
-		userInfo := s[0:userInfoIndex]
-		tokens := strings.Split(userInfo, ":")
-		if len(tokens) != 2 {
-			return -1, fmt.Errorf("The user credentials are invalid and are expected to be in format {username}:{password}")
-		}
-
-		username := tokens[0]
-		if username == "" {
-			return -1, fmt.Errorf("The specified username is empty")
-		}
-
-		password := tokens[1]
-		if password == "" {
-			return -1, fmt.Errorf("The specified password is empty")
-		}
-
-		config.Username = username
-		config.Password = password
-
-		return userInfoIndex + len(schemeUserInfoSeparator), nil
-	}
-
-	return -1, nil
-}
-
-func parseSettings(settings string, config *Configuration) error {
-	if settings == "" {
-		return nil
-	}
-
-	kvPairs := make(map[string]string)
-	settingTokens := strings.Split(settings, schemeSettingSeparator)
-
-	for _, settingToken := range settingTokens {
-		key, value, err := parseKeyValuePair(settingToken)
-		if err != nil {
-			return err
-		}
-
-		normalizedKey := strings.ToLower(key)
-		duplicateKeyError := fmt.Errorf("The connection string cannot have duplicate key/value pairs, found: '%s'", key)
-
-		if _, ok := kvPairs[normalizedKey]; ok {
-			return duplicateKeyError
-		} else {
-			if value == "" {
-				return fmt.Errorf("No value specified for setting: '%s'", key)
-			}
-			kvPairs[normalizedKey] = value
-			err := parseSetting(key, value, config)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func parseKeyValuePair(s string) (string, string, error) {
-	keyValueTokens := strings.Split(s, "=")
-	if len(keyValueTokens) != 2 {
-		return "", "", fmt.Errorf("Invalid key/value pair specified in connection string, expecting {key}={value} got: '%s'", s)
-	}
-
-	return keyValueTokens[0], keyValueTokens[1], nil
 }
 
 func parseSetting(k, v string, config *Configuration) error {
@@ -281,7 +304,7 @@ func parseSetting(k, v string, config *Configuration) error {
 			return nil
 		}
 	default:
-		return fmt.Errorf("Unknown setting: '%s'", k)
+		config.applyLogger(LogWarn, "Unknown setting: %s", k)
 	}
 
 	return nil
@@ -337,28 +360,6 @@ func parseNodePreference(v string, config *Configuration) error {
 		config.NodePreference = NodePreferenceReadOnlyReplica
 	default:
 		return fmt.Errorf("Invalid NodePreference: '%s'", v)
-	}
-
-	return nil
-}
-
-func parseHost(host string, config *Configuration) error {
-	endpoints := make([]*EndPoint, 0)
-	hosts := strings.Split(host, schemaHostsSeparator)
-	for _, host := range hosts {
-		endpoint, err := ParseEndPoint(host)
-
-		if err != nil {
-			return err
-		}
-
-		endpoints = append(endpoints, endpoint)
-	}
-
-	if len(endpoints) == 1 {
-		config.Address = endpoints[0].String()
-	} else {
-		config.GossipSeeds = endpoints
 	}
 
 	return nil
