@@ -7,42 +7,21 @@ This repository contains an [EventStoreDB][es] Client SDK written in Go.
 Integration tests run against a server using Docker, with the [EventStoreDB gRPC Client Test Container][container].
 
 ### Setup dependencies
-
-Some dependencies are required in order to work with the code:
-
-* Certificates for testing TLS requirements, located at `./certs`.
-
 Testing requires [Docker] and [Docker Compose] to be installed.
 
 ## Build the project
 
-On Windows, you need `Powershell`. The version that comes standard with Windows is enough. On a Unix system, any bash
+You need [make] to be installed (available on all OSes). On Windows, you need `Powershell`. The version that comes standard with Windows is enough. On a Unix system, any bash
 compatible shell should work.
 
-### Windows
-
-```powershell
-.\build.ps1
-```
-
-### Unix (Linux or OSX)
-
 ```bash
-./build.sh
+make build
 ```
 
 To also regenerate protobuf and gRPC files while building
 
-### Windows
-
-```powershell
-.\build.ps1 -generateProtos
-```
-
-### Unix (Linux or OSX)
-
 ```bash
-./build.sh --generate-protos
+make generate-protos-and-build
 ```
 
 ## Run tests
@@ -55,9 +34,7 @@ By default the tests use `ghcr.io/eventstore/eventstore:ci`. To override this, s
 
 ```shell
 export EVENTSTORE_DOCKER_TAG_ENV="21.10.0-focal"
-docker-compose -f cluster-docker-compose.yml up -d 
-go test ./esdb
-docker-compose -f cluster-docker-compose.yml down
+make test
 ```
 
 ## Security
@@ -75,3 +52,4 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 [docker compose]: https://www.docker.com/
 
 [es]: https://eventstore.com
+[make]: https://www.gnu.org/software/make/
