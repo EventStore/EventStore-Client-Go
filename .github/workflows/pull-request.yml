@@ -13,17 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Generate protos and build project (Powershell)
-        if: ${{ matrix.os == 'windows-2019' }}
-        run: .\build.ps1 -generateProtos
-        shell: pwsh
-
-      - name: Generate protos and build project (Bash)
-        if: ${{ matrix.os != 'windows-2019' }}
-        run: ./build.sh --generate-protos
+      - name: Generate protos and build project
+        run: make generate-protos-and-build
 
       - name: Misc tests
-        run: go test -v ./esdb -run TestMisc
+        run: make misc
 
   tests:
     needs: build

@@ -5,7 +5,8 @@ help:
 
 OS := $(shell uname)
 
-GENERATE_PROTOS_FLAG :=
+GENERATE_PROTOS_FLAG=
+CI_TARGET=
 
 .PHONY: build
 build: ## Build based on the OS.
@@ -14,18 +15,18 @@ ifeq ($(OS),Linux)
 else ifeq ($(OS),Darwin)
 	./build.sh $(GENERATE_PROTOS_FLAG)
 else
-	.\build.ps1 $(GENERATE_PROTOS_FLAG)
+	pwsh.exe -File ".\build.ps1" $(GENERATE_PROTOS_FLAG)
 endif
 
-.PHONY: generate-protos
-generate-protos: ## Regenerate protobuf and gRPC files while building.
+.PHONY: generate-protos-and-build
+generate-protos-and-build: ## Generate protobuf and gRPC files while building.
 ifeq ($(OS),Linux)
-	$(eval GENERATE_PROTOS_FLAG := --generate-protos)
+	$(MAKE) build GENERATE_PROTOS_FLAG=--generate-protos
+else ifeq ($(OS),Darwin)
+	$(MAKE) build GENERATE_PROTOS_FLAG=--generate-protos
 else
-	$(eval GENERATE_PROTOS_FLAG := -generateProtos)
+	$(MAKE) build GENERATE_PROTOS_FLAG=-generateProtos
 endif
-	build
-
 
 DOCKER_COMPOSE_CMD := $(shell command -v docker-compose 2> /dev/null)
 ifeq ($(DOCKER_COMPOSE_CMD),)
@@ -34,7 +35,7 @@ endif
 
 .PHONY: singleNode
 singleNode: ## Run tests against a single node.
-	@EVENTSTORE_INSECURE=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|Expectations'
+	@EVENTSTORE_INSECURE=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestExpectations'
 
 .PHONY: secureNode
 secureNode: ## Run tests against a secure node.
@@ -60,3 +61,7 @@ misc: ## Run tests that don't need a server to run.
 
 .PHONY: test
 test: singleNode secureNode clusterNode misc ## Run all tests.
+
+.PHONY: ci
+ci: ## Run tests in Github Actions setting.
+	go test -v ./esdb -run "$(CI_TARGET)"

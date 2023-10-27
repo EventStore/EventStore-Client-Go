@@ -24,7 +24,7 @@ jobs:
         run: docker-compose --file docker-compose.yml up
 
       - name: Run Go Tests
-        run: go test -v ./esdb -run Test${{ matrix.test }}
+        run: make ci CI_TARGET=Test${{ matrix.test }}
         env:
           EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
           EVENTSTORE_INSECURE: true
@@ -45,7 +45,7 @@ jobs:
         run: docker-compose --file docker-compose.yml up
 
       - name: Run Go Tests
-        run: go test -v ./esdb -run Test${{ matrix.test }}
+        run: make ci CI_TARGET=Test${{ matrix.test }}
 
         env:
           EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
@@ -68,7 +68,7 @@ jobs:
           docker-compose -f cluster-docker-compose.yml up -d
 
       - name: Run Go Tests
-        run: go test -v ./esdb -run Test${{ matrix.test }}
+        run: make ci CI_TARGET=Test${{ matrix.test }}
 
         env:
           EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
