@@ -6,10 +6,12 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - I've refactored parts of the code to allow tests to run without dependencies on functions that create the DB client. [EventStore-Client-Go#152](https://github.com/EventStore/EventStore-Client-Go/pull/152)
 - Improve go client connection string parsing [EventStore-Client-Go#156](https://github.com/EventStore/EventStore-Client-Go/pull/156)
+- Update dependencies. [EventStore-Client-Go#157](https://github.com/EventStore/EventStore-Client-Go/pull/157)
 
 ### Fixed
 - Fix unknown message when reading a subscription. [EventStore-Client-Go#153](https://github.com/EventStore/EventStore-Client-Go/pull/153)
 - Retry container creation on health check failure during tests [EventStore-Client-Go#154](https://github.com/EventStore/EventStore-Client-Go/pull/154)
+- Fix nil deref when reading last checkpointed event revision from a persistent subscription. [EventStore-Client-Go#151](https://github.com/EventStore/EventStore-Client-Go/pull/151)
 
 ## [3.1.0] - 2023-07-18
 
