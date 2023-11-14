@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,6 +53,14 @@ func testTLSDefaults(container *Container) TestCall {
 
 		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
 		require.Error(t, err)
+
+		// On MacOS, I didn't get "certificate signed by unknown authority", so doing this instead... -- John Bywater
+		if strings.Contains(err.Error(), "transport: authentication handshake failed: tls: failed to verify certificate: x509: “eventstoredb-node” certificate is not trusted") {
+			return
+		}
+		// Maybe check for "failed to verify certificate" instead of "certificate signed by unknown authority"?
+		//assert.Contains(t, err.Error(), "failed to verify certificate")
+
 		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
 	}
 }
@@ -150,6 +159,14 @@ func testTLSWithoutCertificate(container *Container) TestCall {
 		}
 		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
 		require.Error(t, err)
+
+		// On MacOS, I didn't get "certificate signed by unknown authority", so doing this instead... -- John Bywater
+		if strings.Contains(err.Error(), "transport: authentication handshake failed: tls: failed to verify certificate: x509: “eventstoredb-node” certificate is not trusted") {
+			return
+		}
+		// Maybe check for "failed to verify certificate" instead of "certificate signed by unknown authority"?
+		//assert.Contains(t, err.Error(), "failed to verify certificate")
+
 		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
 	}
 }
