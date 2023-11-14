@@ -26,7 +26,7 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 ) (*PersistentSubscription, error) {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	readClient, err := client.persistentSubscriptionClient.Read(ctx, callOptions...)
 	if err != nil {
 		defer cancel()
@@ -73,7 +73,7 @@ func (client *persistentClient) CreateStreamSubscription(
 	createSubscriptionConfig := createPersistentRequestProto(streamName, groupName, position, settings)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig, callOptions...)
 	if err != nil {
@@ -100,7 +100,7 @@ func (client *persistentClient) CreateAllSubscription(
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err = client.persistentSubscriptionClient.Create(ctx, protoConfig, callOptions...)
@@ -124,7 +124,7 @@ func (client *persistentClient) UpdateStreamSubscription(
 	updateSubscriptionConfig := updatePersistentRequestStreamProto(streamName, groupName, position, settings)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
@@ -148,7 +148,7 @@ func (client *persistentClient) UpdateAllSubscription(
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
@@ -170,7 +170,7 @@ func (client *persistentClient) DeleteStreamSubscription(
 	deleteSubscriptionOptions := deletePersistentRequestStreamProto(streamName, groupName)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
@@ -191,7 +191,7 @@ func (client *persistentClient) DeleteAllSubscription(
 	deleteSubscriptionOptions := deletePersistentRequestAllOptionsProto(groupName)
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
@@ -239,7 +239,7 @@ func (client *persistentClient) listPersistentSubscriptions(
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 
 	defer cancel()
 
@@ -287,7 +287,7 @@ func (client *persistentClient) getPersistentSubscriptionInfo(
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	resp, err := client.persistentSubscriptionClient.GetInfo(ctx, getInfoReq, callOptions...)
@@ -336,7 +336,7 @@ func (client *persistentClient) replayParkedMessages(
 
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err := client.persistentSubscriptionClient.ReplayParked(ctx, replayReq, callOptions...)
@@ -356,7 +356,7 @@ func (client *persistentClient) restartSubsystem(
 ) error {
 	var headers, trailers metadata.MD
 	callOptions := []grpc.CallOption{grpc.Header(&headers), grpc.Trailer(&trailers)}
-	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner)
+	callOptions, ctx, cancel := configureGrpcCall(parent, conf, options, callOptions, client.inner.perRPCCredentials)
 	defer cancel()
 
 	_, err := client.persistentSubscriptionClient.RestartSubsystem(ctx, &shared.Empty{}, callOptions...)

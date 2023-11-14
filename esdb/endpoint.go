@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"google.golang.org/grpc/credentials"
 )
 
 // EndPoint is database node endpoint.
@@ -78,15 +80,19 @@ func newGrpcClient(config Configuration) *grpcClient {
 
 	atomic.StoreInt32(closeFlag, 0)
 
-	auth := NewBasicPerCallAuth(config.Username, config.Password)
+	go connectionStateMachine(config, closeFlag, channel, &logger)
 
-	go connectionStateMachine(config, closeFlag, channel, &logger, auth)
+	// Maybe construct RPC credentials from client config.
+	var perRPCCredentials credentials.PerRPCCredentials
+	if config.Username != "" && config.Password != "" && !config.DisableTLS {
+		perRPCCredentials = newBasicAuthPerRPCCredentials(config.Username, config.Password)
+	}
 
 	return &grpcClient{
-		channel:   channel,
-		closeFlag: closeFlag,
-		once:      new(sync.Once),
-		logger:    &logger,
-		auth:      auth,
+		channel:           channel,
+		closeFlag:         closeFlag,
+		once:              new(sync.Once),
+		logger:            &logger,
+		perRPCCredentials: perRPCCredentials,
 	}
 }
