@@ -40,9 +40,12 @@ func configureGrpcCall(ctx context.Context, conf *Configuration, options options
 	deadline := time.Now().Add(duration)
 	newCtx, cancel := context.WithDeadline(ctx, deadline)
 
+	// Maybe use RPC credentials from client method options instead of RPC credentials from client config.
 	if options.credentials() != nil {
-		perRPCCredentials = NewBasicPerCallAuth(options.credentials().Login, options.credentials().Password)
+		perRPCCredentials = newBasicAuthPerRPCCredentials(options.credentials().Login, options.credentials().Password)
 	}
+
+	// Maybe append RPC credentials to gRPC call options.
 	if perRPCCredentials != nil {
 		grpcOptions = append(grpcOptions, grpc.PerRPCCredsCallOption{Creds: perRPCCredentials})
 	}

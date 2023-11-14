@@ -191,7 +191,7 @@ func newConnectionHandle(id uuid.UUID, serverInfo *serverInfo, connection *grpc.
 	}
 }
 
-func connectionStateMachine(config Configuration, closeFlag *int32, channel chan msg, logger *logger, perRPCCredentials credentials.PerRPCCredentials) {
+func connectionStateMachine(config Configuration, closeFlag *int32, channel chan msg, logger *logger) {
 	state := newConnectionState(config)
 
 	for {
@@ -214,7 +214,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 			{
 				// Means we need to create a grpc connection.
 				if state.correlation == uuid.Nil {
-					conn, serverInfo, err := discoverNode(state.config, logger, perRPCCredentials)
+					conn, serverInfo, err := discoverNode(state.config, logger)
 
 					if err != nil {
 						atomic.StoreInt32(closeFlag, 1)
@@ -259,7 +259,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 				}
 
 				logger.info("Connecting to leader node %s ...", evt.endpoint.String())
-				conn, err := createGrpcConnection(&state.config, evt.endpoint.String(), perRPCCredentials)
+				conn, err := createGrpcConnection(&state.config, evt.endpoint.String())
 
 				if err != nil {
 					logger.error("exception when connecting to suggested node %s", evt.endpoint.String())
@@ -293,7 +293,7 @@ func (msg reconnect) isMsg() {}
 
 const maxInboundMessageLength = 17 * 1_024 * 1_024 // 17 MiB
 
-func createGrpcConnection(conf *Configuration, address string, perRPCCredentials credentials.PerRPCCredentials) (*grpc.ClientConn, error) {
+func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 	var transport credentials.TransportCredentials
 
@@ -414,40 +414,22 @@ func getSupportedMethods(ctx context.Context, conf *Configuration, conn *grpc.Cl
 	return &info, nil
 }
 
-type perCallCredentials interface {
-	setCallCredentials(c *Credentials)
+func newBasicAuthPerRPCCredentials(username, password string) *basicAuthPerRPCCredentials {
+	authorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
+	headers := map[string]string{"Authorization": authorization}
+	return &basicAuthPerRPCCredentials{headers: headers}
 }
 
-type basicPerCallAuth struct {
+type basicAuthPerRPCCredentials struct {
 	headers map[string]string
 }
 
-func NewBasicPerCallAuth(username, password string) *basicPerCallAuth {
-	headers := map[string]string{}
-	if username != "" && password != "" {
-		headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
-	}
-	return &basicPerCallAuth{
-		headers: headers,
-	}
-}
-
-func (b *basicPerCallAuth) GetRequestMetadata(tx context.Context, in ...string) (map[string]string, error) {
+func (b *basicAuthPerRPCCredentials) GetRequestMetadata(_ context.Context, _ ...string) (map[string]string, error) {
 	return b.headers, nil
 }
 
-func (*basicPerCallAuth) RequireTransportSecurity() bool {
+func (*basicAuthPerRPCCredentials) RequireTransportSecurity() bool {
 	return false // Shouldn't this be true? Don't want to send password over insecure connection?
-}
-
-func (b *basicPerCallAuth) setCallCredentials(c *Credentials) {
-	panic("Don't call this!")
-}
-
-func (*basicPerCallAuth) getAuth(username, password string) string {
-	auth := username + ":" + password
-	enc := base64.StdEncoding.EncodeToString([]byte(auth))
-	return "Basic " + enc
 }
 
 func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
@@ -460,7 +442,7 @@ func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 	}
 }
 
-func discoverNode(conf Configuration, logger *logger, perRPCCredentials credentials.PerRPCCredentials) (*grpc.ClientConn, *serverInfo, error) {
+func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *serverInfo, error) {
 	var connection *grpc.ClientConn = nil
 	var serverInfo *serverInfo = nil
 	var err error
@@ -492,7 +474,7 @@ func discoverNode(conf Configuration, logger *logger, perRPCCredentials credenti
 		logger.info("discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
 		for _, candidate := range candidates {
 			logger.debug("trying candidate '%s'...", candidate)
-			connection, err = createGrpcConnection(&conf, candidate, perRPCCredentials)
+			connection, err = createGrpcConnection(&conf, candidate)
 			if err != nil {
 				logger.warn("error when creating a grpc connection for candidate %s: %v", candidate, err)
 				continue
@@ -524,7 +506,7 @@ func discoverNode(conf Configuration, logger *logger, perRPCCredentials credenti
 				if candidate != selectedAddress {
 					candidate = selectedAddress
 					_ = connection.Close()
-					connection, err = createGrpcConnection(&conf, selectedAddress, perRPCCredentials)
+					connection, err = createGrpcConnection(&conf, selectedAddress)
 
 					if err != nil {
 						logger.warn("error when creating gRPC connection for the selected candidate '%s': %v", selectedAddress, err)
