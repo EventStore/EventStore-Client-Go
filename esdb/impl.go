@@ -429,7 +429,7 @@ func (b *basicAuthPerRPCCredentials) GetRequestMetadata(_ context.Context, _ ...
 }
 
 func (*basicAuthPerRPCCredentials) RequireTransportSecurity() bool {
-	return false // Shouldn't this be true? Don't want to send password over insecure connection?
+	return true
 }
 
 func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
