@@ -84,7 +84,7 @@ func newGrpcClient(config Configuration) *grpcClient {
 
 	// Maybe construct RPC credentials from client config.
 	var perRPCCredentials credentials.PerRPCCredentials
-	if config.Username != "" && config.Password != "" {
+	if config.Username != "" && config.Password != "" && !config.DisableTLS {
 		perRPCCredentials = newBasicAuthPerRPCCredentials(config.Username, config.Password)
 	}
 
