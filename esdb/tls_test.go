@@ -52,7 +52,7 @@ func testTLSDefaults(container *Container) TestCall {
 
 		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
+		assert.Contains(t, err.Error(), "failed to verify certificate")
 	}
 }
 
@@ -150,7 +150,7 @@ func testTLSWithoutCertificate(container *Container) TestCall {
 		}
 		_, err = c.ReadAll(context.Background(), opts, numberOfEvents)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "certificate signed by unknown authority")
+		assert.Contains(t, err.Error(), "failed to verify certificate")
 	}
 }
 

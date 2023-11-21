@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -23,7 +24,7 @@ type options interface {
 	requiresLeader() bool
 }
 
-func configureGrpcCall(ctx context.Context, conf *Configuration, options options, grpcOptions []grpc.CallOption, auth perCallCredentials) ([]grpc.CallOption, context.Context, context.CancelFunc) {
+func configureGrpcCall(ctx context.Context, conf *Configuration, options options, grpcOptions []grpc.CallOption, perRPCCredentials credentials.PerRPCCredentials) ([]grpc.CallOption, context.Context, context.CancelFunc) {
 	var duration time.Duration
 
 	if options.deadline() != nil {
@@ -39,7 +40,15 @@ func configureGrpcCall(ctx context.Context, conf *Configuration, options options
 	deadline := time.Now().Add(duration)
 	newCtx, cancel := context.WithDeadline(ctx, deadline)
 
-	auth.setCallCredentials(options.credentials())
+	// Maybe use RPC credentials from client method options instead of RPC credentials from client config.
+	if options.credentials() != nil && !conf.DisableTLS {
+		perRPCCredentials = newBasicAuthPerRPCCredentials(options.credentials().Login, options.credentials().Password)
+	}
+
+	// Maybe append RPC credentials to gRPC call options.
+	if perRPCCredentials != nil {
+		grpcOptions = append(grpcOptions, grpc.PerRPCCredsCallOption{Creds: perRPCCredentials})
+	}
 
 	if options.requiresLeader() || conf.NodePreference == NodePreferenceLeader {
 		md := metadata.New(map[string]string{"requires-leader": "true"})
