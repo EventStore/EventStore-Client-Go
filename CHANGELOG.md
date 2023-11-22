@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Fix race condition and overwriting when setting call credentials [EventStore-Client-Go#160](https://github.com/EventStore/EventStore-Client-Go/pull/160)
+
 ## [3.2.0] - 2023-10-31
 ### Changed
 - Improve CI separation in Github Actions. [EventStore-Client-Go#152](https://github.com/EventStore/EventStore-Client-Go/pull/152)
