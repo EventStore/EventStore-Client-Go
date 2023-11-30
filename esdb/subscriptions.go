@@ -95,6 +95,18 @@ func (sub *Subscription) Recv() *SubscriptionEvent {
 					EventAppeared: &resolvedEvent,
 				}
 			}
+		case *api.ReadResp_CaughtUp_:
+			{
+				return &SubscriptionEvent{
+					CaughtUp: sub,
+				}
+			}
+		case *api.ReadResp_FellBehind_:
+			{
+				return &SubscriptionEvent{
+					FellBehind: sub,
+				}
+			}
 		}
 
 		sub.client.config.applyLogger(LogWarn, "received unknown message, skipping")

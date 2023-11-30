@@ -21,7 +21,72 @@ func SubscriptionTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClie
 		t.Run("subscriptionAllFilter", subscriptionAllFilter(emptyDBClient))
 		t.Run("connectionClosing", connectionClosing(populatedDBClient))
 		t.Run("subscriptionAllWithCredentialsOverride", subscriptionAllWithCredentialsOverride(populatedDBClient))
+		t.Run("subscriptionToStreamCaughtUpMessage", subscriptionToStreamCaughtUpMessage(populatedDBClient))
 	})
+}
+
+func subscriptionToStreamCaughtUpMessage(db *esdb.Client) TestCall {
+	const minSupportedVersion = 23
+	const expectedEventCount = 6_000
+	const testTimeout = 1 * time.Minute
+
+	return func(t *testing.T) {
+		if db == nil {
+			t.Skip("Database client is nil")
+		}
+
+		esdbVersion, err := db.GetServerVersion()
+		require.NoError(t, err, "Error getting server version")
+
+		if esdbVersion.Major < minSupportedVersion {
+			t.Skip("CaughtUp message is not supported in this version of EventStoreDB")
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+		defer cancel()
+
+		streamID := "dataset20M-0"
+		subscription, err := db.SubscribeToStream(ctx, streamID, esdb.SubscribeToStreamOptions{From: esdb.Start{}})
+		require.NoError(t, err)
+		defer subscription.Close()
+
+		var caughtUpReceived sync.WaitGroup
+		caughtUpReceived.Add(1)
+
+		go func() {
+			var count uint64 = 0
+			defer caughtUpReceived.Done()
+			allEventsAcknowledged := false
+
+			for {
+				select {
+				case <-ctx.Done():
+					t.Error("Context timed out before receiving CaughtUp message")
+					return
+				default:
+					event := subscription.Recv()
+
+					if event.EventAppeared != nil {
+						count++
+
+						if count == expectedEventCount {
+							allEventsAcknowledged = true
+						}
+
+						continue
+					}
+
+					if allEventsAcknowledged && event.CaughtUp != nil {
+						require.True(t, count >= expectedEventCount, "Did not receive the exact number of expected events before CaughtUp")
+						return
+					}
+				}
+			}
+		}()
+
+		caughtUpTimedOut := waitWithTimeout(&caughtUpReceived, testTimeout)
+		require.False(t, caughtUpTimedOut, "Timed out waiting for CaughtUp message")
+	}
 }
 
 func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.Client) TestCall {

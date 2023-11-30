@@ -8,6 +8,10 @@ type SubscriptionEvent struct {
 	SubscriptionDropped *SubscriptionDropped
 	// When a checkpoint was created.
 	CheckPointReached *Position
+	// When an event is caught up
+	CaughtUp *Subscription
+	// When an event is fell behind
+	FellBehind *Subscription
 }
 
 // PersistentSubscriptionEvent used to handle persistent subscription notifications raised throughout its lifecycle.
