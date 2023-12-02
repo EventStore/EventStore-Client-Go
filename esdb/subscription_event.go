@@ -10,7 +10,7 @@ type SubscriptionEvent struct {
 	CheckPointReached *Position
 	// When an event is caught up
 	CaughtUp *Subscription
-	// When an event is fell behind
+	// When an event has fallen behind
 	FellBehind *Subscription
 }
 
