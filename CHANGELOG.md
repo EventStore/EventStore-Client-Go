@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- CaughtUp and FellBehind message handling in subscription [EventStore-Client-Go#161](https://github.com/EventStore/EventStore-Client-Go/pull/161)
+
 ## [3.2.1] - 2023-11-28
 ### Fixed
 - Fix race condition and overwriting when setting call credentials [EventStore-Client-Go#160](https://github.com/EventStore/EventStore-Client-Go/pull/160)
