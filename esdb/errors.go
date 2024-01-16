@@ -58,6 +58,11 @@ func (e *Error) Err() error {
 	return e.err
 }
 
+// IsErrorCode checks if the error code is the same as the given one.
+func (e *Error) IsErrorCode(code ErrorCode) bool {
+	return e.code == code
+}
+
 func (e *Error) Error() string {
 	msg := ""
 
