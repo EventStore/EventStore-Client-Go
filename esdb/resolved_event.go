@@ -18,3 +18,8 @@ func (resolved ResolvedEvent) OriginalEvent() *RecordedEvent {
 
 	return resolved.Event
 }
+
+// OriginalStreamRevision returns the stream revision of the original event.
+func (resolved ResolvedEvent) OriginalStreamRevision() StreamRevision {
+	return Revision(resolved.OriginalEvent().EventNumber)
+}
