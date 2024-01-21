@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - CaughtUp and FellBehind message handling in subscription [EventStore-Client-Go#161](https://github.com/EventStore/EventStore-Client-Go/pull/161)
+- OriginalStreamRevision to ResolvedEvent [EventStore-Client-Go#163](https://github.com/EventStore/EventStore-Client-Go/pull/163)
 
 ## [3.2.1] - 2023-11-28
 ### Fixed

@@ -152,7 +152,7 @@ func AppendWithConcurrencyCheck(db *esdb.Client) {
 	}
 
 	aopts := esdb.AppendToStreamOptions{
-		ExpectedRevision: esdb.Revision(lastEvent.OriginalEvent().EventNumber),
+		ExpectedRevision: lastEvent.OriginalStreamRevision(),
 	}
 
 	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, esdb.EventData{
