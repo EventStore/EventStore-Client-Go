@@ -1,5 +1,6 @@
 # EventStoreDB Client SDK for Golang [![Actions Status](https://github.com/eventstore/EventStore-Client-Go/workflows/CI/badge.svg?branch=master)](https://github.com/eventstore/EventStore-Client-Go/actions)
 
+
 This repository contains an [EventStoreDB][es] Client SDK written in Go.
 
 ## Developing
