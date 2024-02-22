@@ -140,7 +140,8 @@ func readAllEventsBackwardsFromZeroPosition(db *esdb.Client) TestCall {
 			ResolveLinkTos: true,
 		}
 
-		stream, err := db.ReadAll(context, opts, numberOfEvents)
+		// We read 30 more events in case the DB had pushed more config related events before the test begins.
+		stream, err := db.ReadAll(context, opts, numberOfEvents+30)
 
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
@@ -154,16 +155,28 @@ func readAllEventsBackwardsFromZeroPosition(db *esdb.Client) TestCall {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
 
+		offset := 0
+
+		// We remove potential events that were added by the server on startup, causing the expected event list to be
+		// misaligned.
 		for i := 0; i < numberOfEventsToRead; i++ {
-			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
-			assert.Equal(t, testEvents[i].Event.EventType, events[i].OriginalEvent().EventType)
-			assert.Equal(t, testEvents[i].Event.StreamID, events[i].OriginalEvent().StreamID)
-			assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].OriginalEvent().EventNumber)
-			assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].OriginalEvent().CreatedDate.Nanosecond())
-			assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].OriginalEvent().CreatedDate.Unix())
-			assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
-			assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
-			assert.Equal(t, testEvents[i].Event.ContentType, events[i].OriginalEvent().ContentType)
+			if events[i].OriginalEvent().CreatedDate.Year() == 2020 {
+				break
+			}
+
+			offset += 1
+		}
+
+		for i := 0; i < numberOfEventsToRead; i++ {
+			assert.Equal(t, testEvents[i].Event.EventID, events[i+offset].OriginalEvent().EventID)
+			assert.Equal(t, testEvents[i].Event.EventType, events[i+offset].OriginalEvent().EventType)
+			assert.Equal(t, testEvents[i].Event.StreamID, events[i+offset].OriginalEvent().StreamID)
+			assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i+offset].OriginalEvent().EventNumber)
+			assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i+offset].OriginalEvent().CreatedDate.Nanosecond())
+			assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i+offset].OriginalEvent().CreatedDate.Unix())
+			assert.Equal(t, testEvents[i].Event.Position.Commit, events[i+offset].OriginalEvent().Position.Commit)
+			assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i+offset].OriginalEvent().Position.Prepare)
+			assert.Equal(t, testEvents[i].Event.ContentType, events[i+offset].OriginalEvent().ContentType)
 		}
 	}
 }

@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test: [Streams, PersistentSubscriptions, Expectations]
+        test: [Streams, PersistentSubscriptions, Expectations, Projections]
 
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test: [Streams, PersistentSubscriptions]
+        test: [Streams, PersistentSubscriptions, Projections]
 
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test: [Streams, PersistentSubscriptions]
+        test: [Streams, PersistentSubscriptions, Projections]
 
     runs-on: ubuntu-latest
     steps:
