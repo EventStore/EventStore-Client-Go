@@ -2,6 +2,9 @@ package samples
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"strings"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 )
@@ -124,4 +127,124 @@ func deletePersistentSubscription(client *esdb.Client) {
 		panic(err)
 	}
 	// #endregion delete-persistent-subscription
+}
+
+func deletePersistentSubscriptionToAll(client *esdb.Client) {
+	// #region delete-persistent-subscription-all
+	err := client.DeletePersistentSubscriptionToAll(context.Background(), "test-stream", esdb.DeletePersistentSubscriptionOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+	// #endregion delete-persistent-subscription-all
+}
+
+func getPersistentSubscriptionToStreamInfo(client *esdb.Client) {
+	// #region get-persistent-subscription-to-stream-info
+	info, err := client.GetPersistentSubscriptionInfo(context.Background(), "test-stream", "subscription-group", esdb.GetPersistentSubscriptionOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	log.Printf("groupName: %s eventsource: %s status: %s", info.GroupName, info.EventSource, info.Status)
+	// #endregion get-persistent-subscription-to-stream-info
+}
+
+func getPersistentSubscriptionToAllInfo(client *esdb.Client) {
+	// #region get-persistent-subscription-to-all-info
+	info, err := client.GetPersistentSubscriptionInfoToAll(context.Background(), "subscription-group", esdb.GetPersistentSubscriptionOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	log.Printf("groupName: %s eventsource: %s status: %s", info.GroupName, info.EventSource, info.Status)
+	// #endregion get-persistent-subscription-to-all-info
+}
+
+func replayParkedToStream(client *esdb.Client) {
+	// #region replay-parked-of-persistent-subscription-to-stream
+	err := client.ReplayParkedMessages(context.Background(), "test-stream", "subscription-group", esdb.ReplayParkedMessagesOptions{
+		StopAt: 10,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+	// #endregion replay-parked-of-persistent-subscription-to-stream
+}
+
+func replayParkedToAll(client *esdb.Client) {
+	// #region replay-parked-of-persistent-subscription-to-all
+	err := client.ReplayParkedMessagesToAll(context.Background(), "subscription-group", esdb.ReplayParkedMessagesOptions{
+		StopAt: 10,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+	// #endregion replay-parked-of-persistent-subscription-to-all
+}
+
+func listPersistentSubscriptionsToStream(client *esdb.Client) {
+	// #region list-persistent-subscriptions-to-stream
+	subs, err := client.ListPersistentSubscriptionsForStream(context.Background(), "test-stream", esdb.ListPersistentSubscriptionsOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	var entries []string
+
+	for i := range subs {
+		entries = append(
+			entries,
+			fmt.Sprintf(
+				"groupName: %s eventSource: %s status: %s",
+				subs[i].GroupName,
+				subs[i].EventSource,
+				subs[i].Status,
+			),
+		)
+	}
+
+	log.Printf("subscriptions to stream: [ %s ]", strings.Join(entries, ","))
+	// #endregion list-persistent-subscriptions-to-stream
+}
+
+func listPersistentSubscriptionsToAll(client *esdb.Client) {
+	// #region list-persistent-subscriptions-to-all
+	subs, err := client.ListPersistentSubscriptionsToAll(context.Background(), esdb.ListPersistentSubscriptionsOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	var entries []string
+
+	for i := range subs {
+		entries = append(
+			entries,
+			fmt.Sprintf(
+				"groupName: %s eventSource: %s status: %s",
+				subs[i].GroupName,
+				subs[i].EventSource,
+				subs[i].Status,
+			),
+		)
+	}
+
+	log.Printf("subscriptions to stream: [ %s ]", strings.Join(entries, ","))
+	// #endregion list-persistent-subscriptions-to-all
+}
+
+func restartPersistentSubscriptionSubsystem(client *esdb.Client) {
+    // #region restart-persistent-subscription-subsystem
+    err := client.RestartPersistentSubscriptionSubsystem(context.Background(), esdb.RestartPersistentSubscriptionSubsystemOptions{})
+
+    if err != nil {
+        panic(err)
+    }
+    // #endregion restart-persistent-subscription-subsystem
 }
