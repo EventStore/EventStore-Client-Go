@@ -35,14 +35,14 @@ endif
 
 .PHONY: singleNode
 singleNode: ## Run tests against a single node.
-	@EVENTSTORE_INSECURE=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestExpectations'
+	@EVENTSTORE_INSECURE=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestExpectations|TestProjections'
 
 .PHONY: secureNode
 secureNode: ## Run tests against a secure node.
 	@$(DOCKER_COMPOSE_CMD) down -v
 	@$(DOCKER_COMPOSE_CMD) pull
 	@$(DOCKER_COMPOSE_CMD) up -d
-	@EVENTSTORE_INSECURE=false go test -v ./esdb -run 'TestStreams|TestPersistentSubscriptions'
+	@EVENTSTORE_INSECURE=false go test -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestProjections'
 	@$(DOCKER_COMPOSE_CMD) down
 
 .PHONY: clusterNode
@@ -52,7 +52,7 @@ clusterNode: ## Run tests against a cluster node.
 	@$(DOCKER_COMPOSE_CMD) -f cluster-docker-compose.yml up -d
 	@echo "Waiting for services to be fully ready..."
 	@sleep 5
-	@EVENTSTORE_INSECURE=false CLUSTER=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions'
+	@EVENTSTORE_INSECURE=false CLUSTER=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestProjections'
 	@$(DOCKER_COMPOSE_CMD) -f cluster-docker-compose.yml down --remove-orphans
 
 .PHONY: misc

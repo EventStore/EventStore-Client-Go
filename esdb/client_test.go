@@ -73,6 +73,20 @@ func TestPersistentSubscriptions(t *testing.T) {
 	PersistentSubTests(t, emptyClient, populatedClient)
 }
 
+func TestProjections(t *testing.T) {
+	emptyContainer, emptyClient := CreateEmptyDatabase(t)
+
+	if emptyContainer != nil {
+		defer emptyContainer.Close()
+	}
+
+	if emptyClient != nil {
+		defer emptyClient.Close()
+	}
+
+	ProjectionTests(t, emptyClient)
+}
+
 func TestExpectations(t *testing.T) {
 	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
 

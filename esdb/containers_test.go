@@ -2,10 +2,10 @@ package esdb_test
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"log"
-	"net/http"
+	"github.com/docker/go-connections/nat"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
 	"path"
 	"strconv"
@@ -16,7 +16,6 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/goombaio/namegenerator"
-	"github.com/ory/dockertest/v3"
 )
 
 const (
@@ -31,14 +30,15 @@ var (
 
 // Container ...
 type Container struct {
-	Endpoint string
-	Resource *dockertest.Resource
+	Endpoint  string
+	Container testcontainers.Container
 }
 
 type EventStoreDockerConfig struct {
 	Repository string
 	Tag        string
 	Port       string
+	Insecure   bool
 }
 
 const (
@@ -109,122 +109,97 @@ func IsESDBVersion20() bool {
 	})
 }
 
-func getDockerOptions() *dockertest.RunOptions {
+func getContainerRequest() (*EventStoreDockerConfig, *testcontainers.ContainerRequest, error) {
 	config := readEnvironmentVariables(defaultEventStoreDockerConfig)
 
-	var envs []string
-	if isInsecure, exists := os.LookupEnv("EVENTSTORE_INSECURE"); exists {
-		envs = append(envs, fmt.Sprintf("EVENTSTORE_INSECURE=%s", isInsecure))
+	env := map[string]string{}
+	var files []testcontainers.ContainerFile
+	insecure, err := strconv.ParseBool(GetEnvOrDefault("EVENTSTORE_INSECURE", "true"))
+
+	if err != nil {
+		insecure = true
 	}
 
-	if len(envs) == 0 {
-		envs = append(envs, fmt.Sprintf("EVENTSTORE_INSECURE=%s", "true"))
+	if !insecure {
+
+		err := verifyCertificatesExist()
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		certsDir, err := getCertificatesDir()
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		env["EVENTSTORE_CERTIFICATE_FILE"] = "/etc/eventstore/certs/node/node.crt"
+		env["EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE"] = "/etc/eventstore/certs/node/node.key"
+		env["EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH"] = "/etc/eventstore/certs/ca"
+
+		files = append(files, testcontainers.ContainerFile{
+			HostFilePath:      certsDir,
+			ContainerFilePath: "/etc/eventstore/certs",
+			FileMode:          int64(0755),
+		})
 	}
 
-	return &dockertest.RunOptions{
-		Repository:   config.Repository,
-		Tag:          config.Tag,
+	env["EVENTSTORE_INSECURE"] = strconv.FormatBool(insecure)
+	env["EVENTSTORE_RUN_PROJECTIONS"] = "all"
+	env["EVENTSTORE_START_STANDARD_PROJECTIONS"] = "true"
+	env["EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP"] = "true"
+
+	return &config, &testcontainers.ContainerRequest{
+		Image:        fmt.Sprintf("%s:%s", config.Repository, config.Tag),
 		ExposedPorts: []string{config.Port},
-		Env:          envs,
-	}
+		Env:          env,
+		Files:        files,
+		WaitingFor: wait.
+			ForHTTP("/health/live").
+			WithTLS(!insecure).
+			WithStartupTimeout(1 * time.Minute).
+			WithAllowInsecure(true).
+			WithStatusCodeMatcher(func(status int) bool {
+				return status >= 200 && status < 300
+			}),
+	}, nil
 }
 
 func (container *Container) Close() {
-	err := container.Resource.Close()
+	timeout := 1 * time.Minute
+	err := container.Container.Stop(context.Background(), &timeout)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func getDatabase(t *testing.T, options *dockertest.RunOptions) *Container {
-	const maxContainerRetries = 5
-	const healthCheckRetries = 10
+func getDatabase(t *testing.T, config EventStoreDockerConfig, req testcontainers.ContainerRequest) *Container {
+	container, err := testcontainers.GenericContainer(context.Background(), testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
 
-	pool, err := dockertest.NewPool("")
 	if err != nil {
-		t.Fatalf("Could not connect to docker. Reason: %v", err)
+		t.Fatalf("error when starting container: %v", err)
 	}
 
-	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
-	if !isInsecure {
-		err = setTLSContext(options)
-		if err != nil {
-			t.Fatal(err)
-		}
+	port, err := container.MappedPort(context.Background(), nat.Port(config.Port))
+
+	if err != nil {
+		t.Fatalf("error when looking up container mapped port %s: %v", config.Port, err)
 	}
 
-	var resource *dockertest.Resource
-	var endpoint string
+	endpoint := fmt.Sprintf("localhost:%s", port.Port())
 
-	for containerRetry := 0; containerRetry < maxContainerRetries; containerRetry++ {
-		resource, err = pool.RunWithOptions(options)
-		if err != nil {
-			t.Fatalf("Could not start resource. Reason: %v", err)
-		}
-
-		fmt.Printf("Started container with ID: %v, name: %s\n", resource.Container.ID, resource.Container.Name)
-		endpoint = fmt.Sprintf("localhost:%s", resource.GetPort("2113/tcp"))
-
-		// Disable certificate verification
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-
-		healthCheckSuccess := false
-
-		for healthRetry := 0; healthRetry < healthCheckRetries; healthRetry++ {
-			scheme := "https"
-			if isInsecure {
-				scheme = "http"
-			}
-
-			healthCheckEndpoint := fmt.Sprintf("%s://%s/health/alive", scheme, endpoint)
-			_, err := http.Get(healthCheckEndpoint)
-
-			if err == nil {
-				healthCheckSuccess = true
-				break
-			}
-
-			time.Sleep(2 * time.Second)
-		}
-
-		if healthCheckSuccess {
-			break
-		} else {
-			log.Printf("[debug] Health check failed for container %d/%d. Creating a new one...", containerRetry+1, maxContainerRetries)
-			resource.Close()
-		}
-	}
-
-	if !resource.Container.State.Running {
-		t.Fatalf("Failed to get a running container after %d attempts", maxContainerRetries)
+	if !container.IsRunning() {
+		t.Fatalf("failed to get a running container after many attempts")
 	}
 
 	return &Container{
-		Endpoint: endpoint,
-		Resource: resource,
+		Endpoint:  endpoint,
+		Container: container,
 	}
-}
-
-func setTLSContext(options *dockertest.RunOptions) error {
-	err := verifyCertificatesExist()
-	if err != nil {
-		return err
-	}
-
-	options.Env = append(options.Env, []string{
-		"EVENTSTORE_CERTIFICATE_FILE=/etc/eventstore/certs/node/node.crt",
-		"EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE=/etc/eventstore/certs/node/node.key",
-		"EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH=/etc/eventstore/certs/ca",
-	}...)
-
-	certsDir, err := getCertificatesDir()
-	if err != nil {
-		return err
-	}
-	options.Mounts = []string{
-		fmt.Sprintf("%v:/etc/eventstore/certs", certsDir),
-	}
-	return nil
 }
 
 func verifyCertificatesExist() error {
@@ -279,54 +254,58 @@ func GetClient(t *testing.T, container *Container) *esdb.Client {
 }
 
 func CreateEmptyDatabase(t *testing.T) (*Container, *esdb.Client) {
-	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
-	var container *Container
-	var client *esdb.Client
-
-	if GetEnvOrDefault("CLUSTER", "false") == "true" {
-		container = nil
-		client = GetClient(t, container)
-	} else {
-		if isInsecure {
-			t.Log("[debug] starting insecure database container...")
-		} else {
-			t.Log("[debug] starting empty database container...")
-		}
-
-		options := getDockerOptions()
-		container = getDatabase(t, options)
-		client = GetClient(t, container)
-	}
-
-	WaitForAdminToBeAvailable(t, client)
-	WaitForLeaderToBeElected(t, client)
-
-	return container, client
+	return createDatabase(t, false)
 }
 
 func CreatePopulatedDatabase(t *testing.T) (*Container, *esdb.Client) {
+	return createDatabase(t, true)
+}
+
+func createDatabase(t *testing.T, populated bool) (*Container, *esdb.Client) {
 	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
 
+	var label string
+
+	if populated {
+		label = "populated"
+	} else {
+		label = "empty"
+	}
+
 	if GetEnvOrDefault("CLUSTER", "false") == "true" {
-		return nil, nil
+		// When run on the cluster configuration we don't run the pre-populated database, so we have no use for a client
+		// either.
+		if populated {
+			return nil, nil
+		} else {
+			return nil, GetClient(t, nil)
+		}
 	} else {
 		if isInsecure {
-			t.Log("[debug] starting prepopulated insecure database container...")
+			t.Logf("[debug] starting %s insecure database container...", label)
 		} else {
-			t.Log("[debug] starting prepopulated database container...")
+			t.Logf("[debug] starting %s database container...", label)
 		}
 
-		options := getDockerOptions()
-		options.Env = append(options.Env, "EVENTSTORE_DB=/data/integration-tests", "EVENTSTORE_MEM_DB=false")
+		config, req, err := getContainerRequest()
 
-		container := getDatabase(t, options)
+		if err != nil {
+			t.Fatalf("error when constructing testcontainer request: %v", err)
+		}
+
+		if populated {
+			req.Env["EVENTSTORE_DB"] = "/data/integration-tests"
+			req.Env["EVENTSTORE_MEM_DB"] = "false"
+		}
+
+		container := getDatabase(t, *config, *req)
 		client := GetClient(t, container)
 
 		WaitForAdminToBeAvailable(t, client)
+		WaitForLeaderToBeElected(t, client)
 
 		return container, client
 	}
-
 }
 
 func createTestClient(conn string, container *Container, t *testing.T) *esdb.Client {
