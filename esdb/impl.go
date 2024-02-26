@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"github.com/google/uuid"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	gossipApi "github.com/EventStore/EventStore-Client-Go/v3/protos/gossip"
 	server_features "github.com/EventStore/EventStore-Client-Go/v3/protos/serverfeatures"
 	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
-	"github.com/gofrs/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -225,7 +225,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 						return
 					}
 
-					state.correlation = uuid.Must(uuid.NewV4())
+					state.correlation = uuid.New()
 					state.connection = conn
 					state.serverInfo = serverInfo
 
@@ -274,7 +274,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 					continue
 				}
 
-				state.correlation = uuid.Must(uuid.NewV4())
+				state.correlation = uuid.New()
 				state.connection = conn
 				state.serverInfo = serverInfo
 

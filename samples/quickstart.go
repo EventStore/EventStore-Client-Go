@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
-
-	"github.com/gofrs/uuid"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 )
@@ -29,7 +28,7 @@ func Run() {
 
 	// region createEvent
 	testEvent := TestEvent{
-		Id:            uuid.Must(uuid.NewV4()).String(),
+		Id:            uuid.NewString(),
 		ImportantData: "I wrote my first event!",
 	}
 

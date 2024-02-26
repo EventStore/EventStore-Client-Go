@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"strings"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
-	"github.com/gofrs/uuid"
 )
 
 func CreateClient(connectionString string) {
@@ -163,7 +163,7 @@ fromAll()
 })
 .outputState()
 `
-	name := fmt.Sprintf("countEvent_Create_%s", uuid.Must(uuid.NewV4()))
+	name := fmt.Sprintf("countEvent_Create_%s", uuid.New())
 	err := client.Create(context.Background(), name, script, esdb.CreateProjectionOptions{})
 
 	if err != nil {

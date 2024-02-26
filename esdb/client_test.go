@@ -103,4 +103,6 @@ func TestExpectations(t *testing.T) {
 
 func TestMisc(t *testing.T) {
 	ConnectionStringTests(t)
+	TestPositionParsing(t)
+	UUIDParsingTests(t)
 }

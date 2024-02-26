@@ -1,7 +1,9 @@
 package esdb
 
 import (
+	"encoding/binary"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"strconv"
 	"time"
@@ -9,7 +11,6 @@ import (
 	"github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
 	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
 	api "github.com/EventStore/EventStore-Client-Go/v3/protos/streams"
-	"github.com/gofrs/uuid"
 )
 
 type SubscriptionFilterOptions struct {
@@ -82,13 +83,17 @@ func toProposedMessage(event EventData) *api.AppendReq_ProposedMessage {
 	}
 
 	if eventId == uuid.Nil {
-		eventId = uuid.Must(uuid.NewV4())
+		eventId = uuid.New()
 	}
 
+	most, least := UUIDAsInt64(eventId)
 	return &api.AppendReq_ProposedMessage{
 		Id: &shared.UUID{
-			Value: &shared.UUID_String_{
-				String_: eventId.String(),
+			Value: &shared.UUID_Structured_{
+				Structured: &shared.UUID_Structured{
+					MostSignificantBits:  most,
+					LeastSignificantBits: least,
+				},
 			},
 		},
 		Data:           event.Data,
@@ -276,9 +281,7 @@ func toReadStreamRequest(streamID string, direction Direction, from StreamPositi
 			ResolveLinks:  resolveLinks,
 			StreamOption:  toReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
+				Content: &api.ReadReq_Options_UUIDOption_Structured{},
 			},
 		},
 	}
@@ -297,9 +300,7 @@ func toReadAllRequest(direction Direction, from AllPosition, count uint64, resol
 			ResolveLinks:  resolveLinks,
 			StreamOption:  toAllReadOptionsFromPosition(from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
+				Content: &api.ReadReq_Options_UUIDOption_Structured{},
 			},
 		},
 	}
@@ -318,9 +319,7 @@ func toStreamSubscriptionRequest(streamID string, from StreamPosition, resolveLi
 			ResolveLinks:  resolveLinks,
 			StreamOption:  toReadStreamOptionsFromStreamAndStreamRevision(streamID, from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
+				Content: &api.ReadReq_Options_UUIDOption_Structured{},
 			},
 		},
 	}
@@ -349,9 +348,7 @@ func toAllSubscriptionRequest(from AllPosition, resolveLinks bool, filterOptions
 			ResolveLinks:  resolveLinks,
 			StreamOption:  toAllReadOptionsFromPosition(from),
 			UuidOption: &api.ReadReq_Options_UUIDOption{
-				Content: &api.ReadReq_Options_UUIDOption_String_{
-					String_: nil,
-				},
+				Content: &api.ReadReq_Options_UUIDOption_Structured{},
 			},
 		},
 	}
@@ -367,11 +364,44 @@ func toAllSubscriptionRequest(from AllPosition, resolveLinks bool, filterOptions
 	return readReq, nil
 }
 
+func ParseUUIDFromInt64(most int64, least int64) (uuid.UUID, error) {
+	buffer := make([]byte, 16)
+
+	binary.BigEndian.PutUint64(buffer[:8], uint64(most))
+	binary.BigEndian.PutUint64(buffer[8:], uint64(least))
+
+	return uuid.FromBytes(buffer)
+}
+
+func UUIDAsInt64(id uuid.UUID) (int64, int64) {
+	buffer := id[:]
+	most := binary.BigEndian.Uint64(buffer[:8])
+	least := binary.BigEndian.Uint64(buffer[8:])
+
+	return int64(most), int64(least)
+}
+
 // eventIDFromProto ...
 func eventIDFromProto(recordedEvent *api.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
 	id := recordedEvent.GetId()
-	idString := id.GetString_()
-	return uuid.FromStringOrNil(idString)
+	if obj := id.GetStructured(); obj != nil {
+		uid, err := ParseUUIDFromInt64(obj.MostSignificantBits, obj.LeastSignificantBits)
+
+		if err != nil {
+			return uuid.Nil
+		}
+
+		return uid
+	} else {
+		idString := id.GetString_()
+		uid, err := uuid.Parse(idString)
+
+		if err != nil {
+			return uuid.Nil
+		}
+
+		return uid
+	}
 }
 
 // createdFromProto ...
@@ -469,14 +499,34 @@ func getResolvedEventFromProto(result *api.ReadResp_ReadEvent) ResolvedEvent {
 
 func eventIDFromPersistentProto(recordedEvent *persistent.ReadResp_ReadEvent_RecordedEvent) uuid.UUID {
 	id := recordedEvent.GetId()
-	idString := id.GetString_()
-	return uuid.FromStringOrNil(idString)
+	if obj := id.GetStructured(); obj != nil {
+		uid, err := ParseUUIDFromInt64(obj.MostSignificantBits, obj.LeastSignificantBits)
+
+		if err != nil {
+			return uuid.Nil
+		}
+
+		return uid
+	} else {
+		idString := id.GetString_()
+		uid, err := uuid.Parse(idString)
+
+		if err != nil {
+			return uuid.Nil
+		}
+
+		return uid
+	}
 }
 
 func toProtoUUID(id uuid.UUID) *shared.UUID {
+	most, least := UUIDAsInt64(id)
 	return &shared.UUID{
-		Value: &shared.UUID_String_{
-			String_: id.String(),
+		Value: &shared.UUID_Structured_{
+			Structured: &shared.UUID_Structured{
+				MostSignificantBits:  most,
+				LeastSignificantBits: least,
+			},
 		},
 	}
 }
@@ -1004,9 +1054,7 @@ func toPersistentReadRequest(
 		BufferSize: bufferSize,
 		GroupName:  groupName,
 		UuidOption: &persistent.ReadReq_Options_UUIDOption{
-			Content: &persistent.ReadReq_Options_UUIDOption_String_{
-				String_: nil,
-			},
+			Content: &persistent.ReadReq_Options_UUIDOption_Structured{},
 		},
 	}
 

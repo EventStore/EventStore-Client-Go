@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/google/uuid"
 	"io"
 	"io/ioutil"
 	"math"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
-	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

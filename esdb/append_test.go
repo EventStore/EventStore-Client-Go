@@ -3,12 +3,12 @@ package esdb_test
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"testing"
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
-	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func createTestEvent() esdb.EventData {
 	event := esdb.EventData{
 		EventType:   "TestEvent",
 		ContentType: esdb.ContentTypeBinary,
-		EventID:     uuid.Must(uuid.NewV4()),
+		EventID:     uuid.New(),
 		Data:        []byte{0xb, 0xe, 0xe, 0xf},
 		Metadata:    []byte{0xd, 0xe, 0xa, 0xd},
 	}
@@ -57,9 +57,9 @@ func AppendTests(t *testing.T, emptyDB *Container, emptyDBClient *esdb.Client) {
 func appendToStreamSingleEventNoStream(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
 		testEvent := createTestEvent()
-		testEvent.EventID = uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872")
+		testEvent.EventID = uuid.MustParse("38fffbc2-339e-11ea-8c7b-784f43837872")
 
-		streamID := uuid.Must(uuid.NewV4())
+		streamID := uuid.New()
 		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 		defer cancel()
 
@@ -98,7 +98,7 @@ func appendToStreamSingleEventNoStream(db *esdb.Client) TestCall {
 
 func appendWithInvalidStreamRevision(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		streamID, _ := uuid.NewV4()
+		streamID := uuid.New()
 		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 		defer cancel()
 
@@ -134,7 +134,7 @@ func appendToSystemStreamWithIncorrectCredentials(container *Container) TestCall
 
 		defer db.Close()
 
-		streamID, _ := uuid.NewV4()
+		streamID := uuid.New()
 		context, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
@@ -151,7 +151,7 @@ func appendToSystemStreamWithIncorrectCredentials(container *Container) TestCall
 
 func metadataOperation(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		streamID := uuid.Must(uuid.NewV4())
+		streamID := uuid.New()
 		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 		defer cancel()
 
