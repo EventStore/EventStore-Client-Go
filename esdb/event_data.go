@@ -1,8 +1,6 @@
 package esdb
 
-import (
-	uuid "github.com/gofrs/uuid"
-)
+import "github.com/google/uuid"
 
 // ContentType event's content type.
 type ContentType int

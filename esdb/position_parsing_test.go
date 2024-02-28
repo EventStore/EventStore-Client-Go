@@ -1,44 +1,46 @@
-package esdb
+package esdb_test
 
 import (
-	"testing"
-
+	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestPositionParsing(t *testing.T) {
-	pos, err := parseStreamPosition("C:123/P:456")
-	assert.NoError(t, err)
-	assert.NotNil(t, pos)
+	t.Run("StreamPositionTests", func(t *testing.T) {
+		pos, err := esdb.ParseStreamPosition("C:123/P:456")
+		assert.NoError(t, err)
+		assert.NotNil(t, pos)
 
-	obj, err := parseStreamPosition("C:-1/P:-1")
-	assert.NoError(t, err)
+		obj, err := esdb.ParseStreamPosition("C:-1/P:-1")
+		assert.NoError(t, err)
 
-	_, ok := obj.(End)
-	assert.True(t, ok)
+		_, ok := obj.(esdb.End)
+		assert.True(t, ok)
 
-	obj, err = parseStreamPosition("C:0/P:0")
-	assert.NoError(t, err)
+		obj, err = esdb.ParseStreamPosition("C:0/P:0")
+		assert.NoError(t, err)
 
-	_, ok = obj.(Start)
-	assert.True(t, ok)
+		_, ok = obj.(esdb.Start)
+		assert.True(t, ok)
 
-	obj, err = parseStreamPosition("-1")
-	assert.NoError(t, err)
+		obj, err = esdb.ParseStreamPosition("-1")
+		assert.NoError(t, err)
 
-	_, ok = obj.(End)
-	assert.True(t, ok)
+		_, ok = obj.(esdb.End)
+		assert.True(t, ok)
 
-	obj, err = parseStreamPosition("0")
-	assert.NoError(t, err)
+		obj, err = esdb.ParseStreamPosition("0")
+		assert.NoError(t, err)
 
-	_, ok = obj.(Start)
-	assert.True(t, ok)
+		_, ok = obj.(esdb.Start)
+		assert.True(t, ok)
 
-	obj, err = parseStreamPosition("42")
-	assert.NoError(t, err)
+		obj, err = esdb.ParseStreamPosition("42")
+		assert.NoError(t, err)
 
-	value, ok := obj.(StreamRevision)
-	assert.True(t, ok)
-	assert.Equal(t, uint64(42), value.Value)
+		value, ok := obj.(esdb.StreamRevision)
+		assert.True(t, ok)
+		assert.Equal(t, uint64(42), value.Value)
+	})
 }

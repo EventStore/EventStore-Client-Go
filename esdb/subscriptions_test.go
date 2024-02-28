@@ -3,6 +3,7 @@ package esdb_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/google/uuid"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
-	uuid "github.com/gofrs/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,7 +97,7 @@ func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.
 
 		streamID := "dataset20M-0"
 		testEvent := createTestEvent()
-		testEvent.EventID = uuid.FromStringOrNil("84c8e36c-4e64-11ea-8b59-b7f658acfc9f")
+		testEvent.EventID = uuid.MustParse("84c8e36c-4e64-11ea-8b59-b7f658acfc9f")
 
 		var receivedEvents sync.WaitGroup
 		var appendedEvents sync.WaitGroup

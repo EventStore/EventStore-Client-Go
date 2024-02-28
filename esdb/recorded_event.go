@@ -1,9 +1,8 @@
 package esdb
 
 import (
+	"github.com/google/uuid"
 	"time"
-
-	uuid "github.com/gofrs/uuid"
 )
 
 // RecordedEvent represents a previously written event.

@@ -2,11 +2,11 @@ package esdb_test
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"testing"
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
-	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,9 +21,9 @@ func closeConnection(container *Container) TestCall {
 		db := GetClient(t, container)
 
 		testEvent := createTestEvent()
-		testEvent.EventID = uuid.FromStringOrNil("38fffbc2-339e-11ea-8c7b-784f43837872")
+		testEvent.EventID = uuid.MustParse("38fffbc2-339e-11ea-8c7b-784f43837872")
 
-		streamID := uuid.Must(uuid.NewV4())
+		streamID := uuid.New()
 		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 		defer cancel()
 		opts := esdb.AppendToStreamOptions{

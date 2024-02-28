@@ -3,9 +3,8 @@ package samples
 import (
 	"context"
 	"encoding/json"
+	"github.com/google/uuid"
 	"log"
-
-	"github.com/gofrs/uuid"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
 )
@@ -53,7 +52,7 @@ func AppendWithSameId(db *esdb.Client) {
 		panic(err)
 	}
 
-	id := uuid.Must(uuid.NewV4())
+	id := uuid.New()
 	event := esdb.EventData{
 		ContentType: esdb.ContentTypeJson,
 		EventType:   "some-event",

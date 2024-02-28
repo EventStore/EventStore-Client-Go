@@ -287,7 +287,7 @@ func parseEventRevision(input string) (uint64, error) {
 	}
 }
 
-func parseStreamPosition(input string) (interface{}, error) {
+func ParseStreamPosition(input string) (interface{}, error) {
 	if input == "0" || input == "C:0/P:0" {
 		return Start{}, nil
 	}
@@ -318,7 +318,7 @@ func fromHttpJsonInfo(src persistentSubscriptionInfoHttpJson) (*PersistentSubscr
 		settings.ConsumerStrategyName = ConsumerStrategy(src.Config.ConsumerStrategyName)
 
 		if src.EventStreamId == "$all" {
-			from, err := parseStreamPosition(src.Config.StartPosition)
+			from, err := ParseStreamPosition(src.Config.StartPosition)
 
 			if err != nil {
 				return nil, err

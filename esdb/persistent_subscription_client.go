@@ -420,7 +420,7 @@ func subscriptionInfoFromWire(wire *persistent.SubscriptionInfo) (*PersistentSub
 		}
 	}
 
-	startFrom, err := parseStreamPosition(wire.StartFrom)
+	startFrom, err := ParseStreamPosition(wire.StartFrom)
 
 	if err != nil {
 		return nil, &Error{

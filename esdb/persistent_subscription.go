@@ -3,13 +3,13 @@ package esdb
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"sync/atomic"
 
 	"sync"
 
 	"github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
 	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
-	"github.com/gofrs/uuid"
 )
 
 // NackAction persistent subscription acknowledgement error type.
