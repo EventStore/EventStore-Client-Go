@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
 )
 
 func createPersistentSubscription(client *esdb.Client) {
@@ -240,11 +240,11 @@ func listPersistentSubscriptionsToAll(client *esdb.Client) {
 }
 
 func restartPersistentSubscriptionSubsystem(client *esdb.Client) {
-    // #region restart-persistent-subscription-subsystem
-    err := client.RestartPersistentSubscriptionSubsystem(context.Background(), esdb.RestartPersistentSubscriptionSubsystemOptions{})
+	// #region restart-persistent-subscription-subsystem
+	err := client.RestartPersistentSubscriptionSubsystem(context.Background(), esdb.RestartPersistentSubscriptionSubsystemOptions{})
 
-    if err != nil {
-        panic(err)
-    }
-    // #endregion restart-persistent-subscription-subsystem
+	if err != nil {
+		panic(err)
+	}
+	// #endregion restart-persistent-subscription-subsystem
 }

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/projections"
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/projections"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/structpb"

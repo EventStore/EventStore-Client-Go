@@ -1,7 +1,7 @@
 syntax = "proto3";
 package event_store.client.server_features;
 option java_package = "com.eventstore.dbclient.proto.serverfeatures";
-option go_package = "github.com/EventStore/EventStore-Client-Go/v3/protos/serverfeatures";
+option go_package = "github.com/EventStore/EventStore-Client-Go/v4/protos/serverfeatures";
 import "shared.proto";
 
 service ServerFeatures {

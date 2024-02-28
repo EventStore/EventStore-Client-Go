@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
-	api "github.com/EventStore/EventStore-Client-Go/v3/protos/streams"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/shared"
+	api "github.com/EventStore/EventStore-Client-Go/v4/protos/streams"
 )
 
 type SubscriptionFilterOptions struct {

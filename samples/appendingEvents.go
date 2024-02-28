@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
 )
 
 type TestEvent struct {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,9 +117,8 @@ func updateProjection(client *esdb.ProjectionClient) TestCall {
 
 		scriptUpdated, err := os.ReadFile("../resources/test/projection-updated.js")
 
-        err = client.Update(context.Background(), name, string(scriptUpdated), esdb.UpdateProjectionOptions{})
-        require.NoError(t, err)
-
+		err = client.Update(context.Background(), name, string(scriptUpdated), esdb.UpdateProjectionOptions{})
+		require.NoError(t, err)
 
 		status, err := client.GetStatus(context.Background(), name, esdb.GenericProjectionOptions{})
 		require.NoError(t, err)
@@ -186,7 +185,7 @@ func resetProjection(client *esdb.ProjectionClient) TestCall {
 		require.NoError(t, err)
 
 		err = client.Reset(context.Background(), name, esdb.ResetProjectionOptions{})
-        require.NoError(t, err)
+		require.NoError(t, err)
 	}
 }
 

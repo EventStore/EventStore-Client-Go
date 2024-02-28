@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

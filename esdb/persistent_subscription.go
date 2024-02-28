@@ -8,8 +8,8 @@ import (
 
 	"sync"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/persistent"
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/shared"
 )
 
 // NackAction persistent subscription acknowledgement error type.
