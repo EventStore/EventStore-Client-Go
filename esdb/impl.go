@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	gossipApi "github.com/EventStore/EventStore-Client-Go/v3/protos/gossip"
-	server_features "github.com/EventStore/EventStore-Client-Go/v3/protos/serverfeatures"
-	"github.com/EventStore/EventStore-Client-Go/v3/protos/shared"
+	gossipApi "github.com/EventStore/EventStore-Client-Go/v4/protos/gossip"
+	server_features "github.com/EventStore/EventStore-Client-Go/v4/protos/serverfeatures"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

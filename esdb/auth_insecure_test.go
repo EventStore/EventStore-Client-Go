@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/v3/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
 )
 
 func InsecureAuthenticationTests(t *testing.T, client *esdb.Client) {
