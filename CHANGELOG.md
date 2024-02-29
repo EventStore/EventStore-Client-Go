@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 - Add missing persistent subscription API samples. [EventStore-Client-Go#168](https://github.com/EventStore/EventStore-Client-Go/pull/168)
 - Implement projections API. [EventStore-Client-Go#167](https://github.com/EventStore/EventStore-Client-Go/pull/167)
 
+### Changed
+- Move to google uuid implementation. [EventStore-Client-Go#169](https://github.com/EventStore/EventStore-Client-Go/pull/169)
+
 ## [3.3.0] - 2024-01-27
 ### Added
 - CaughtUp and FellBehind message handling in subscription [EventStore-Client-Go#161](https://github.com/EventStore/EventStore-Client-Go/pull/161)
