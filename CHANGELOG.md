@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Move to google uuid implementation. [EventStore-Client-Go#169](https://github.com/EventStore/EventStore-Client-Go/pull/169)
+- Move to version 4. [EventStore-Client-Go#170](https://github.com/EventStore/EventStore-Client-Go/pull/170)
 
 ## [3.3.0] - 2024-01-27
 ### Added
