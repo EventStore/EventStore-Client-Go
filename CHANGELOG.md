@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.0] - 2024-03-03
 ### Added
 - Add missing persistent subscription API samples. [EventStore-Client-Go#168](https://github.com/EventStore/EventStore-Client-Go/pull/168)
 - Implement projections API. [EventStore-Client-Go#167](https://github.com/EventStore/EventStore-Client-Go/pull/167)
