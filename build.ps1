@@ -18,9 +18,11 @@ function Exec {
     }
 }
 
-$protobufVersion = "3.20.0"
+$protobufVersion = "26.0"
 $protocTarball = "protoc-$protobufVersion-win64.zip"
 $protocUrl = "https://github.com/protocolbuffers/protobuf/releases/download/v$protobufVersion/$protocTarball"
+
+go version
 
 # Required tools
 New-Item -Path . -Name "tools" -ItemType "directory" -Force | Out-Null
@@ -40,8 +42,8 @@ Pop-Location
 # end
 
 if ($generateProtos) {
-    Exec { go install google.golang.org/protobuf/cmd/protoc-gen-go } "Cannot run go command"
-    Exec { go install google.golang.org/grpc/cmd/protoc-gen-go-grpc } "Cannot run go command"
+    Exec { go install google.golang.org/protobuf/cmd/protoc-gen-go@latest } "Cannot run go command"
+    Exec { go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest } "Cannot run go command"
 
     # We don't check the env variables because Github actions don't set $GOPATH.
     $gopath = Exec { go env GOPATH } "Cannot get $$GOPATH"
