@@ -31,6 +31,8 @@ do
 done
 #end
 
+go version
+
 # Required tools
 mkdir -p tools
 pushd tools > /dev/null

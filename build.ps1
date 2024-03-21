@@ -22,6 +22,8 @@ $protobufVersion = "26.0"
 $protocTarball = "protoc-$protobufVersion-win64.zip"
 $protocUrl = "https://github.com/protocolbuffers/protobuf/releases/download/v$protobufVersion/$protocTarball"
 
+go version
+
 # Required tools
 New-Item -Path . -Name "tools" -ItemType "directory" -Force | Out-Null
 Push-Location tools
