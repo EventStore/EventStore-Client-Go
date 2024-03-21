@@ -2,7 +2,7 @@
 
 set -e
 
-PROTOBUF_VERSION="3.20.0"
+PROTOBUF_VERSION="26.0"
 UNAME_S=`uname -s`
 OS=""
 GENERATE_PROTOS=0
@@ -51,8 +51,8 @@ popd > /dev/null
 
 if [ $GENERATE_PROTOS -eq 1 ]
 then
-    go install google.golang.org/protobuf/cmd/protoc-gen-go
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+    go install "google.golang.org/protobuf/cmd/protoc-gen-go@latest"
+    go install "google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest"
 
     gopath=`go env GOPATH`
 

@@ -18,7 +18,7 @@ function Exec {
     }
 }
 
-$protobufVersion = "3.20.0"
+$protobufVersion = "26.0"
 $protocTarball = "protoc-$protobufVersion-win64.zip"
 $protocUrl = "https://github.com/protocolbuffers/protobuf/releases/download/v$protobufVersion/$protocTarball"
 
