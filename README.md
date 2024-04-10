@@ -1,5 +1,7 @@
 # EventStoreDB Client SDK for Golang [![Actions Status](https://github.com/eventstore/EventStore-Client-Go/workflows/CI/badge.svg?branch=master)](https://github.com/eventstore/EventStore-Client-Go/actions)
 
+EventStoreDB is the event-native database, where business events are immutably stored and streamed. Designed for event-sourced, event-driven, and microservices architectures.
+
 This repository contains an [EventStoreDB][es] Client SDK written in Go.
 
 ## Developing
@@ -36,6 +38,11 @@ By default the tests use `ghcr.io/eventstore/eventstore:ci`. To override this, s
 export EVENTSTORE_DOCKER_TAG_ENV="21.10.0-focal"
 make test
 ```
+
+## Communities
+
+- [Discuss](https://discuss.eventstore.com/)
+- [Discord (Event Store)](https://discord.gg/Phn9pmCw3t)
 
 ## Security
 
