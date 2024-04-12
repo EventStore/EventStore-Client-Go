@@ -245,7 +245,7 @@ func GetClient(t *testing.T, container *Container) *esdb.Client {
 	isCluster := GetEnvOrDefault("CLUSTER", "false") == "true"
 
 	if isCluster {
-		return CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=leader&tlsverifycert=false", t)
+		return CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=leader&tlsverifycert=false&maxDiscoverAttempts=50&defaultDeadline=60000", t)
 	} else if isInsecure {
 		return createTestClient(fmt.Sprintf("esdb://%s?tls=false", container.Endpoint), container, t)
 	}
@@ -272,13 +272,14 @@ func createDatabase(t *testing.T, populated bool) (*Container, *esdb.Client) {
 		label = "empty"
 	}
 
+	var container *Container
+	var client *esdb.Client
+
 	if GetEnvOrDefault("CLUSTER", "false") == "true" {
 		// When run on the cluster configuration we don't run the pre-populated database, so we have no use for a client
 		// either.
-		if populated {
-			return nil, nil
-		} else {
-			return nil, GetClient(t, nil)
+		if !populated {
+			client = GetClient(t, nil)
 		}
 	} else {
 		if isInsecure {
@@ -298,14 +299,17 @@ func createDatabase(t *testing.T, populated bool) (*Container, *esdb.Client) {
 			req.Env["EVENTSTORE_MEM_DB"] = "false"
 		}
 
-		container := getDatabase(t, *config, *req)
-		client := GetClient(t, container)
+		container = getDatabase(t, *config, *req)
+		client = GetClient(t, container)
 
+	}
+
+	if client != nil {
 		WaitForAdminToBeAvailable(t, client)
 		WaitForLeaderToBeElected(t, client)
-
-		return container, client
 	}
+
+	return container, client
 }
 
 func createTestClient(conn string, container *Container, t *testing.T) *esdb.Client {
@@ -323,11 +327,7 @@ func createTestClient(conn string, container *Container, t *testing.T) *esdb.Cli
 }
 
 func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
-	count := 0
-
-	for count < 50 {
-		count += 1
-
+	for count := 0; count < 50; count++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		t.Logf("[debug] checking if admin user is available...%v/50", count)
 
@@ -336,36 +336,45 @@ func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
 		if ctx.Err() != nil {
 			t.Log("[debug] request timed out, retrying...")
 			cancel()
+			time.Sleep(1 * time.Second)
 			continue
+		}
+
+		if stream != nil {
+			_, err = stream.Recv()
+			if err == nil {
+				t.Log("[debug] admin is available!")
+				cancel()
+				stream.Close()
+				return
+			}
 		}
 
 		if err != nil {
 			if esdbError, ok := esdb.FromError(err); !ok {
-				if esdbError.Code() == esdb.ErrorCodeResourceNotFound || esdbError.Code() == esdb.ErrorCodeUnauthenticated {
-					time.Sleep(500 * time.Microsecond)
+				if esdbError.Code() == esdb.ErrorCodeResourceNotFound ||
+					esdbError.Code() == esdb.ErrorCodeUnauthenticated ||
+					esdbError.Code() == esdb.ErrorCodeDeadlineExceeded ||
+					esdbError.Code() == esdb.ErrorUnavailable {
+					time.Sleep(1 * time.Second)
 					t.Logf("[debug] not available retrying...")
 					cancel()
 					continue
 				}
 
-				t.Fatalf("unexpected error when waiting the admin account to be available: %+v", err)
+				t.Fatalf("unexpected error when waiting the admin account to be available: %+v", esdbError)
 			}
-		}
 
-		cancel()
-		stream.Close()
-		t.Log("[debug] admin is available!")
-		break
+			t.Fatalf("unexpected error when waiting the admin account to be available: %+v", err)
+		}
 	}
+
+	t.Fatalf("failed to access admin account in a timely manner")
 }
 
 func WaitForLeaderToBeElected(t *testing.T, db *esdb.Client) {
-	count := 0
-	streamID := NAME_GENERATOR.Generate()
-
-	for count < 50 {
-		count += 1
-
+	for count := 0; count < 50; count++ {
+		streamID := NAME_GENERATOR.Generate()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		t.Logf("[debug] checking if a leader has been elected...%v/50", count)
 
@@ -374,26 +383,33 @@ func WaitForLeaderToBeElected(t *testing.T, db *esdb.Client) {
 		if ctx.Err() != nil {
 			t.Log("[debug] request timed out, retrying...")
 			cancel()
+			time.Sleep(1 * time.Second)
 			continue
+		}
+
+		if err == nil {
+			cancel()
+			t.Log("[debug] a leader has been elected!")
+			return
 		}
 
 		if err != nil {
 			if esdbError, ok := esdb.FromError(err); !ok {
-				if esdbError.Code() == esdb.ErrorCodeNotLeader || esdbError.Code() == esdb.ErrorUnavailable {
-					time.Sleep(500 * time.Microsecond)
+				if esdbError.Code() == esdb.ErrorCodeNotLeader || esdbError.Code() == esdb.ErrorUnavailable || esdbError.Code() == esdb.ErrorCodeUnauthenticated {
+					time.Sleep(1 * time.Second)
 					t.Logf("[debug] not available retrying...")
 					cancel()
 					continue
 				}
+
+				t.Fatalf("unexpected error when waiting for the cluster to elect a leader: %+v", esdbError)
 			}
 
-			panic(err)
+			t.Fatalf("unexpected error when waiting for the cluster to elect a leader: %+v", err)
 		}
-
-		cancel()
-		t.Log("[debug] a leader has been elected!")
-		break
 	}
+
+	t.Fatalf("cluster failed to elect a leader in a timely manner")
 }
 
 func CreateClient(connStr string, t *testing.T) *esdb.Client {

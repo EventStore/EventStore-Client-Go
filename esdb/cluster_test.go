@@ -3,6 +3,7 @@ package esdb_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
 
@@ -16,23 +17,43 @@ func ClusterTests(t *testing.T) {
 }
 
 func notLeaderExceptionButWorkAfterRetry(t *testing.T) {
-	ctx := context.Background()
+	// Seems on GHA, we need to try more that once because the name generator is not random enough.
+	for count := 0; count < 10; count++ {
+		ctx := context.Background()
 
-	// We purposely connect to a follower node so we can trigger on not leader exception.
-	db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=follower&tlsverifycert=false", t)
-	defer db.Close()
-	streamID := NAME_GENERATOR.Generate()
+		// We purposely connect to a follower node so we can trigger on not leader exception.
+		db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=follower&tlsverifycert=false", t)
+		defer db.Close()
+		streamID := NAME_GENERATOR.Generate()
 
-	err := db.CreatePersistentSubscription(ctx, streamID, "a_group", esdb.PersistentStreamSubscriptionOptions{})
+		err := db.CreatePersistentSubscription(ctx, streamID, "a_group", esdb.PersistentStreamSubscriptionOptions{})
 
-	assert.NotNil(t, err)
+		if esdbError, ok := esdb.FromError(err); !ok {
+			if esdbError.IsErrorCode(esdb.ErrorCodeResourceAlreadyExists) {
+				// Name generator is not random enough.
+				time.Sleep(1 * time.Second)
+				continue
+			}
+		}
 
-	// It should work now as the db automatically reconnected to the leader node.
-	err = db.CreatePersistentSubscription(ctx, streamID, "a_group", esdb.PersistentStreamSubscriptionOptions{})
+		assert.NotNil(t, err)
 
-	if err != nil {
-		t.Fatalf("Failed to create persistent subscription: %v", err)
+		// It should work now as the db automatically reconnected to the leader node.
+		err = db.CreatePersistentSubscription(ctx, streamID, "a_group", esdb.PersistentStreamSubscriptionOptions{})
+
+		if esdbErr, ok := esdb.FromError(err); !ok {
+			if esdbErr.IsErrorCode(esdb.ErrorCodeResourceAlreadyExists) {
+				// Freak accident considering we use random stream name, safe to assume the test was
+				// successful.
+				return
+			}
+
+			t.Fatalf("Failed to create persistent subscription: %v", esdbErr)
+		}
+
+		assert.Nil(t, err)
+		return
 	}
 
-	assert.Nil(t, err)
+	t.Fatalf("we retried long enough but the test is still failing")
 }

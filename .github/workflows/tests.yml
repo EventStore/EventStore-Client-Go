@@ -18,7 +18,10 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ vars.GO_VERSION }}
 
       - name: Generate certificates
         run: docker-compose --file docker-compose.yml up
@@ -39,7 +42,10 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ vars.GO_VERSION }}
 
       - name: Generate certificates
         run: docker-compose --file docker-compose.yml up
@@ -61,20 +67,23 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ vars.GO_VERSION }}
 
       - name: Set up cluster with Docker Compose
         run: |
-          docker-compose -f cluster-docker-compose.yml up -d
+          docker compose -f cluster-docker-compose.yml up -d
+        env:
+          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
 
       - name: Run Go Tests
         run: make ci CI_TARGET=Test${{ matrix.test }}
-
         env:
-          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
           EVENTSTORE_INSECURE: false
           CLUSTER: true
 
       - name: Shutdown cluster
-        run: docker-compose -f cluster-docker-compose.yml down
+        run: docker compose -f cluster-docker-compose.yml down
         if: always()
