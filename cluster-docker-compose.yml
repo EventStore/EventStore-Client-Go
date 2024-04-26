@@ -10,7 +10,7 @@ services:
     network_mode: none
 
   cert-gen:
-    image: eventstore/es-gencert-cli:1.0.2
+    image: docker.eventstore.com/eventstore-utils/es-gencert-cli:latest
     entrypoint: bash
     user: "1000:1000"
     command: >

@@ -14,4 +14,3 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       esdb_version: ${{ inputs.version }}
-    secrets: inherit

@@ -34,7 +34,6 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       esdb_version: ${{ matrix.version }}
-    secrets: inherit
 
   linting:
     needs: tests
