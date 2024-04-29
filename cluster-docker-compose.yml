@@ -10,7 +10,7 @@ services:
     network_mode: none
 
   cert-gen:
-    image: eventstore/es-gencert-cli:1.0.2
+    image: docker.eventstore.com/eventstore-utils/es-gencert-cli:latest
     entrypoint: bash
     user: "1000:1000"
     command: >
@@ -26,7 +26,7 @@ services:
       - volumes-provisioner
 
   esdb-node1:
-    image: ghcr.io/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
+    image: docker.eventstore.com/eventstore-ce/eventstoredb-ce:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
     env_file:
       - shared.env
     environment:
@@ -47,7 +47,7 @@ services:
       - cert-gen
 
   esdb-node2:
-    image: ghcr.io/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
+    image: docker.eventstore.com/eventstore-ce/eventstoredb-ce:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
     env_file:
       - shared.env
     environment:
@@ -68,7 +68,7 @@ services:
       - cert-gen
 
   esdb-node3:
-    image: ghcr.io/eventstore/eventstore:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
+    image: docker.eventstore.com/eventstore-ce/eventstoredb-ce:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
     env_file:
       - shared.env
     environment:
