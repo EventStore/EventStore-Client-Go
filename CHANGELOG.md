@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 ### Updated
 - Update dependencies. [EventStore-Client-Go#172](https://github.com/EventStore/EventStore-Client-Go/pull/172)
 
+### Changed
+- Updated CI workflows to pull eventstore docker images from cloud smith registry. [EventStore-Client-Go#165](https://github.com/EventStore/EventStore-Client-Go/pull/165)
+- Updated README to reference Cloudsmith repository instead of ghcr. [EventStore-Client-Go#165](https://github.com/EventStore/EventStore-Client-Go/pull/165)
+
 ## [4.0.0] - 2024-03-03
 ### Added
 - Add missing persistent subscription API samples. [EventStore-Client-Go#168](https://github.com/EventStore/EventStore-Client-Go/pull/168)
