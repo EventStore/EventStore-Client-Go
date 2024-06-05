@@ -79,9 +79,8 @@ func TestCustomPropertyRetrievalFromStreamMetadata(t *testing.T) {
 	expected := esdb.StreamMetadata{}
 	expected.AddCustomProperty("foo", "bar")
 
-	foo, ok := expected.CustomProperty("foo")
+	foo := expected.CustomProperty("foo")
 
-	assert.True(t, ok, "custom property not found")
 	assert.Equal(t, "bar", foo, "custom property value mismatch")
 }
 
@@ -89,8 +88,17 @@ func TestUnknownCustomPropertyRetrievalFromStreamMetadata(t *testing.T) {
 	expected := esdb.StreamMetadata{}
 	expected.AddCustomProperty("foo", "bar")
 
-	foo, ok := expected.CustomProperty("foes")
+	foo := expected.CustomProperty("foes")
 
-	assert.False(t, ok, "custom property found")
 	assert.Empty(t, foo, "custom property value mismatch")
+}
+
+func TestGetAllCustomPropertiesFromStreamMetadata(t *testing.T) {
+	expected := esdb.StreamMetadata{}
+	expected.AddCustomProperty("foo", 123)
+	expected.AddCustomProperty("foes", "baz")
+
+	props := expected.CustomProperties()
+
+	assert.Equal(t, map[string]interface{}{"foo": 123, "foes": "baz"}, props, "custom properties mismatch")
 }

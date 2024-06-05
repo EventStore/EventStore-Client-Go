@@ -268,13 +268,13 @@ func (m *StreamMetadata) StreamAcl() *Acl {
 }
 
 // CustomProperty The custom property value for the given key.
-func (m *StreamMetadata) CustomProperty(key string) (interface{}, bool) {
-	if m.customProperties == nil {
-		return nil, false
-	}
+func (m *StreamMetadata) CustomProperty(key string) interface{} {
+	return m.customProperties[key]
+}
 
-	value, ok := m.customProperties[key]
-	return value, ok
+// CustomProperties returns all custom properties.
+func (m *StreamMetadata) CustomProperties() map[string]interface{} {
+	return m.customProperties
 }
 
 // IsUserStreamAcl Checks if the ACL is set to users default.
