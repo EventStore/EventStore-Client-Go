@@ -74,3 +74,23 @@ func TestConsistentMetadataSerializationSystemStreamAcl(t *testing.T) {
 
 	assert.Equal(t, expected, *meta, "consistency serialization failure")
 }
+
+func TestCustomPropertyRetrievalFromStreamMetadata(t *testing.T) {
+	expected := esdb.StreamMetadata{}
+	expected.AddCustomProperty("foo", "bar")
+
+	foo, ok := expected.CustomProperty("foo")
+
+	assert.True(t, ok, "custom property not found")
+	assert.Equal(t, "bar", foo, "custom property value mismatch")
+}
+
+func TestUnknownCustomPropertyRetrievalFromStreamMetadata(t *testing.T) {
+	expected := esdb.StreamMetadata{}
+	expected.AddCustomProperty("foo", "bar")
+
+	foo, ok := expected.CustomProperty("foes")
+
+	assert.False(t, ok, "custom property found")
+	assert.Empty(t, foo, "custom property value mismatch")
+}
