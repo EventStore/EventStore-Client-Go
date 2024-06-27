@@ -5,6 +5,7 @@ on:
       - "samples/**"
       - "**_test.go"
       - "**.md"
+      - ".github/**"
     types: [opened, edited]
 jobs:
   checkPullRequest:

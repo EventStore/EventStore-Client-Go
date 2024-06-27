@@ -9,8 +9,13 @@ on:
         type: string
 
 jobs:
+  go-version:
+    uses: ./.github/workflows/go-version.yml
+
   test:
+    needs: go-version
     name: Test
     uses: ./.github/workflows/tests.yml
     with:
       esdb_version: ${{ inputs.version }}
+      go_version: ${{ needs.go-version.outputs.go_version }}

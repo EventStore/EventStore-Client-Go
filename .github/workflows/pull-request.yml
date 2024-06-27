@@ -1,8 +1,12 @@
 name: Build and Run Tests
 on: [pull_request]
 jobs:
+  go-version:
+    uses: ./.github/workflows/go-version.yml
+
   build:
     name: Code generation & compile
+    needs: go-version
     strategy:
       fail-fast: false
       matrix:
@@ -14,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ vars.GO_VERSION }}
+          go-version: ${{ needs.go-version.outputs.go_version }}
 
       - name: Generate protos and build project
         run: make generate-protos-and-build
@@ -34,6 +38,8 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       esdb_version: ${{ matrix.version }}
+      go_version: ${{ needs.go-version.outputs.go_version }}
+
 
   linting:
     needs: tests

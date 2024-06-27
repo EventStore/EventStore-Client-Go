@@ -1,0 +1,19 @@
+name: Get Go version
+on:
+  workflow_call:
+    outputs:
+      go_version:
+        description: Currently supported Go version
+        value: ${{ jobs.provide_go_version.outputs.go_version }}
+
+jobs:
+  provide_go_version:
+    runs-on: ubuntu-latest
+    env:
+      GO_VERSION: 1.22
+    outputs:
+      go_version: ${{ steps.get.outputs.version }}
+    steps:
+      - name: Get Go version
+        id: get
+        run: echo "version=$GO_VERSION" >> $GITHUB_OUTPUT
