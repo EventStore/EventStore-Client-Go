@@ -7,6 +7,10 @@ on:
         required: true
         type: string
 
+      go_version:
+        required: true
+        type: string
+
 jobs:
   single_node:
     name: Single node
@@ -21,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ vars.GO_VERSION }}
+          go-version: ${{ inputs.go_version }}
 
       - name: Generate certificates
         run: docker-compose --file docker-compose.yml up
@@ -45,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ vars.GO_VERSION }}
+          go-version: ${{ inputs.go_version }}
 
       - name: Generate certificates
         run: docker-compose --file docker-compose.yml up
@@ -70,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ vars.GO_VERSION }}
+          go-version: ${{ inputs.go_version }}
 
       - name: Set up cluster with Docker Compose
         run: |
