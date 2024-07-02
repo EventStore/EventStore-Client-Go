@@ -26,7 +26,7 @@ services:
       - volumes-provisioner
 
   esdb-node1:
-    image: docker.eventstore.com/eventstore-ce/eventstoredb-ce:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
+    image: docker.eventstore.com/eventstore-staging-ce/eventstoredb-oss:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
     env_file:
       - shared.env
     environment:
@@ -47,7 +47,7 @@ services:
       - cert-gen
 
   esdb-node2:
-    image: docker.eventstore.com/eventstore-ce/eventstoredb-ce:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
+    image: docker.eventstore.com/eventstore-staging-ce/eventstoredb-oss:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
     env_file:
       - shared.env
     environment:
@@ -68,7 +68,7 @@ services:
       - cert-gen
 
   esdb-node3:
-    image: docker.eventstore.com/eventstore-ce/eventstoredb-ce:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
+    image: docker.eventstore.com/eventstore-staging-ce/eventstoredb-oss:${EVENTSTORE_DOCKER_TAG_ENV:-latest}
     env_file:
       - shared.env
     environment:
