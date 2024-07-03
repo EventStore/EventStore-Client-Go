@@ -2,12 +2,9 @@ package esdb_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"io"
-	"io/ioutil"
-	"math"
 	"testing"
 	"time"
 
@@ -41,153 +38,13 @@ type Event struct {
 	Created        Created        `json:"created"`
 }
 
-func ReadStreamTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClient *esdb.Client) {
+func ReadStreamTests(t *testing.T, emptyDBClient *esdb.Client) {
 	t.Run("ReadStreamTests", func(t *testing.T) {
-		t.Run("readStreamEventsForwardsFromZeroPosition", readStreamEventsForwardsFromZeroPosition(populatedDBClient))
-		t.Run("readStreamEventsBackwardsFromEndPosition", readStreamEventsBackwardsFromEndPosition(populatedDBClient))
 		t.Run("readStreamReturnsEOFAfterCompletion", readStreamReturnsEOFAfterCompletion(emptyDBClient))
 		t.Run("readStreamNotFound", readStreamNotFound(emptyDBClient))
 		t.Run("readStreamWithMaxAge", readStreamWithMaxAge(emptyDBClient))
 		t.Run("readStreamWithCredentialsOverride", readStreamWithCredentialsOverride(emptyDBClient))
 	})
-}
-
-func readStreamEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
-	return func(t *testing.T) {
-		if db == nil {
-			t.Skip()
-		}
-
-		eventsContent, err := ioutil.ReadFile("../resources/test/dataset20M-1800-e0-e10.json")
-		require.NoError(t, err)
-
-		var testEvents []TestEvent
-		err = json.Unmarshal(eventsContent, &testEvents)
-		require.NoError(t, err)
-
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-		defer cancel()
-
-		numberOfEventsToRead := 10
-		numberOfEvents := uint64(numberOfEventsToRead)
-
-		streamId := "dataset20M-1800"
-
-		opts := esdb.ReadStreamOptions{
-			Direction:      esdb.Forwards,
-			ResolveLinkTos: true,
-		}
-
-		stream, err := db.ReadStream(context, streamId, opts, numberOfEvents)
-
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
-
-		defer stream.Close()
-
-		events, err := collectStreamEvents(stream)
-
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
-
-		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
-
-		serverVersion, err := db.GetServerVersion()
-		if err != nil {
-			t.Fatalf("Failed to retrieve server version %+v", err)
-		}
-
-		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22
-
-		for i := 0; i < numberOfEventsToRead; i++ {
-			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
-			assert.Equal(t, testEvents[i].Event.EventType, events[i].OriginalEvent().EventType)
-			assert.Equal(t, testEvents[i].Event.StreamID, events[i].OriginalEvent().StreamID)
-			assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].OriginalEvent().EventNumber)
-			assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].OriginalEvent().CreatedDate.Nanosecond())
-			assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].OriginalEvent().CreatedDate.Unix())
-			if isAtLeast22_6 {
-				assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
-				assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
-			} else {
-				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Commit)
-				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Prepare)
-			}
-
-			assert.Equal(t, testEvents[i].Event.ContentType, events[i].OriginalEvent().ContentType)
-		}
-	}
-}
-
-func readStreamEventsBackwardsFromEndPosition(db *esdb.Client) TestCall {
-	return func(t *testing.T) {
-		if db == nil {
-			t.Skip()
-		}
-
-		eventsContent, err := ioutil.ReadFile("../resources/test/dataset20M-1800-e1999-e1990.json")
-		require.NoError(t, err)
-
-		var testEvents []TestEvent
-		err = json.Unmarshal(eventsContent, &testEvents)
-
-		require.NoError(t, err)
-
-		context, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
-		defer cancel()
-
-		numberOfEventsToRead := 10
-		numberOfEvents := uint64(numberOfEventsToRead)
-
-		streamId := "dataset20M-1800"
-		opts := esdb.ReadStreamOptions{
-			Direction:      esdb.Backwards,
-			From:           esdb.End{},
-			ResolveLinkTos: true,
-		}
-
-		stream, err := db.ReadStream(context, streamId, opts, numberOfEvents)
-
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
-
-		defer stream.Close()
-
-		events, err := collectStreamEvents(stream)
-
-		if err != nil {
-			t.Fatalf("Unexpected failure %+v", err)
-		}
-
-		assert.Equal(t, numberOfEvents, uint64(len(events)), "Expected the correct number of messages to be returned")
-
-		serverVersion, err := db.GetServerVersion()
-		if err != nil {
-			t.Fatalf("Failed to retrieve server version %+v", err)
-		}
-
-		isAtLeast22_6 := serverVersion.Major == 22 && serverVersion.Minor >= 6 || serverVersion.Major > 22
-
-		for i := 0; i < numberOfEventsToRead; i++ {
-			assert.Equal(t, testEvents[i].Event.EventID, events[i].OriginalEvent().EventID)
-			assert.Equal(t, testEvents[i].Event.EventType, events[i].OriginalEvent().EventType)
-			assert.Equal(t, testEvents[i].Event.StreamID, events[i].OriginalEvent().StreamID)
-			assert.Equal(t, testEvents[i].Event.StreamRevision.Value, events[i].OriginalEvent().EventNumber)
-			assert.Equal(t, testEvents[i].Event.Created.Nanos, events[i].OriginalEvent().CreatedDate.Nanosecond())
-			assert.Equal(t, testEvents[i].Event.Created.Seconds, events[i].OriginalEvent().CreatedDate.Unix())
-			if isAtLeast22_6 {
-				assert.Equal(t, testEvents[i].Event.Position.Commit, events[i].OriginalEvent().Position.Commit)
-				assert.Equal(t, testEvents[i].Event.Position.Prepare, events[i].OriginalEvent().Position.Prepare)
-			} else {
-				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Commit)
-				assert.Equal(t, uint64(math.MaxUint64), events[i].OriginalEvent().Position.Prepare)
-			}
-			assert.Equal(t, testEvents[i].Event.ContentType, events[i].OriginalEvent().ContentType)
-		}
-	}
 }
 
 func readStreamReturnsEOFAfterCompletion(db *esdb.Client) TestCall {

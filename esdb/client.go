@@ -32,6 +32,11 @@ func NewClient(configuration *Configuration) (*Client, error) {
 	}, nil
 }
 
+// Config Returns client's current configuration.
+func (client *Client) Config() *Configuration {
+	return client.config
+}
+
 // Close Closes a connection and cleans all its allocated resources.
 func (client *Client) Close() error {
 	client.grpcClient.close()

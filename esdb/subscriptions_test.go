@@ -2,9 +2,6 @@ package esdb_test
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/google/uuid"
-	"io/ioutil"
 	"strings"
 	"sync"
 	"testing"
@@ -14,20 +11,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func SubscriptionTests(t *testing.T, emptyDBClient *esdb.Client, populatedDBClient *esdb.Client) {
+func SubscriptionTests(t *testing.T, emptyDBClient *esdb.Client) {
 	t.Run("SubscriptionTests", func(t *testing.T) {
-		t.Run("streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents", streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(populatedDBClient))
-		t.Run("allSubscriptionWithFilterDeliversCorrectEvents", allSubscriptionWithFilterDeliversCorrectEvents(populatedDBClient))
+		t.Run("streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents", streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(emptyDBClient))
 		t.Run("subscriptionAllFilter", subscriptionAllFilter(emptyDBClient))
-		t.Run("connectionClosing", connectionClosing(populatedDBClient))
-		t.Run("subscriptionAllWithCredentialsOverride", subscriptionAllWithCredentialsOverride(populatedDBClient))
-		t.Run("subscriptionToStreamCaughtUpMessage", subscriptionToStreamCaughtUpMessage(populatedDBClient))
+		t.Run("connectionClosing", connectionClosing(emptyDBClient))
+		t.Run("subscriptionToStreamCaughtUpMessage", subscriptionToStreamCaughtUpMessage(emptyDBClient))
 	})
 }
 
 func subscriptionToStreamCaughtUpMessage(db *esdb.Client) TestCall {
 	const minSupportedVersion = 23
-	const expectedEventCount = 6_000
+	const expectedEventCount = 16
 	const testTimeout = 1 * time.Minute
 
 	return func(t *testing.T) {
@@ -45,7 +40,12 @@ func subscriptionToStreamCaughtUpMessage(db *esdb.Client) TestCall {
 		ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 		defer cancel()
 
-		streamID := "dataset20M-0"
+		streamID := NAME_GENERATOR.Generate()
+		testEvents := createTestEvents(expectedEventCount)
+
+		_, err = db.AppendToStream(context.Background(), streamID, esdb.AppendToStreamOptions{}, testEvents...)
+		require.NoError(t, err)
+
 		subscription, err := db.SubscribeToStream(ctx, streamID, esdb.SubscribeToStreamOptions{From: esdb.Start{}})
 		require.NoError(t, err)
 		defer subscription.Close()
@@ -91,47 +91,39 @@ func subscriptionToStreamCaughtUpMessage(db *esdb.Client) TestCall {
 
 func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		if db == nil {
-			t.Skip()
-		}
+		streamID := NAME_GENERATOR.Generate()
+		eventCount := 64
+		testEvents := createTestEvents(eventCount)
 
-		streamID := "dataset20M-0"
-		testEvent := createTestEvent()
-		testEvent.EventID = uuid.MustParse("84c8e36c-4e64-11ea-8b59-b7f658acfc9f")
+		writeResult, err := db.AppendToStream(context.Background(), streamID, esdb.AppendToStreamOptions{}, testEvents...)
+		require.NoError(t, err)
 
 		var receivedEvents sync.WaitGroup
 		var appendedEvents sync.WaitGroup
 
-		subscription, err := db.SubscribeToStream(context.Background(), "dataset20M-0", esdb.SubscribeToStreamOptions{
+		subscription, err := db.SubscribeToStream(context.Background(), streamID, esdb.SubscribeToStreamOptions{
 			From: esdb.Start{},
 		})
 
 		require.NoError(t, err)
 		defer subscription.Close()
-		receivedEvents.Add(6_000)
+		receivedEvents.Add(eventCount)
 		appendedEvents.Add(1)
 
 		go func() {
-			current := 0
-			for {
+			for i := 0; i < eventCount; {
 				subEvent := subscription.Recv()
 
-				if subEvent.EventAppeared != nil {
-					current++
-					if current <= 6_000 {
-						receivedEvents.Done()
-						continue
-					}
-
-					event := subEvent.EventAppeared
-					require.Equal(t, testEvent.EventID, event.OriginalEvent().EventID)
-					require.Equal(t, uint64(6_000), event.OriginalEvent().EventNumber)
-					require.Equal(t, streamID, event.OriginalEvent().StreamID)
-					require.Equal(t, testEvent.Data, event.OriginalEvent().Data)
-					require.Equal(t, testEvent.Metadata, event.OriginalEvent().UserMetadata)
+				if subEvent.SubscriptionDropped != nil {
 					break
 				}
+
+				if subEvent.EventAppeared != nil {
+					i++
+					receivedEvents.Done()
+				}
 			}
+
 			appendedEvents.Done()
 		}()
 
@@ -140,11 +132,10 @@ func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.
 
 		// Write a new event
 		opts2 := esdb.AppendToStreamOptions{
-			ExpectedRevision: esdb.Revision(5_999),
+			ExpectedRevision: esdb.Revision(writeResult.NextExpectedVersion),
 		}
-		writeResult, err := db.AppendToStream(context.Background(), streamID, opts2, testEvent)
+		_, err = db.AppendToStream(context.Background(), streamID, opts2, createTestEvent())
 		require.NoError(t, err)
-		require.Equal(t, uint64(6_000), writeResult.NextExpectedVersion)
 
 		// Assert event was forwarded to the subscription
 		timedOut = waitWithTimeout(&appendedEvents, time.Duration(5)*time.Second)
@@ -155,66 +146,6 @@ func streamSubscriptionDeliversAllEventsInStreamAndListensForNewEvents(db *esdb.
 type Position struct {
 	Prepare uint64 `json:"prepare"`
 	Commit  uint64 `json:"commit"`
-}
-
-func allSubscriptionWithFilterDeliversCorrectEvents(db *esdb.Client) TestCall {
-	return func(t *testing.T) {
-		if db == nil {
-			t.Skip()
-		}
-
-		positionsContent, err := ioutil.ReadFile("../resources/test/all-positions-filtered-stream-194-e0-e30.json")
-		require.NoError(t, err)
-		versionsContent, err := ioutil.ReadFile("../resources/test/all-versions-filtered-stream-194-e0-e30.json")
-		require.NoError(t, err)
-		var positions []Position
-		var versions []uint64
-		err = json.Unmarshal(positionsContent, &positions)
-		require.NoError(t, err)
-		err = json.Unmarshal(versionsContent, &versions)
-		require.NoError(t, err)
-
-		var receivedEvents sync.WaitGroup
-		receivedEvents.Add(1)
-
-		subscription, err := db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{
-			From: esdb.Start{},
-			Filter: &esdb.SubscriptionFilter{
-				Type:     esdb.EventFilterType,
-				Prefixes: []string{"eventType-194"},
-			},
-		})
-
-		defer subscription.Close()
-
-		go func() {
-			current := 0
-			for current <= len(versions)-1 {
-				subEvent := subscription.Recv()
-
-				if subEvent.SubscriptionDropped != nil {
-					break
-				}
-
-				if subEvent.EventAppeared != nil {
-					event := subEvent.EventAppeared
-
-					require.Equal(t, versions[current], event.OriginalEvent().EventNumber)
-					require.Equal(t, positions[current].Commit, event.OriginalEvent().Position.Commit)
-					require.Equal(t, positions[current].Prepare, event.OriginalEvent().Position.Prepare)
-					current++
-				}
-			}
-
-			if current > len(versions)-1 {
-				receivedEvents.Done()
-			}
-		}()
-
-		require.NoError(t, err)
-		timedOut := waitWithTimeout(&receivedEvents, time.Duration(5)*time.Second)
-		require.False(t, timedOut, "Timed out while waiting for events via the subscription")
-	}
 }
 
 func subscriptionAllFilter(db *esdb.Client) TestCall {
@@ -240,6 +171,10 @@ func subscriptionAllFilter(db *esdb.Client) TestCall {
 					completed.Done()
 					break
 				}
+
+				if event.SubscriptionDropped != nil {
+					break
+				}
 			}
 		}()
 
@@ -250,18 +185,21 @@ func subscriptionAllFilter(db *esdb.Client) TestCall {
 
 func connectionClosing(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		if db == nil {
-			t.Skip()
-		}
+		streamID := NAME_GENERATOR.Generate()
+		eventCount := 128
+		testEvents := createTestEvents(eventCount)
+
+		_, err := db.AppendToStream(context.Background(), streamID, esdb.AppendToStreamOptions{}, testEvents...)
+		require.NoError(t, err)
 
 		var droppedEvent sync.WaitGroup
 
-		subscription, err := db.SubscribeToStream(context.Background(), "dataset20M-0", esdb.SubscribeToStreamOptions{
+		subscription, err := db.SubscribeToStream(context.Background(), streamID, esdb.SubscribeToStreamOptions{
 			From: esdb.Start{},
 		})
 
 		go func() {
-			current := 1
+			current := 0
 
 			for {
 				subEvent := subscription.Recv()
@@ -288,28 +226,6 @@ func connectionClosing(db *esdb.Client) TestCall {
 		droppedEvent.Add(1)
 		timedOut := waitWithTimeout(&droppedEvent, time.Duration(5)*time.Second)
 		require.False(t, timedOut, "Timed out waiting for dropped event")
-	}
-}
-
-func subscriptionAllWithCredentialsOverride(db *esdb.Client) TestCall {
-	return func(t *testing.T) {
-		if db == nil {
-			t.Skip()
-		}
-
-		opts := esdb.SubscribeToAllOptions{
-			Authenticated: &esdb.Credentials{
-				Login:    "admin",
-				Password: "changeit",
-			},
-			From:   esdb.Start{},
-			Filter: esdb.ExcludeSystemEventsFilter(),
-		}
-		_, err := db.SubscribeToAll(context.Background(), opts)
-
-		if err != nil {
-			t.Error(err)
-		}
 	}
 }
 

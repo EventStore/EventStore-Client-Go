@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	EVENTSTORE_DOCKER_REPOSITORY_ENV = "EVENTSTORE_DOCKER_REPOSITORY"
-	EVENTSTORE_DOCKER_TAG_ENV        = "EVENTSTORE_DOCKER_TAG_ENV"
-	EVENTSTORE_DOCKER_PORT_ENV       = "EVENTSTORE_DOCKER_PORT"
+	ESDB_DOCKER_REPO_ENV              = "ESDB_DOCKER_REPO"
+	ESDB_DOCKER_CONTAINER_ENV         = "ESDB_DOCKER_CONTAINER"
+	ESDB_DOCKER_CONTAINER_VERSION_ENV = "ESDB_DOCKER_CONTAINER_VERSION"
+	EVENTSTORE_DOCKER_PORT_ENV        = "EVENTSTORE_DOCKER_PORT"
 )
 
 var (
@@ -42,14 +43,19 @@ type EventStoreDockerConfig struct {
 }
 
 const (
-	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "docker.eventstore.com/eventstore-utils/testdata"
-	DEFAULT_EVENTSTORE_DOCKER_TAG        = "latest"
-	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2113"
+	DEFAULT_ESDB_DOCKER_REPO              = "eventstore-ce"
+	DEFAULT_ESDB_DOCKER_CONTAINER         = "eventstoredb-ce"
+	DEFAULT_ESDB_DOCKER_CONTAINER_VERSION = "latest"
+	DEFAULT_EVENTSTORE_DOCKER_PORT        = "2113"
 )
 
+func fullDockerRepo(repo string, container string) string {
+	return fmt.Sprintf("docker.eventstore.com/%s/%s", repo, container)
+}
+
 var defaultEventStoreDockerConfig = EventStoreDockerConfig{
-	Repository: DEFAULT_EVENTSTORE_DOCKER_REPOSITORY,
-	Tag:        DEFAULT_EVENTSTORE_DOCKER_TAG,
+	Repository: fullDockerRepo(DEFAULT_ESDB_DOCKER_REPO, DEFAULT_ESDB_DOCKER_CONTAINER),
+	Tag:        DEFAULT_ESDB_DOCKER_CONTAINER_VERSION,
 	Port:       DEFAULT_EVENTSTORE_DOCKER_PORT,
 }
 
@@ -61,52 +67,15 @@ func GetEnvOrDefault(key, defaultValue string) string {
 }
 
 func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	config.Repository = GetEnvOrDefault(EVENTSTORE_DOCKER_REPOSITORY_ENV, config.Repository)
-	config.Tag = GetEnvOrDefault(EVENTSTORE_DOCKER_TAG_ENV, config.Tag)
+	repo := GetEnvOrDefault(ESDB_DOCKER_REPO_ENV, DEFAULT_ESDB_DOCKER_REPO)
+	container := GetEnvOrDefault(ESDB_DOCKER_CONTAINER_ENV, DEFAULT_ESDB_DOCKER_CONTAINER)
+
+	config.Repository = fullDockerRepo(repo, container)
+	config.Tag = GetEnvOrDefault(ESDB_DOCKER_CONTAINER_VERSION_ENV, config.Tag)
 	config.Port = GetEnvOrDefault(EVENTSTORE_DOCKER_PORT_ENV, config.Port)
 
 	fmt.Println(spew.Sdump(config))
 	return config
-}
-
-type ESDBVersion struct {
-	Maj   int
-	Min   int
-	Patch int
-}
-
-type VersionPredicateFn = func(ESDBVersion) bool
-
-func IsESDB_Version(predicate VersionPredicateFn) bool {
-	value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV)
-	if !exists || value == "ci" {
-		return false
-	}
-
-	parts := strings.Split(value, "-")
-	versionNumbers := strings.Split(parts[0], ".")
-
-	version := ESDBVersion{
-		Maj:   mustConvertToInt(versionNumbers[0]),
-		Min:   mustConvertToInt(versionNumbers[1]),
-		Patch: mustConvertToInt(versionNumbers[2]),
-	}
-
-	return predicate(version)
-}
-
-func mustConvertToInt(s string) int {
-	val, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-	return val
-}
-
-func IsESDBVersion20() bool {
-	return IsESDB_Version(func(version ESDBVersion) bool {
-		return version.Maj < 21
-	})
 }
 
 func getContainerRequest() (*EventStoreDockerConfig, *testcontainers.ContainerRequest, error) {
@@ -157,6 +126,7 @@ func getContainerRequest() (*EventStoreDockerConfig, *testcontainers.ContainerRe
 		Files:        files,
 		WaitingFor: wait.
 			ForHTTP("/health/live").
+			WithPort(nat.Port(config.Port)).
 			WithTLS(!insecure).
 			WithStartupTimeout(1 * time.Minute).
 			WithAllowInsecure(true).
@@ -190,7 +160,11 @@ func getDatabase(t *testing.T, config EventStoreDockerConfig, req testcontainers
 		t.Fatalf("error when looking up container mapped port %s: %v", config.Port, err)
 	}
 
+	t.Logf("[debug] container got port %s mapped to %s", config.Port, port)
+
 	endpoint := fmt.Sprintf("localhost:%s", port.Port())
+
+	t.Logf("[debug] endpoint is localhost:%s", port.Port())
 
 	if !container.IsRunning() {
 		t.Fatalf("failed to get a running container after many attempts")
@@ -254,49 +228,26 @@ func GetClient(t *testing.T, container *Container) *esdb.Client {
 }
 
 func CreateEmptyDatabase(t *testing.T) (*Container, *esdb.Client) {
-	return createDatabase(t, false)
-}
-
-func CreatePopulatedDatabase(t *testing.T) (*Container, *esdb.Client) {
-	return createDatabase(t, true)
-}
-
-func createDatabase(t *testing.T, populated bool) (*Container, *esdb.Client) {
 	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
-
-	var label string
-
-	if populated {
-		label = "populated"
-	} else {
-		label = "empty"
-	}
 
 	var container *Container
 	var client *esdb.Client
 
 	if GetEnvOrDefault("CLUSTER", "false") == "true" {
-		// When run on the cluster configuration we don't run the pre-populated database, so we have no use for a client
-		// either.
-		if !populated {
-			client = GetClient(t, nil)
-		}
+		client = GetClient(t, nil)
 	} else {
 		if isInsecure {
-			t.Logf("[debug] starting %s insecure database container...", label)
+			t.Logf("[debug] starting insecure database container...")
 		} else {
-			t.Logf("[debug] starting %s database container...", label)
+			t.Logf("[debug] starting database container...")
 		}
 
 		config, req, err := getContainerRequest()
 
+		fmt.Println(spew.Sdump(req))
+
 		if err != nil {
 			t.Fatalf("error when constructing testcontainer request: %v", err)
-		}
-
-		if populated {
-			req.Env["EVENTSTORE_DB"] = "/data/integration-tests"
-			req.Env["EVENTSTORE_MEM_DB"] = "false"
 		}
 
 		container = getDatabase(t, *config, *req)
@@ -313,10 +264,14 @@ func createDatabase(t *testing.T, populated bool) (*Container, *esdb.Client) {
 }
 
 func createTestClient(conn string, container *Container, t *testing.T) *esdb.Client {
+	t.Logf("[debug] connection string => %s", conn)
+
 	config, err := esdb.ParseConnectionString(conn)
 	if err != nil {
 		t.Fatalf("Unexpected configuration error: %s", err.Error())
 	}
+
+	fmt.Println(spew.Sdump(config))
 
 	client, err := esdb.NewClient(config)
 	if err != nil {
@@ -328,7 +283,7 @@ func createTestClient(conn string, container *Container, t *testing.T) *esdb.Cli
 
 func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
 	for count := 0; count < 50; count++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Logf("[debug] checking if admin user is available...%v/50", count)
 
 		stream, err := db.ReadStream(ctx, "$users", esdb.ReadStreamOptions{}, 1)
@@ -352,6 +307,14 @@ func WaitForAdminToBeAvailable(t *testing.T, db *esdb.Client) {
 
 		if err != nil {
 			if esdbError, ok := esdb.FromError(err); !ok {
+				// If we are in insecure mode, the $users stream is not available.
+				if db.Config().DisableTLS && esdbError.Code() == esdb.ErrorCodeResourceNotFound {
+					t.Log("[debug] admin is available!")
+					cancel()
+					stream.Close()
+					return
+				}
+
 				if esdbError.Code() == esdb.ErrorCodeResourceNotFound ||
 					esdbError.Code() == esdb.ErrorCodeUnauthenticated ||
 					esdbError.Code() == esdb.ErrorCodeDeadlineExceeded ||

@@ -3,6 +3,10 @@ name: tests workflow
 on:
   workflow_call:
     inputs:
+      runtime_env:
+        type: string
+        default: release
+
       esdb_version:
         required: true
         type: string
@@ -12,13 +16,19 @@ on:
         type: string
 
 jobs:
+  provide_docker:
+    uses: ./.github/workflows/docker-repo.yml
+    with:
+      runtime_env: ${{ inputs.runtime_env }}
+
   single_node:
+    needs: provide_docker
     name: Single node
 
     strategy:
       fail-fast: false
       matrix:
-        test: [Streams, PersistentSubscriptions, Expectations, Projections]
+        test: [Streams, PersistentSubscriptions, Projections]
 
     runs-on: ubuntu-latest
     steps:
@@ -33,11 +43,14 @@ jobs:
       - name: Run Go Tests
         run: make ci CI_TARGET=Test${{ matrix.test }}
         env:
-          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
+          ESDB_DOCKER_REPO: ${{ needs.provide_docker.outputs.docker_repo }}
+          ESDB_DOCKER_CONTAINER: ${{ needs.provide_docker.outputs.docker_container }}
+          ESDB_DOCKER_CONTAINER_VERSION: ${{ inputs.esdb_version }}
           EVENTSTORE_INSECURE: true
 
   secure:
     name: Secure
+    needs: provide_docker
 
     strategy:
       fail-fast: false
@@ -58,11 +71,14 @@ jobs:
         run: make ci CI_TARGET=Test${{ matrix.test }}
 
         env:
-          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
+          ESDB_DOCKER_REPO: ${{ needs.provide_docker.outputs.docker_repo }}
+          ESDB_DOCKER_CONTAINER: ${{ needs.provide_docker.outputs.docker_container }}
+          ESDB_DOCKER_CONTAINER_VERSION: ${{ inputs.esdb_version }}
           EVENTSTORE_INSECURE: false
 
   cluster:
     name: Cluster
+    needs: provide_docker
 
     strategy:
       fail-fast: false
@@ -80,7 +96,9 @@ jobs:
         run: |
           docker compose -f cluster-docker-compose.yml up -d
         env:
-          EVENTSTORE_DOCKER_TAG_ENV: ${{ inputs.esdb_version }}
+          ESDB_DOCKER_REPO: ${{ needs.provide_docker.outputs.docker_repo }}
+          ESDB_DOCKER_CONTAINER: ${{ needs.provide_docker.outputs.docker_container }}
+          ESDB_DOCKER_CONTAINER_VERSION: ${{ inputs.esdb_version }}
 
       - name: Run Go Tests
         run: make ci CI_TARGET=Test${{ matrix.test }}

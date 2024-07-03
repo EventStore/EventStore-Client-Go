@@ -3,8 +3,13 @@ name: "Dispatch"
 on:
   workflow_dispatch:
     inputs:
+      runtime_env:
+        description: The runtime environment. release, staging or enterprise
+        type: string
+        default: release
+
       version:
-        description: "Version tag"
+        description: Docker version tag
         required: true
         type: string
 
@@ -18,4 +23,5 @@ jobs:
     uses: ./.github/workflows/tests.yml
     with:
       esdb_version: ${{ inputs.version }}
+      runtime_env: ${{ inputs.runtime_env }}
       go_version: ${{ needs.go-version.outputs.go_version }}
