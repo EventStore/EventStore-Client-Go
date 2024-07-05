@@ -27,7 +27,9 @@ jobs:
         run: make misc
 
   tests:
-    needs: build
+    needs:
+      - go-version
+      - build
     name: Tests
 
     strategy:

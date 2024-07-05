@@ -1,0 +1,49 @@
+name: Get ESDB Docker repo
+on:
+  workflow_call:
+    inputs:
+      runtime_env:
+        description: The runtime environment we want to run like release or staging
+        type: string
+        default: release
+
+    outputs:
+      docker_repo:
+        description: ESDB docker repository
+        value: ${{ jobs.provide_docker.outputs.docker_repo }}
+
+      docker_container:
+        description: ESDB docker container
+        value: ${{ jobs.provide_docker.outputs.docker_container }}
+
+jobs:
+  provide_docker:
+    runs-on: ubuntu-latest
+    outputs:
+      docker_repo: ${{ steps.set_docker.outputs.docker_repo }}
+      docker_container: ${{ steps.set_docker.outputs.docker_container }}
+    steps:
+      - name: Set ESDB docker repo
+        id: set_docker
+        run: |
+          case ${{ inputs.runtime_env }} in
+            "release")
+              echo "docker_repo=eventstore-ce" >> $GITHUB_OUTPUT
+              echo "docker_container=eventstoredb-ce" >> $GITHUB_OUTPUT
+            ;;
+
+            "staging")
+              echo "docker_repo=eventstore-staging-ce" >> $GITHUB_OUTPUT
+              echo "docker_container=eventstoredb-oss" >> $GITHUB_OUTPUT
+            ;;
+
+            "enterprise")
+              echo "docker_repo=eventstore-ee" >> $GITHUB_OUTPUT
+              echo "docker_container=eventstoredb-commercial" >> $GITHUB_OUTPUT
+            ;;
+
+            *)
+              echo "docker_repo=eventstore-ce" >> $GITHUB_OUTPUT
+              echo "docker_container=eventstoredb-ce" >> $GITHUB_OUTPUT
+            ;;
+          esac

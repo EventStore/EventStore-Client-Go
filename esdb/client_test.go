@@ -15,16 +15,6 @@ func TestStreams(t *testing.T) {
 		defer emptyClient.Close()
 	}
 
-	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
-
-	if populatedContainer != nil {
-		defer populatedContainer.Close()
-	}
-
-	if populatedClient != nil {
-		defer populatedClient.Close()
-	}
-
 	isCluster := GetEnvOrDefault("CLUSTER", "false") == "true"
 	isInsecure := GetEnvOrDefault("EVENTSTORE_INSECURE", "true") == "true"
 
@@ -33,8 +23,8 @@ func TestStreams(t *testing.T) {
 	}
 
 	AppendTests(t, emptyContainer, emptyClient)
-	ReadStreamTests(t, emptyClient, populatedClient)
-	SubscriptionTests(t, emptyClient, populatedClient)
+	ReadStreamTests(t, emptyClient)
+	SubscriptionTests(t, emptyClient)
 	DeleteTests(t, emptyClient)
 	ConnectionTests(t, emptyContainer)
 
@@ -59,18 +49,8 @@ func TestPersistentSubscriptions(t *testing.T) {
 		defer emptyClient.Close()
 	}
 
-	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
-
-	if populatedContainer != nil {
-		defer populatedContainer.Close()
-	}
-
-	if populatedClient != nil {
-		defer populatedClient.Close()
-	}
-
 	PersistentSubReadTests(t, emptyClient)
-	PersistentSubTests(t, emptyClient, populatedClient)
+	PersistentSubTests(t, emptyClient)
 }
 
 func TestProjections(t *testing.T) {
@@ -85,20 +65,6 @@ func TestProjections(t *testing.T) {
 	}
 
 	ProjectionTests(t, emptyClient)
-}
-
-func TestExpectations(t *testing.T) {
-	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
-
-	if populatedContainer != nil {
-		defer populatedContainer.Close()
-	}
-
-	if populatedClient != nil {
-		defer populatedClient.Close()
-	}
-
-	ReadAllTests(t, populatedClient)
 }
 
 func TestMisc(t *testing.T) {

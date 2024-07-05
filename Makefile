@@ -35,7 +35,7 @@ endif
 
 .PHONY: singleNode
 singleNode: ## Run tests against a single node.
-	@EVENTSTORE_INSECURE=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestExpectations|TestProjections'
+	@EVENTSTORE_INSECURE=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestProjections'
 
 .PHONY: secureNode
 secureNode: ## Run tests against a secure node.
