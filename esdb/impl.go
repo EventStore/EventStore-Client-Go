@@ -300,11 +300,20 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 	if conf.DisableTLS {
 		transport = insecure.NewCredentials()
 	} else {
-		transport = credentials.NewTLS(
-			&tls.Config{
-				InsecureSkipVerify: conf.SkipCertificateVerification,
-				RootCAs:            conf.RootCAs,
-			})
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: conf.SkipCertificateVerification,
+			RootCAs:            conf.RootCAs,
+		}
+
+		if conf.UserCertFile != "" && conf.UserKeyFile != "" {
+			cert, err := tls.LoadX509KeyPair(conf.UserCertFile, conf.UserKeyFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load user certificate: %w", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		transport = credentials.NewTLS(tlsConfig)
 	}
 
 	opts = append(opts, grpc.WithTransportCredentials(transport))
@@ -317,7 +326,7 @@ func createGrpcConnection(conf *Configuration, address string) (*grpc.ClientConn
 		}))
 	}
 
-	conn, err := grpc.Dial(address, opts...)
+	conn, err := grpc.NewClient(address, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize connection to %s. Reason: %w", address, err)
 	}
@@ -443,9 +452,8 @@ func allowedNodeState() []gossipApi.MemberInfo_VNodeState {
 }
 
 func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *serverInfo, error) {
-	var connection *grpc.ClientConn = nil
 	var serverInfo *serverInfo = nil
-	var err error
+	var lastErr error
 	var candidates []string
 
 	attempt := 0
@@ -474,9 +482,10 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *server
 		logger.info("discovery attempt %v/%v", attempt, conf.MaxDiscoverAttempts)
 		for _, candidate := range candidates {
 			logger.debug("trying candidate '%s'...", candidate)
-			connection, err = createGrpcConnection(&conf, candidate)
+			connection, err := createGrpcConnection(&conf, candidate)
 			if err != nil {
 				logger.warn("error when creating a grpc connection for candidate %s: %v", candidate, err)
+				lastErr = err
 				continue
 			}
 
@@ -488,7 +497,10 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *server
 				s, ok := status.FromError(err)
 				if !ok || (s != nil && s.Code() != codes.OK) {
 					logger.warn("error when reading gossip from candidate %s: %v", candidate, err)
+					lastErr = err
 					cancel()
+					_ = connection.Close()
+					connection = nil
 					continue
 				}
 
@@ -498,6 +510,9 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *server
 
 				if err != nil {
 					logger.warn("error when picking best candidate out of %s gossip response: %v", candidate, err)
+					lastErr = err
+					_ = connection.Close()
+					connection = nil
 					continue
 				}
 
@@ -510,6 +525,9 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *server
 
 					if err != nil {
 						logger.warn("error when creating gRPC connection for the selected candidate '%s': %v", selectedAddress, err)
+						lastErr = err
+						_ = connection.Close()
+						connection = nil
 						continue
 					}
 				}
@@ -518,7 +536,8 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *server
 			logger.debug("attempting node supported features retrieval on '%s'...", candidate)
 			serverInfo, err = getSupportedMethods(context.Background(), &conf, connection)
 			if err != nil {
-				logger.warn("error when creating reading server features from the best candidate '%s': %v", candidate, err)
+				logger.warn("error when reading server features from the best candidate '%s': %v", candidate, err)
+				lastErr = err
 				_ = connection.Close()
 				connection = nil
 				continue
@@ -536,14 +555,10 @@ func discoverNode(conf Configuration, logger *logger) (*grpc.ClientConn, *server
 		time.Sleep(time.Duration(conf.DiscoveryInterval) * time.Millisecond)
 	}
 
-	if connection == nil {
-		return nil, nil, &Error{
-			code: errToCode(err),
-			err:  fmt.Errorf("maximum discovery attempt count reached: %v. Last Error: %w", conf.MaxDiscoverAttempts, err),
-		}
+	return nil, nil, &Error{
+		code: errToCode(lastErr),
+		err:  fmt.Errorf("maximum discovery attempt count reached: %v. Last Error: %w", conf.MaxDiscoverAttempts, lastErr),
 	}
-
-	return connection, serverInfo, nil
 }
 
 // In that case, `err` is always != nil

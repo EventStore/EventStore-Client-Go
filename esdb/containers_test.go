@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	EVENTSTORE_DOCKER_REPOSITORY_ENV = "EVENTSTORE_DOCKER_REPOSITORY"
-	EVENTSTORE_DOCKER_TAG_ENV        = "EVENTSTORE_DOCKER_TAG_ENV"
-	EVENTSTORE_DOCKER_PORT_ENV       = "EVENTSTORE_DOCKER_PORT"
+	EVENTSTORE_DOCKER_REPOSITORY = "EVENTSTORE_DOCKER_REPOSITORY"
+	EVENTSTORE_DOCKER_TAG        = "EVENTSTORE_DOCKER_TAG"
+	EVENTSTORE_DOCKER_PORT_ENV   = "EVENTSTORE_DOCKER_PORT"
 )
 
 var (
@@ -61,8 +61,8 @@ func GetEnvOrDefault(key, defaultValue string) string {
 }
 
 func readEnvironmentVariables(config EventStoreDockerConfig) EventStoreDockerConfig {
-	config.Repository = GetEnvOrDefault(EVENTSTORE_DOCKER_REPOSITORY_ENV, config.Repository)
-	config.Tag = GetEnvOrDefault(EVENTSTORE_DOCKER_TAG_ENV, config.Tag)
+	config.Repository = GetEnvOrDefault(EVENTSTORE_DOCKER_REPOSITORY, config.Repository)
+	config.Tag = GetEnvOrDefault(EVENTSTORE_DOCKER_TAG, config.Tag)
 	config.Port = GetEnvOrDefault(EVENTSTORE_DOCKER_PORT_ENV, config.Port)
 
 	fmt.Println(spew.Sdump(config))
@@ -78,7 +78,7 @@ type ESDBVersion struct {
 type VersionPredicateFn = func(ESDBVersion) bool
 
 func IsESDB_Version(predicate VersionPredicateFn) bool {
-	value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG_ENV)
+	value, exists := os.LookupEnv(EVENTSTORE_DOCKER_TAG)
 	if !exists || value == "ci" {
 		return false
 	}
@@ -149,6 +149,7 @@ func getContainerRequest() (*EventStoreDockerConfig, *testcontainers.ContainerRe
 	env["EVENTSTORE_RUN_PROJECTIONS"] = "all"
 	env["EVENTSTORE_START_STANDARD_PROJECTIONS"] = "true"
 	env["EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP"] = "true"
+	env["EventStore__Plugins__UserCertificates__Enabled"] = "true"
 
 	return &config, &testcontainers.ContainerRequest{
 		Image:        fmt.Sprintf("%s:%s", config.Repository, config.Tag),
@@ -217,7 +218,7 @@ func verifyCertificatesExist() error {
 
 	for _, f := range certs {
 		if _, err := os.Stat(path.Join(certsDir, f)); os.IsNotExist(err) {
-			return fmt.Errorf("could not locate the certificates needed to run EventStoreDB and the tests. Please run 'docker-compose up' for generating the certificates")
+			return fmt.Errorf("could not locate the certificates needed to run EventStoreDB and the tests. Please run 'docker compose up' for generating the certificates")
 		}
 	}
 	return nil

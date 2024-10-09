@@ -32,10 +32,10 @@ make generate-protos-and-build
 make test
 ```
 
-By default the tests use `docker.eventstore.com/eventstore-ce:ci`. To override this, set the `EVENTSTORE_DOCKER_TAG_ENV` environment variable to the tag you wish to use:
+By default the tests use `docker.eventstore.com/eventstore-ce:ci`. To override this, set the `EVENTSTORE_DOCKER_TAG` environment variable to the tag you wish to use:
 
 ```shell
-export EVENTSTORE_DOCKER_TAG_ENV="21.10.0-focal"
+export EVENTSTORE_DOCKER_TAG="21.10.0-focal"
 make test
 ```
 

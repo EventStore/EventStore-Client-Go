@@ -3,8 +3,9 @@ package esdb
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	url2 "net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,13 @@ const (
 	schemeName             = "esdb"
 	schemeNameWithDiscover = "esdb+discover"
 )
+
+var basepath string
+
+func init() {
+	cwd, _ := os.Getwd()
+	basepath = cwd
+}
 
 // Configuration describes how to connect to an instance of EventStoreDB.
 type Configuration struct {
@@ -40,6 +48,12 @@ type Configuration struct {
 	// that clients use when verifying server certificates.
 	// If RootCAs is nil, TLS uses the host's root CA set.
 	RootCAs *x509.CertPool // Defaults to nil.
+
+	// The path to the file containing the X.509 user certificate in PEM format.
+	UserCertFile string
+
+	// The path to the file containing the user certificate’s matching private key in PEM format
+	UserKeyFile string
 
 	// Allows to skip certificate validation.
 	SkipCertificateVerification bool // Defaults to false.
@@ -75,6 +89,14 @@ func (conf *Configuration) applyLogger(level LogLevel, format string, args ...in
 	if conf.Logger != nil {
 		conf.Logger(level, format, args)
 	}
+}
+
+func (conf *Configuration) Validate() error {
+	if (conf.UserCertFile == "") != (conf.UserKeyFile == "") {
+		return fmt.Errorf("both userCertFile and userKeyFile must be provided")
+	}
+
+	return nil
 }
 
 func initConfiguration() *Configuration {
@@ -292,6 +314,10 @@ func parseSetting(k, v string, config *Configuration) error {
 		if err != nil {
 			return err
 		}
+	case "usercertfile":
+		config.UserCertFile = resolvePath(v)
+	case "userkeyfile":
+		config.UserKeyFile = resolvePath(v)
 	case "tlsverifycert":
 		err := parseBoolSetting(k, v, &config.SkipCertificateVerification, true)
 		if err != nil {
@@ -311,7 +337,7 @@ func parseSetting(k, v string, config *Configuration) error {
 }
 
 func parseCertificateFile(certFile string, config *Configuration) error {
-	b, err := ioutil.ReadFile(certFile)
+	b, err := os.ReadFile(certFile)
 	if err != nil {
 		return err
 	}
@@ -389,6 +415,14 @@ func parseDurationAsMs(k, v string, d *time.Duration) error {
 	*d = time.Duration(i * int(time.Millisecond))
 
 	return nil
+}
+
+func resolvePath(rel string) string {
+	if filepath.IsAbs(rel) {
+		return rel
+	}
+
+	return filepath.Join(basepath, rel)
 }
 
 // NodePreference indicates which order of preferred nodes for connecting to.
