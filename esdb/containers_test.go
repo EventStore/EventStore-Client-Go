@@ -3,15 +3,16 @@ package esdb_test
 import (
 	"context"
 	"fmt"
-	"github.com/docker/go-connections/nat"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/docker/go-connections/nat"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
 	"github.com/davecgh/go-spew/spew"
@@ -217,7 +218,7 @@ func verifyCertificatesExist() error {
 
 	for _, f := range certs {
 		if _, err := os.Stat(path.Join(certsDir, f)); os.IsNotExist(err) {
-			return fmt.Errorf("could not locate the certificates needed to run EventStoreDB and the tests. Please run 'docker-compose up' for generating the certificates")
+			return fmt.Errorf("could not locate the certificates needed to run EventStoreDB and the tests. Please run 'docker compose up' for generating the certificates")
 		}
 	}
 	return nil

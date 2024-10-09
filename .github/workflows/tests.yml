@@ -28,7 +28,7 @@ jobs:
           go-version: ${{ inputs.go_version }}
 
       - name: Generate certificates
-        run: docker-compose --file docker-compose.yml up
+        run: docker compose --file docker-compose.yml up
 
       - name: Run Go Tests
         run: make ci CI_TARGET=Test${{ matrix.test }}
@@ -52,7 +52,7 @@ jobs:
           go-version: ${{ inputs.go_version }}
 
       - name: Generate certificates
-        run: docker-compose --file docker-compose.yml up
+        run: docker compose --file docker-compose.yml up
 
       - name: Run Go Tests
         run: make ci CI_TARGET=Test${{ matrix.test }}
