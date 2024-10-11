@@ -87,6 +87,26 @@ func TestProjections(t *testing.T) {
 	ProjectionTests(t, emptyClient)
 }
 
+func TestPlugins(t *testing.T) {
+	isCluster := GetEnvOrDefault("CLUSTER", "false") == "true"
+
+	if !isCluster {
+		emptyContainer, emptyClient := CreateEmptyDatabase(t)
+
+		if emptyContainer != nil {
+			defer emptyContainer.Close()
+		}
+
+		if emptyClient != nil {
+			defer emptyClient.Close()
+		}
+
+		ClientCertificatesSingleNodeTests(t, emptyContainer)
+	} else {
+		ClientCertificatesClusterNodesTests(t)
+	}
+}
+
 func TestExpectations(t *testing.T) {
 	populatedContainer, populatedClient := CreatePopulatedDatabase(t)
 

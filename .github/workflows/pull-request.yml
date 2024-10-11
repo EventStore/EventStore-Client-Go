@@ -40,6 +40,21 @@ jobs:
       esdb_version: ${{ matrix.version }}
       go_version: ${{ needs.go-version.outputs.go_version }}
 
+  plugins-tests:
+    needs: build
+    name: Plugins Tests
+
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [24.2.0-jammy]
+
+    uses: ./.github/workflows/test-plugins.yml
+    with:
+      esdb_version: ${{ matrix.version }}
+      go_version: ${{ needs.go-version.outputs.go_version }}
+      esdb_repository: "docker.eventstore.com/eventstore-ee/eventstoredb-commercial"
+    secrets: inherit
 
   linting:
     needs: tests

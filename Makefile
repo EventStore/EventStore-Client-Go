@@ -28,7 +28,7 @@ else
 	$(MAKE) build GENERATE_PROTOS_FLAG=-generateProtos
 endif
 
-DOCKER_COMPOSE_CMD := $(shell command -v docker-compose 2> /dev/null)
+DOCKER_COMPOSE_CMD := $(shell command -v docker compose 2> /dev/null)
 ifeq ($(DOCKER_COMPOSE_CMD),)
 	DOCKER_COMPOSE_CMD := docker compose
 endif

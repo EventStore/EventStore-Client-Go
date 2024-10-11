@@ -25,6 +25,10 @@ type Client struct {
 
 // NewClient Creates a gRPC client to an EventStoreDB database.
 func NewClient(configuration *Configuration) (*Client, error) {
+	if err := configuration.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	grpcClient := newGrpcClient(*configuration)
 	return &Client{
 		grpcClient: grpcClient,
