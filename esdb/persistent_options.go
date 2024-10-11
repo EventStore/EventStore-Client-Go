@@ -12,6 +12,10 @@ type PersistentStreamSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	//
+	// Deprecated: RequiresLeader has no effect and will be removed in the next major version.
+	RequiresLeader bool
 }
 
 func (o *PersistentStreamSubscriptionOptions) kind() operationKind {
@@ -118,6 +122,10 @@ type DeletePersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	//
+	// Deprecated: RequiresLeader has no effect and will be removed in the next major version.
+	RequiresLeader bool
 }
 
 func (d *DeletePersistentSubscriptionOptions) kind() operationKind {
@@ -144,6 +152,10 @@ type ReplayParkedMessagesOptions struct {
 	StopAt int
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	//
+	// Deprecated: RequiresLeader has no effect and will be removed in the next major version.
+	RequiresLeader bool
 }
 
 func (r *ReplayParkedMessagesOptions) kind() operationKind {
@@ -168,6 +180,10 @@ type ListPersistentSubscriptionsOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	//
+	// Deprecated: RequiresLeader has no effect and will be removed in the next major version.
+	RequiresLeader bool
 }
 
 func (l *ListPersistentSubscriptionsOptions) kind() operationKind {
@@ -192,6 +208,10 @@ type GetPersistentSubscriptionOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	//
+	// Deprecated: RequiresLeader has no effect and will be removed in the next major version.
+	RequiresLeader bool
 }
 
 func (g *GetPersistentSubscriptionOptions) kind() operationKind {
@@ -216,6 +236,10 @@ type RestartPersistentSubscriptionSubsystemOptions struct {
 	Authenticated *Credentials
 	// A length of time to use for gRPC deadlines.
 	Deadline *time.Duration
+	// Requires the request to be performed by the leader of the cluster.
+	//
+	// Deprecated: RequiresLeader has no effect and will be removed in the next major version.
+	RequiresLeader bool
 }
 
 func (g *RestartPersistentSubscriptionSubsystemOptions) kind() operationKind {
