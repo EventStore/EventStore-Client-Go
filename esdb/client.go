@@ -759,7 +759,9 @@ func readInternal(
 	result, err := streamsClient.Read(ctx, readRequest, callOptions...)
 	if err != nil {
 		defer cancel()
-		return nil, err
+
+		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		return nil, fmt.Errorf("could not construct read operation. Reason: %w", err)
 	}
 
 	params := readStreamParams{
