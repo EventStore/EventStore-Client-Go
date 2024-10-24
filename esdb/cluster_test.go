@@ -79,7 +79,7 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 	stream.Close()
 
 	// Simulate node failure or rebalance
-	simulateClusterRebalance(t)
+	simulateClusterRebalance(t, db)
 
 	// Try reading the stream again
 	stream, err = db.ReadStream(context.Background(), streamID, options, 10)
@@ -104,7 +104,7 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 	stream.Close()
 }
 
-func simulateClusterRebalance(t *testing.T) {
+func simulateClusterRebalance(t *testing.T, db *esdb.Client) {
 	// Stop one of the EventStoreDB nodes to simulate failure.
 	fmt.Println("Simulating cluster rebalance by stopping a node...")
 
@@ -114,4 +114,7 @@ func simulateClusterRebalance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to stop node: %v", err)
 	}
+
+	// Wait for the leader to be elected.
+	WaitForLeaderToBeElected(t, db)
 }
