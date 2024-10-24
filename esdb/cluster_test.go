@@ -62,7 +62,7 @@ func notLeaderExceptionButWorkAfterRetry(t *testing.T) {
 }
 
 func readStreamAfterClusterRebalance(t *testing.T) {
-	// We purposely connect to a follower node so we can trigger on not leader exception.
+	// We purposely connect to a leader node.
 	db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?tlsverifycert=false", t)
 	defer db.Close()
 	streamID := NAME_GENERATOR.Generate()
@@ -81,17 +81,17 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 	// Simulate node failure or rebalance
 	simulateClusterRebalance(t)
 
-	// Wait for the test to complete
-	time.Sleep(5 * time.Second)
-
 	// Try reading the stream again
 	stream, err = db.ReadStream(context.Background(), streamID, options, 10)
 	if err == nil {
+		t.Errorf("unexpected to read stream after cluster rebalance: %v", err)
 		stream.Close()
+
 		return
 	}
 
 	// If we get an error, it means the client did not reconnect to the leader node.
+	// Wait for the client to reconnect to the leader node.
 	time.Sleep(5 * time.Second)
 
 	// Try reading the stream again
@@ -107,6 +107,7 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 func simulateClusterRebalance(t *testing.T) {
 	// Stop one of the EventStoreDB nodes to simulate failure.
 	fmt.Println("Simulating cluster rebalance by stopping a node...")
+
 	stopNodeCmd := exec.Command("docker", "stop", "esdb-node1")
 
 	err := stopNodeCmd.Run()
