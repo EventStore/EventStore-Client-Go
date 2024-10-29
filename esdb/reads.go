@@ -48,7 +48,7 @@ func (stream *ReadStream) Recv() (*ResolvedEvent, error) {
 		atomic.StoreInt32(stream.closed, 1)
 
 		if !errors.Is(err, io.EOF) {
-			err = stream.params.client.handleError(stream.params.handle, *stream.params.headers, *stream.params.trailers, err)
+			err = stream.params.client.handleError(stream.params.handle, *stream.params.trailers, err)
 		}
 
 		return nil, err

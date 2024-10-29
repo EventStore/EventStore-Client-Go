@@ -433,7 +433,7 @@ func (client *ProjectionClient) listInternal(
 
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
-				err = client.inner.grpcClient.handleError(handle, headers, trailers, err)
+				err = client.inner.grpcClient.handleError(handle, trailers, err)
 				return nil, err
 			}
 
