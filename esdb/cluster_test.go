@@ -125,7 +125,7 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 
 		stream.Close()
 
-		t.Logf("Successfully read stream after %d retries", count)
+		t.Logf("Successfully read stream after %d retries", count+1)
 		return
 	}
 
