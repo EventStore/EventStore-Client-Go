@@ -88,12 +88,14 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 	assert.Nil(t, err)
 
 	for _, member := range members {
-		if member.State != gossip.MemberInfo_Leader {
+		if member.State != gossip.MemberInfo_Leader || !member.GetIsAlive() {
 			continue
 		}
 
 		// Shutdown the leader node
 		url := fmt.Sprintf("https://%s:%d/admin/shutdown", member.HttpEndPoint.Address, member.HttpEndPoint.Port)
+		t.Log("Shutting down leader node: ", url)
+
 		req, err := http.NewRequest("POST", url, nil)
 		assert.Nil(t, err)
 
@@ -112,7 +114,7 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 	}
 
 	// Wait for the server to rebalance.
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Try reading the stream again
 	stream, err = db.ReadStream(ctx, streamID, options, 10)
@@ -125,7 +127,7 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 
 	// If we get an error, it means the client did not reconnect to the leader node.
 	// Wait for the client to reconnect to the leader node.
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Try reading the stream again
 	stream, err = db.ReadStream(ctx, streamID, options, 10)
