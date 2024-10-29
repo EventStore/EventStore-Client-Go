@@ -52,7 +52,7 @@ clusterNode: ## Run tests against a cluster node.
 	@$(DOCKER_COMPOSE_CMD) -f cluster-docker-compose.yml up -d
 	@echo "Waiting for services to be fully ready..."
 	@sleep 5
-	@EVENTSTORE_INSECURE=false CLUSTER=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestProjections'
+	@EVENTSTORE_INSECURE=false CLUSTER=true go test -count=1 -v ./esdb -run 'TestStreams|TestPersistentSubscriptions|TestProjections|TestClusterRebalance'
 	@$(DOCKER_COMPOSE_CMD) -f cluster-docker-compose.yml down --remove-orphans
 
 .PHONY: misc

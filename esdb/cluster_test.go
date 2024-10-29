@@ -17,6 +17,11 @@ import (
 func ClusterTests(t *testing.T) {
 	t.Run("ClusterTests", func(t *testing.T) {
 		t.Run("notLeaderExceptionButWorkAfterRetry", notLeaderExceptionButWorkAfterRetry)
+	})
+}
+
+func ClusterRebalanceTests(t *testing.T) {
+	t.Run("ClusterRebalanceTests", func(t *testing.T) {
 		t.Run("readStreamAfterClusterRebalance", readStreamAfterClusterRebalance)
 	})
 }

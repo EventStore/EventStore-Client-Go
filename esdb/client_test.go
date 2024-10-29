@@ -126,3 +126,7 @@ func TestMisc(t *testing.T) {
 	TestPositionParsing(t)
 	UUIDParsingTests(t)
 }
+
+func TestClusterRebalance(t *testing.T) {
+	ClusterRebalanceTests(t)
+}
