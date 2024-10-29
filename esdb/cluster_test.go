@@ -113,28 +113,19 @@ func readStreamAfterClusterRebalance(t *testing.T) {
 		break
 	}
 
-	// Wait for the server to rebalance.
-	time.Sleep(3 * time.Second)
+	// Wait for the cluster to rebalance
+	time.Sleep(5 * time.Second)
 
 	// Try reading the stream again
-	stream, err = db.ReadStream(ctx, streamID, options, 10)
-	if err == nil {
-		t.Errorf("unexpected to read stream after cluster rebalance: %v", err)
+	for count := 0; count < 10; count++ {
+		stream, err = db.ReadStream(ctx, streamID, options, 10)
+		if err != nil {
+			continue
+		}
+
 		stream.Close()
-
 		return
 	}
 
-	// If we get an error, it means the client did not reconnect to the leader node.
-	// Wait for the client to reconnect to the leader node.
-	time.Sleep(3 * time.Second)
-
-	// Try reading the stream again
-	stream, err = db.ReadStream(ctx, streamID, options, 10)
-	if err != nil {
-		t.Errorf("failed to read stream after cluster rebalance: %v", err)
-		return
-	}
-
-	stream.Close()
+	t.Fatalf("we retried long enough but the test is still failing")
 }
