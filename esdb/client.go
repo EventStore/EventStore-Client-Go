@@ -9,7 +9,9 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/gossip"
 	persistentProto "github.com/EventStore/EventStore-Client-Go/v4/protos/persistent"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -774,4 +776,21 @@ func readInternal(
 	}
 
 	return newReadStream(params), nil
+}
+
+func (client *Client) Gossip(ctx context.Context) ([]*gossip.MemberInfo, error) {
+	handle, err := client.grpcClient.getConnectionHandle()
+
+	if err != nil {
+		return nil, err
+	}
+
+	gossipClient := gossip.NewGossipClient(handle.Connection())
+	clusterInfo, err := gossipClient.Read(ctx, &shared.Empty{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return clusterInfo.Members, nil
 }

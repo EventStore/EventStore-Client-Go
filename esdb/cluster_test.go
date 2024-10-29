@@ -2,10 +2,14 @@ package esdb_test
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/protos/gossip"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -13,6 +17,7 @@ import (
 func ClusterTests(t *testing.T) {
 	t.Run("ClusterTests", func(t *testing.T) {
 		t.Run("notLeaderExceptionButWorkAfterRetry", notLeaderExceptionButWorkAfterRetry)
+		t.Run("readStreamAfterClusterRebalance", readStreamAfterClusterRebalance)
 	})
 }
 
@@ -56,4 +61,78 @@ func notLeaderExceptionButWorkAfterRetry(t *testing.T) {
 	}
 
 	t.Fatalf("we retried long enough but the test is still failing")
+}
+
+func readStreamAfterClusterRebalance(t *testing.T) {
+	// We purposely connect to a leader node.
+	db := CreateClient("esdb://admin:changeit@localhost:2111,localhost:2112,localhost:2113?nodepreference=leader&tlsverifycert=false", t)
+	defer db.Close()
+
+	ctx := context.Background()
+	streamID := NAME_GENERATOR.Generate()
+
+	// Start reading the stream
+	options := esdb.ReadStreamOptions{From: esdb.Start{}}
+
+	stream, err := db.ReadStream(ctx, streamID, options, 10)
+	if err != nil {
+		t.Errorf("failed to read stream: %v", err)
+		return
+	}
+
+	stream.Close()
+
+	// Simulate leader node failure
+	members, err := db.Gossip(ctx)
+
+	assert.Nil(t, err)
+
+	for _, member := range members {
+		if member.State != gossip.MemberInfo_Leader {
+			continue
+		}
+
+		// Shutdown the leader node
+		url := fmt.Sprintf("https://%s:%d/admin/shutdown", member.HttpEndPoint.Address, member.HttpEndPoint.Port)
+		req, err := http.NewRequest("POST", url, nil)
+		assert.Nil(t, err)
+
+		req.SetBasicAuth("admin", "changeit")
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+		resp, err := client.Do(req)
+
+		assert.Nil(t, err)
+		resp.Body.Close()
+
+		break
+	}
+
+	// Wait for the server to rebalance.
+	time.Sleep(5 * time.Second)
+
+	// Try reading the stream again
+	stream, err = db.ReadStream(ctx, streamID, options, 10)
+	if err == nil {
+		t.Errorf("unexpected to read stream after cluster rebalance: %v", err)
+		stream.Close()
+
+		return
+	}
+
+	// If we get an error, it means the client did not reconnect to the leader node.
+	// Wait for the client to reconnect to the leader node.
+	time.Sleep(2 * time.Second)
+
+	// Try reading the stream again
+	stream, err = db.ReadStream(ctx, streamID, options, 10)
+	if err != nil {
+		t.Errorf("failed to read stream after cluster rebalance: %v", err)
+		return
+	}
+
+	stream.Close()
 }
