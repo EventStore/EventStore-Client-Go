@@ -30,19 +30,19 @@ func (client *persistentClient) ConnectToPersistentSubscription(
 	readClient, err := client.persistentSubscriptionClient.Read(ctx, callOptions...)
 	if err != nil {
 		defer cancel()
-		return nil, client.inner.handleError(handle, headers, trailers, err)
+		return nil, client.inner.handleError(handle, trailers, err)
 	}
 
 	err = readClient.Send(toPersistentReadRequest(bufferSize, groupName, []byte(streamName)))
 	if err != nil {
 		defer cancel()
-		return nil, client.inner.handleError(handle, headers, trailers, err)
+		return nil, client.inner.handleError(handle, trailers, err)
 	}
 
 	readResult, err := readClient.Recv()
 	if err != nil {
 		defer cancel()
-		return nil, client.inner.handleError(handle, headers, trailers, err)
+		return nil, client.inner.handleError(handle, trailers, err)
 	}
 	switch readResult.Content.(type) {
 	case *persistent.ReadResp_SubscriptionConfirmation_:
@@ -77,7 +77,7 @@ func (client *persistentClient) CreateStreamSubscription(
 	defer cancel()
 	_, err := client.persistentSubscriptionClient.Create(ctx, createSubscriptionConfig, callOptions...)
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -105,7 +105,7 @@ func (client *persistentClient) CreateAllSubscription(
 
 	_, err = client.persistentSubscriptionClient.Create(ctx, protoConfig, callOptions...)
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -129,7 +129,7 @@ func (client *persistentClient) UpdateStreamSubscription(
 
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -153,7 +153,7 @@ func (client *persistentClient) UpdateAllSubscription(
 
 	_, err := client.persistentSubscriptionClient.Update(ctx, updateSubscriptionConfig, callOptions...)
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -175,7 +175,7 @@ func (client *persistentClient) DeleteStreamSubscription(
 
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -196,7 +196,7 @@ func (client *persistentClient) DeleteAllSubscription(
 
 	_, err := client.persistentSubscriptionClient.Delete(ctx, deleteSubscriptionOptions, callOptions...)
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -246,7 +246,7 @@ func (client *persistentClient) listPersistentSubscriptions(
 	resp, err := client.persistentSubscriptionClient.List(ctx, listReq, callOptions...)
 
 	if err != nil {
-		return nil, client.inner.handleError(handle, headers, trailers, err)
+		return nil, client.inner.handleError(handle, trailers, err)
 	}
 
 	var infos []PersistentSubscriptionInfo
@@ -292,7 +292,7 @@ func (client *persistentClient) getPersistentSubscriptionInfo(
 
 	resp, err := client.persistentSubscriptionClient.GetInfo(ctx, getInfoReq, callOptions...)
 	if err != nil {
-		return nil, client.inner.handleError(handle, headers, trailers, err)
+		return nil, client.inner.handleError(handle, trailers, err)
 	}
 
 	info, err := subscriptionInfoFromWire(resp.SubscriptionInfo)
@@ -342,7 +342,7 @@ func (client *persistentClient) replayParkedMessages(
 	_, err := client.persistentSubscriptionClient.ReplayParked(ctx, replayReq, callOptions...)
 
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
@@ -362,7 +362,7 @@ func (client *persistentClient) restartSubsystem(
 	_, err := client.persistentSubscriptionClient.RestartSubsystem(ctx, &shared.Empty{}, callOptions...)
 
 	if err != nil {
-		return client.inner.handleError(handle, headers, trailers, err)
+		return client.inner.handleError(handle, trailers, err)
 	}
 
 	return nil
