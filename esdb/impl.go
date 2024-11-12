@@ -33,7 +33,14 @@ type grpcClient struct {
 	perRPCCredentials credentials.PerRPCCredentials
 }
 
-func (client *grpcClient) handleError(handle *connectionHandle, headers metadata.MD, trailers metadata.MD, err error) error {
+func (client *grpcClient) handleError(handle *connectionHandle, trailers metadata.MD, err error) error {
+	if client.isClosed() {
+		return &Error{
+			code: ErrorCodeConnectionClosed,
+			err:  fmt.Errorf("connection is closed"),
+		}
+	}
+
 	values := trailers.Get("exception")
 
 	if values != nil && values[0] == "not-leader" {
@@ -55,9 +62,16 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 					endpoint:    &endpoint,
 				}
 
-				client.channel <- msg
-				client.logger.error("not leader exception, reconnecting to %v", endpoint)
-				return &Error{code: ErrorCodeNotLeader}
+				if !client.isClosed() {
+					client.channel <- msg
+					client.logger.error("not leader exception, reconnecting to %v", endpoint)
+					return &Error{code: ErrorCodeNotLeader}
+				}
+
+				return &Error{
+					code: ErrorCodeConnectionClosed,
+					err:  fmt.Errorf("connection is closed"),
+				}
 			}
 		}
 	}
@@ -70,19 +84,17 @@ func (client *grpcClient) handleError(handle *connectionHandle, headers metadata
 	client.logger.error("unexpected exception: %v", err)
 
 	code := errToCode(err)
-	if code == ErrorUnavailable {
-		msg := reconnect{
+	if code == ErrorUnavailable && !client.isClosed() {
+		client.channel <- reconnect{
 			correlation: handle.Id(),
 		}
-
-		client.channel <- msg
 	}
 
 	return &Error{code: code, err: err}
 }
 
 func (client *grpcClient) getConnectionHandle() (*connectionHandle, error) {
-	if atomic.LoadInt32(client.closeFlag) != 0 {
+	if client.isClosed() {
 		return nil, &Error{
 			code: ErrorCodeConnectionClosed,
 			err:  fmt.Errorf("connection is closed"),
@@ -102,6 +114,10 @@ func (client *grpcClient) close() {
 		atomic.StoreInt32(client.closeFlag, 1)
 		close(client.channel)
 	})
+}
+
+func (client *grpcClient) isClosed() bool {
+	return atomic.LoadInt32(client.closeFlag) != 0
 }
 
 type getConnection struct {
@@ -254,7 +270,7 @@ func connectionStateMachine(config Configuration, closeFlag *int32, channel chan
 				}
 
 				if state.connection != nil {
-					state.connection.Close()
+					_ = state.connection.Close()
 					state.connection = nil
 				}
 
@@ -589,7 +605,6 @@ func errToCode(err error) ErrorCode {
 }
 
 func shuffleCandidates(src []string) []string {
-	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(src), func(i, j int) {
 		src[i], src[j] = src[j], src[i]
 	})
@@ -598,7 +613,6 @@ func shuffleCandidates(src []string) []string {
 }
 
 func shuffleMembers(src []*gossipApi.MemberInfo) []*gossipApi.MemberInfo {
-	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(src), func(i, j int) {
 		src[i], src[j] = src[j], src[i]
 	})

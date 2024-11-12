@@ -64,14 +64,14 @@ func (client *Client) AppendToStream(
 
 	appendOperation, err := streamsClient.Append(ctx, callOptions...)
 	if err != nil {
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("could not construct append operation. Reason: %w", err)
 	}
 
 	header := toAppendHeader(streamID, opts.ExpectedRevision)
 
 	if err := appendOperation.Send(header); err != nil {
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("could not send append request header. Reason: %w", err)
 	}
 
@@ -83,14 +83,14 @@ func (client *Client) AppendToStream(
 		}
 
 		if err = appendOperation.Send(appendRequest); err != nil {
-			err = client.grpcClient.handleError(handle, headers, trailers, err)
+			err = client.grpcClient.handleError(handle, trailers, err)
 			return nil, fmt.Errorf("could not send append request. Reason: %w", err)
 		}
 	}
 
 	response, err := appendOperation.CloseAndRecv()
 	if err != nil {
-		return nil, client.grpcClient.handleError(handle, headers, trailers, err)
+		return nil, client.grpcClient.handleError(handle, trailers, err)
 	}
 
 	result := response.GetResult()
@@ -251,7 +251,7 @@ func (client *Client) DeleteStream(
 	deleteRequest := toDeleteRequest(streamID, opts.ExpectedRevision)
 	deleteResponse, err := streamsClient.Delete(ctx, deleteRequest, callOptions...)
 	if err != nil {
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("failed to perform delete, details: %w", err)
 	}
 
@@ -282,7 +282,7 @@ func (client *Client) TombstoneStream(
 	tombstoneResponse, err := streamsClient.Tombstone(ctx, tombstoneRequest, callOptions...)
 
 	if err != nil {
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("failed to perform delete, details: %w", err)
 	}
 
@@ -349,13 +349,13 @@ func (client *Client) SubscribeToStream(
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, callOptions...)
 	if err != nil {
 		defer cancel()
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("failed to construct subscription. Reason: %w", err)
 	}
 	readResult, err := readClient.Recv()
 	if err != nil {
 		defer cancel()
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("failed to perform read. Reason: %w", err)
 	}
 	switch readResult.Content.(type) {
@@ -403,13 +403,13 @@ func (client *Client) SubscribeToAll(
 	readClient, err := streamsClient.Read(ctx, subscriptionRequest, callOptions...)
 	if err != nil {
 		defer cancel()
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("failed to construct subscription. Reason: %w", err)
 	}
 	readResult, err := readClient.Recv()
 	if err != nil {
 		defer cancel()
-		err = client.grpcClient.handleError(handle, headers, trailers, err)
+		err = client.grpcClient.handleError(handle, trailers, err)
 		return nil, fmt.Errorf("failed to perform read. Reason: %w", err)
 	}
 	switch readResult.Content.(type) {
