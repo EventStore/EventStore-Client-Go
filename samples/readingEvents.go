@@ -7,14 +7,14 @@ import (
 	"io"
 	"strings"
 
-	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/kurrent"
 )
 
-func ReadFromStream(db *esdb.Client) {
+func ReadFromStream(db *kurrent.Client) {
 	// region read-from-stream
-	options := esdb.ReadStreamOptions{
-		From:      esdb.Start{},
-		Direction: esdb.Forwards,
+	options := kurrent.ReadStreamOptions{
+		From:      kurrent.Start{},
+		Direction: kurrent.Forwards,
 	}
 	stream, err := db.ReadStream(context.Background(), "some-stream", options, 100)
 
@@ -41,10 +41,10 @@ func ReadFromStream(db *esdb.Client) {
 	// endregion iterate-stream
 }
 
-func ReadFromStreamPosition(db *esdb.Client) {
+func ReadFromStreamPosition(db *kurrent.Client) {
 	// region read-from-stream-position
-	ropts := esdb.ReadStreamOptions{
-		From: esdb.Revision(10),
+	ropts := kurrent.ReadStreamOptions{
+		From: kurrent.Revision(10),
 	}
 
 	stream, err := db.ReadStream(context.Background(), "some-stream", ropts, 20)
@@ -72,11 +72,11 @@ func ReadFromStreamPosition(db *esdb.Client) {
 	// endregion iterate-stream
 }
 
-func ReadStreamOverridingUserCredentials(db *esdb.Client) {
+func ReadStreamOverridingUserCredentials(db *kurrent.Client) {
 	// region overriding-user-credentials
-	options := esdb.ReadStreamOptions{
-		From: esdb.Start{},
-		Authenticated: &esdb.Credentials{
+	options := kurrent.ReadStreamOptions{
+		From: kurrent.Start{},
+		Authenticated: &kurrent.Credentials{
 			Login:    "admin",
 			Password: "changeit",
 		},
@@ -91,10 +91,10 @@ func ReadStreamOverridingUserCredentials(db *esdb.Client) {
 	stream.Close()
 }
 
-func ReadFromStreamPositionCheck(db *esdb.Client) {
+func ReadFromStreamPositionCheck(db *kurrent.Client) {
 	// region checking-for-stream-presence
-	ropts := esdb.ReadStreamOptions{
-		From: esdb.Revision(10),
+	ropts := kurrent.ReadStreamOptions{
+		From: kurrent.Revision(10),
 	}
 
 	stream, err := db.ReadStream(context.Background(), "some-stream", ropts, 100)
@@ -108,8 +108,8 @@ func ReadFromStreamPositionCheck(db *esdb.Client) {
 	for {
 		event, err := stream.Recv()
 
-		if err, ok := esdb.FromError(err); !ok {
-			if err.Code() == esdb.ErrorCodeResourceNotFound {
+		if err, ok := kurrent.FromError(err); !ok {
+			if err.Code() == kurrent.ErrorCodeResourceNotFound {
 				fmt.Print("Stream not found")
 			} else if errors.Is(err, io.EOF) {
 				break
@@ -123,11 +123,11 @@ func ReadFromStreamPositionCheck(db *esdb.Client) {
 	// endregion checking-for-stream-presence
 }
 
-func ReadStreamBackwards(db *esdb.Client) {
+func ReadStreamBackwards(db *kurrent.Client) {
 	// region reading-backwards
-	ropts := esdb.ReadStreamOptions{
-		Direction: esdb.Backwards,
-		From:      esdb.End{},
+	ropts := kurrent.ReadStreamOptions{
+		Direction: kurrent.Backwards,
+		From:      kurrent.End{},
 	}
 
 	stream, err := db.ReadStream(context.Background(), "some-stream", ropts, 10)
@@ -154,11 +154,11 @@ func ReadStreamBackwards(db *esdb.Client) {
 	// endregion reading-backwards
 }
 
-func ReadFromAllStream(db *esdb.Client) {
+func ReadFromAllStream(db *kurrent.Client) {
 	// region read-from-all-stream
-	options := esdb.ReadAllOptions{
-		From:      esdb.Start{},
-		Direction: esdb.Forwards,
+	options := kurrent.ReadAllOptions{
+		From:      kurrent.Start{},
+		Direction: kurrent.Forwards,
 	}
 	stream, err := db.ReadAll(context.Background(), options, 100)
 
@@ -185,9 +185,9 @@ func ReadFromAllStream(db *esdb.Client) {
 	// endregion read-from-all-stream-iterate
 }
 
-func IgnoreSystemEvents(db *esdb.Client) {
+func IgnoreSystemEvents(db *kurrent.Client) {
 	// region ignore-system-events
-	stream, err := db.ReadAll(context.Background(), esdb.ReadAllOptions{}, 100)
+	stream, err := db.ReadAll(context.Background(), kurrent.ReadAllOptions{}, 100)
 
 	if err != nil {
 		panic(err)
@@ -217,11 +217,11 @@ func IgnoreSystemEvents(db *esdb.Client) {
 	// endregion ignore-system-events
 }
 
-func ReadFromAllBackwards(db *esdb.Client) {
+func ReadFromAllBackwards(db *kurrent.Client) {
 	// region read-from-all-stream-backwards
-	ropts := esdb.ReadAllOptions{
-		Direction: esdb.Backwards,
-		From:      esdb.End{},
+	ropts := kurrent.ReadAllOptions{
+		Direction: kurrent.Backwards,
+		From:      kurrent.End{},
 	}
 
 	stream, err := db.ReadAll(context.Background(), ropts, 100)
@@ -249,9 +249,9 @@ func ReadFromAllBackwards(db *esdb.Client) {
 	// endregion read-from-all-stream-backwards-iterate
 }
 
-func ReadFromStreamResolvingLinkToS(db *esdb.Client) {
+func ReadFromStreamResolvingLinkToS(db *kurrent.Client) {
 	// region read-from-all-stream-resolving-link-Tos
-	ropts := esdb.ReadAllOptions{
+	ropts := kurrent.ReadAllOptions{
 		ResolveLinkTos: true,
 	}
 
@@ -265,11 +265,11 @@ func ReadFromStreamResolvingLinkToS(db *esdb.Client) {
 	defer stream.Close()
 }
 
-func ReadAllOverridingUserCredentials(db *esdb.Client) {
+func ReadAllOverridingUserCredentials(db *kurrent.Client) {
 	// region read-all-overriding-user-credentials
-	ropts := esdb.ReadAllOptions{
-		From: esdb.Start{},
-		Authenticated: &esdb.Credentials{
+	ropts := kurrent.ReadAllOptions{
+		From: kurrent.Start{},
+		Authenticated: &kurrent.Credentials{
 			Login:    "admin",
 			Password: "changeit",
 		},

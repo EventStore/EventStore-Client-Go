@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 
-	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/kurrent"
 )
 
 type TestEvent struct {
@@ -14,7 +14,7 @@ type TestEvent struct {
 	ImportantData string
 }
 
-func AppendToStream(db *esdb.Client) {
+func AppendToStream(db *kurrent.Client) {
 	// region append-to-stream
 	data := TestEvent{
 		Id:            "1",
@@ -26,12 +26,12 @@ func AppendToStream(db *esdb.Client) {
 		panic(err)
 	}
 
-	options := esdb.AppendToStreamOptions{
-		ExpectedRevision: esdb.NoStream{},
+	options := kurrent.AppendToStreamOptions{
+		ExpectedRevision: kurrent.NoStream{},
 	}
 
-	result, err := db.AppendToStream(context.Background(), "some-stream", options, esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	result, err := db.AppendToStream(context.Background(), "some-stream", options, kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -40,7 +40,7 @@ func AppendToStream(db *esdb.Client) {
 	log.Printf("Result: %v", result)
 }
 
-func AppendWithSameId(db *esdb.Client) {
+func AppendWithSameId(db *kurrent.Client) {
 	// region append-duplicate-event
 	data := TestEvent{
 		Id:            "1",
@@ -53,21 +53,21 @@ func AppendWithSameId(db *esdb.Client) {
 	}
 
 	id := uuid.New()
-	event := esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	event := kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		EventID:     id,
 		Data:        bytes,
 	}
 
-	_, err = db.AppendToStream(context.Background(), "some-stream", esdb.AppendToStreamOptions{}, event)
+	_, err = db.AppendToStream(context.Background(), "some-stream", kurrent.AppendToStreamOptions{}, event)
 
 	if err != nil {
 		panic(err)
 	}
 
 	// attempt to append the same event again
-	_, err = db.AppendToStream(context.Background(), "some-stream", esdb.AppendToStreamOptions{}, event)
+	_, err = db.AppendToStream(context.Background(), "some-stream", kurrent.AppendToStreamOptions{}, event)
 
 	if err != nil {
 		panic(err)
@@ -76,7 +76,7 @@ func AppendWithSameId(db *esdb.Client) {
 	// endregion append-duplicate-event
 }
 
-func AppendWithNoStream(db *esdb.Client) {
+func AppendWithNoStream(db *kurrent.Client) {
 	// region append-with-no-stream
 	data := TestEvent{
 		Id:            "1",
@@ -88,12 +88,12 @@ func AppendWithNoStream(db *esdb.Client) {
 		panic(err)
 	}
 
-	options := esdb.AppendToStreamOptions{
-		ExpectedRevision: esdb.NoStream{},
+	options := kurrent.AppendToStreamOptions{
+		ExpectedRevision: kurrent.NoStream{},
 	}
 
-	_, err = db.AppendToStream(context.Background(), "same-event-stream", options, esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	_, err = db.AppendToStream(context.Background(), "same-event-stream", options, kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -111,19 +111,19 @@ func AppendWithNoStream(db *esdb.Client) {
 	}
 
 	// attempt to append the same event again
-	_, err = db.AppendToStream(context.Background(), "same-event-stream", options, esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	_, err = db.AppendToStream(context.Background(), "same-event-stream", options, kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
 	// endregion append-with-no-stream
 }
 
-func AppendWithConcurrencyCheck(db *esdb.Client) {
+func AppendWithConcurrencyCheck(db *kurrent.Client) {
 	// region append-with-concurrency-check
-	ropts := esdb.ReadStreamOptions{
-		Direction: esdb.Backwards,
-		From:      esdb.End{},
+	ropts := kurrent.ReadStreamOptions{
+		Direction: kurrent.Backwards,
+		From:      kurrent.End{},
 	}
 
 	stream, err := db.ReadStream(context.Background(), "concurrency-stream", ropts, 1)
@@ -150,12 +150,12 @@ func AppendWithConcurrencyCheck(db *esdb.Client) {
 		panic(err)
 	}
 
-	aopts := esdb.AppendToStreamOptions{
+	aopts := kurrent.AppendToStreamOptions{
 		ExpectedRevision: lastEvent.OriginalStreamRevision(),
 	}
 
-	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
@@ -169,15 +169,15 @@ func AppendWithConcurrencyCheck(db *esdb.Client) {
 		panic(err)
 	}
 
-	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	_, err = db.AppendToStream(context.Background(), "concurrency-stream", aopts, kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	})
 	// endregion append-with-concurrency-check
 }
 
-func AppendToStreamOverridingUserCredentials(db *esdb.Client) {
+func AppendToStreamOverridingUserCredentials(db *kurrent.Client) {
 	data := TestEvent{
 		Id:            "1",
 		ImportantData: "some value",
@@ -188,16 +188,16 @@ func AppendToStreamOverridingUserCredentials(db *esdb.Client) {
 		panic(err)
 	}
 
-	event := esdb.EventData{
-		ContentType: esdb.ContentTypeJson,
+	event := kurrent.EventData{
+		ContentType: kurrent.ContentTypeJson,
 		EventType:   "some-event",
 		Data:        bytes,
 	}
 
 	// region overriding-user-credentials
-	credentials := &esdb.Credentials{Login: "admin", Password: "changeit"}
+	credentials := &kurrent.Credentials{Login: "admin", Password: "changeit"}
 
-	result, err := db.AppendToStream(context.Background(), "some-stream", esdb.AppendToStreamOptions{Authenticated: credentials}, event)
+	result, err := db.AppendToStream(context.Background(), "some-stream", kurrent.AppendToStreamOptions{Authenticated: credentials}, event)
 	// endregion overriding-user-credentials
 
 	log.Printf("Result: %v", result)

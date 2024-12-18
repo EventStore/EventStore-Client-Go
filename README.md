@@ -1,12 +1,12 @@
-# EventStoreDB Client SDK for Golang [![Actions Status](https://github.com/eventstore/EventStore-Client-Go/workflows/CI/badge.svg?branch=master)](https://github.com/eventstore/EventStore-Client-Go/actions)
+# KurrentDB Client SDK for Golang [![Actions Status](https://github.com/eventstore/EventStore-Client-Go/workflows/CI/badge.svg?branch=master)](https://github.com/eventstore/EventStore-Client-Go/actions)
 
-EventStoreDB is the event-native database, where business events are immutably stored and streamed. Designed for event-sourced, event-driven, and microservices architectures.
+KurrentDB is the event-native database, where business events are immutably stored and streamed. Designed for event-sourced, event-driven, and microservices architectures.
 
-This repository contains an [EventStoreDB][es] Client SDK written in Go.
+This repository contains an [KurrentDB][es] Client SDK written in Go.
 
 ## Developing
 
-Integration tests run against a server using Docker, with the [EventStoreDB gRPC Client Test Container][container].
+Integration tests run against a server using Docker, with the [KurrentDB gRPC Client Test Container][container].
 
 ### Setup dependencies
 Testing requires [Docker] and [Docker Compose] to be installed.

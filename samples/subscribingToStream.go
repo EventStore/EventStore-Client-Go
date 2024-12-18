@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/kurrent"
 )
 
-func SubscribeToStream(db *esdb.Client) {
-	options := esdb.SubscribeToStreamOptions{}
+func SubscribeToStream(db *kurrent.Client) {
+	options := kurrent.SubscribeToStreamOptions{}
 	// region subscribe-to-stream
-	stream, err := db.SubscribeToStream(context.Background(), "some-stream", esdb.SubscribeToStreamOptions{})
+	stream, err := db.SubscribeToStream(context.Background(), "some-stream", kurrent.SubscribeToStreamOptions{})
 
 	if err != nil {
 		panic(err)
@@ -32,22 +32,22 @@ func SubscribeToStream(db *esdb.Client) {
 	// endregion subscribe-to-stream
 
 	// region subscribe-to-stream-from-position
-	db.SubscribeToStream(context.Background(), "some-stream", esdb.SubscribeToStreamOptions{
-		From: esdb.Revision(20),
+	db.SubscribeToStream(context.Background(), "some-stream", kurrent.SubscribeToStreamOptions{
+		From: kurrent.Revision(20),
 	})
 	// endregion subscribe-to-stream-from-position
 
 	// region subscribe-to-stream-live
-	options = esdb.SubscribeToStreamOptions{
-		From: esdb.End{},
+	options = kurrent.SubscribeToStreamOptions{
+		From: kurrent.End{},
 	}
 
 	db.SubscribeToStream(context.Background(), "some-stream", options)
 	// endregion subscribe-to-stream-live
 
 	// region subscribe-to-stream-resolving-linktos
-	options = esdb.SubscribeToStreamOptions{
-		From:           esdb.Start{},
+	options = kurrent.SubscribeToStreamOptions{
+		From:           kurrent.Start{},
 		ResolveLinkTos: true,
 	}
 
@@ -55,8 +55,8 @@ func SubscribeToStream(db *esdb.Client) {
 	// endregion subscribe-to-stream-resolving-linktos
 
 	// region subscribe-to-stream-subscription-dropped
-	options = esdb.SubscribeToStreamOptions{
-		From: esdb.Start{},
+	options = kurrent.SubscribeToStreamOptions{
+		From: kurrent.Start{},
 	}
 
 	for {
@@ -78,17 +78,17 @@ func SubscribeToStream(db *esdb.Client) {
 
 			if event.EventAppeared != nil {
 				// handles the event...
-				options.From = esdb.Revision(event.EventAppeared.OriginalEvent().EventNumber)
+				options.From = kurrent.Revision(event.EventAppeared.OriginalEvent().EventNumber)
 			}
 		}
 	}
 	// endregion subscribe-to-stream-subscription-dropped
 }
 
-func SubscribeToAll(db *esdb.Client) {
-	options := esdb.SubscribeToAllOptions{}
+func SubscribeToAll(db *kurrent.Client) {
+	options := kurrent.SubscribeToAllOptions{}
 	// region subscribe-to-all
-	stream, err := db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{})
+	stream, err := db.SubscribeToAll(context.Background(), kurrent.SubscribeToAllOptions{})
 
 	if err != nil {
 		panic(err)
@@ -110,8 +110,8 @@ func SubscribeToAll(db *esdb.Client) {
 	// endregion subscribe-to-all
 
 	// region subscribe-to-all-from-position
-	db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{
-		From: esdb.Position{
+	db.SubscribeToAll(context.Background(), kurrent.SubscribeToAllOptions{
+		From: kurrent.Position{
 			Commit:  1_056,
 			Prepare: 1_056,
 		},
@@ -119,14 +119,14 @@ func SubscribeToAll(db *esdb.Client) {
 	// endregion subscribe-to-all-from-position
 
 	// region subscribe-to-all-live
-	db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{
-		From: esdb.End{},
+	db.SubscribeToAll(context.Background(), kurrent.SubscribeToAllOptions{
+		From: kurrent.End{},
 	})
 	// endregion subscribe-to-all-live
 
 	// region subscribe-to-all-subscription-dropped
-	options = esdb.SubscribeToAllOptions{
-		From: esdb.Start{},
+	options = kurrent.SubscribeToAllOptions{
+		From: kurrent.Start{},
 	}
 
 	for {
@@ -154,29 +154,29 @@ func SubscribeToAll(db *esdb.Client) {
 	// endregion subscribe-to-all-subscription-dropped
 }
 
-func SubscribeToFiltered(db *esdb.Client) {
+func SubscribeToFiltered(db *kurrent.Client) {
 	// region stream-prefix-filtered-subscription
-	db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{
-		Filter: &esdb.SubscriptionFilter{
-			Type:     esdb.StreamFilterType,
+	db.SubscribeToAll(context.Background(), kurrent.SubscribeToAllOptions{
+		Filter: &kurrent.SubscriptionFilter{
+			Type:     kurrent.StreamFilterType,
 			Prefixes: []string{"test-"},
 		},
 	})
 	// endregion stream-prefix-filtered-subscription
 	// region stream-regex-filtered-subscription
-	db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{
-		Filter: &esdb.SubscriptionFilter{
-			Type:  esdb.StreamFilterType,
+	db.SubscribeToAll(context.Background(), kurrent.SubscribeToAllOptions{
+		Filter: &kurrent.SubscriptionFilter{
+			Type:  kurrent.StreamFilterType,
 			Regex: "/invoice-\\d\\d\\d/g",
 		},
 	})
 	// endregion stream-regex-filtered-subscription
 }
 
-func SubscribeToAllOverridingUserCredentials(db *esdb.Client) {
+func SubscribeToAllOverridingUserCredentials(db *kurrent.Client) {
 	// region overriding-user-credentials
-	db.SubscribeToAll(context.Background(), esdb.SubscribeToAllOptions{
-		Authenticated: &esdb.Credentials{
+	db.SubscribeToAll(context.Background(), kurrent.SubscribeToAllOptions{
+		Authenticated: &kurrent.Credentials{
 			Login:    "admin",
 			Password: "changeit",
 		},
