@@ -2,7 +2,7 @@
 
 KurrentDB is the event-native database, where business events are immutably stored and streamed. Designed for event-sourced, event-driven, and microservices architectures.
 
-This repository contains an [KurrentDB][es] Client SDK written in Go.
+This repository contains an [KurrentDB][kurrent] Client SDK written in Go.
 
 ## Developing
 
@@ -58,5 +58,5 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 [docker]: https://www.docker.com/
 [docker compose]: https://www.docker.com/
 
-[es]: https://kurrent.io
+[kurrent]: https://kurrent.io
 [make]: https://www.gnu.org/software/make/
