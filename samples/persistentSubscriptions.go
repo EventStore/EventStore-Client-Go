@@ -6,12 +6,12 @@ import (
 	"log"
 	"strings"
 
-	"github.com/EventStore/EventStore-Client-Go/v4/esdb"
+	"github.com/EventStore/EventStore-Client-Go/v4/kurrent"
 )
 
-func createPersistentSubscription(client *esdb.Client) {
+func createPersistentSubscription(client *kurrent.Client) {
 	// #region create-persistent-subscription-to-stream
-	err := client.CreatePersistentSubscription(context.Background(), "test-stream", "subscription-group", esdb.PersistentStreamSubscriptionOptions{})
+	err := client.CreatePersistentSubscription(context.Background(), "test-stream", "subscription-group", kurrent.PersistentStreamSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -19,9 +19,9 @@ func createPersistentSubscription(client *esdb.Client) {
 	// #endregion create-persistent-subscription-to-stream
 }
 
-func connectToPersistentSubscriptionToStream(client *esdb.Client) {
+func connectToPersistentSubscriptionToStream(client *kurrent.Client) {
 	// #region subscribe-to-persistent-subscription-to-stream
-	sub, err := client.SubscribeToPersistentSubscription(context.Background(), "test-stream", "subscription-group", esdb.SubscribeToPersistentSubscriptionOptions{})
+	sub, err := client.SubscribeToPersistentSubscription(context.Background(), "test-stream", "subscription-group", kurrent.SubscribeToPersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -41,9 +41,9 @@ func connectToPersistentSubscriptionToStream(client *esdb.Client) {
 	// #endregion subscribe-to-persistent-subscription-to-stream
 }
 
-func connectToPersistentSubscriptionToAll(client *esdb.Client) {
+func connectToPersistentSubscriptionToAll(client *kurrent.Client) {
 	// #region subscribe-to-persistent-subscription-to-all
-	sub, err := client.SubscribeToPersistentSubscriptionToAll(context.Background(), "subscription-group", esdb.SubscribeToPersistentSubscriptionOptions{})
+	sub, err := client.SubscribeToPersistentSubscriptionToAll(context.Background(), "subscription-group", kurrent.SubscribeToPersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -63,11 +63,11 @@ func connectToPersistentSubscriptionToAll(client *esdb.Client) {
 	// #endregion subscribe-to-persistent-subscription-to-all
 }
 
-func createPersistentSubscriptionToAll(client *esdb.Client) {
+func createPersistentSubscriptionToAll(client *kurrent.Client) {
 	// #region create-persistent-subscription-to-all
-	options := esdb.PersistentAllSubscriptionOptions{
-		Filter: &esdb.SubscriptionFilter{
-			Type:     esdb.StreamFilterType,
+	options := kurrent.PersistentAllSubscriptionOptions{
+		Filter: &kurrent.SubscriptionFilter{
+			Type:     kurrent.StreamFilterType,
 			Prefixes: []string{"test"},
 		},
 	}
@@ -80,9 +80,9 @@ func createPersistentSubscriptionToAll(client *esdb.Client) {
 	// #endregion create-persistent-subscription-to-all
 }
 
-func connectToPersistentSubscriptionWithManualAcks(client *esdb.Client) {
+func connectToPersistentSubscriptionWithManualAcks(client *kurrent.Client) {
 	// #region subscribe-to-persistent-subscription-with-manual-acks
-	sub, err := client.SubscribeToPersistentSubscription(context.Background(), "test-stream", "subscription-group", esdb.SubscribeToPersistentSubscriptionOptions{})
+	sub, err := client.SubscribeToPersistentSubscription(context.Background(), "test-stream", "subscription-group", kurrent.SubscribeToPersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -102,10 +102,10 @@ func connectToPersistentSubscriptionWithManualAcks(client *esdb.Client) {
 	// #endregion subscribe-to-persistent-subscription-with-manual-acks
 }
 
-func updatePersistentSubscription(client *esdb.Client) {
+func updatePersistentSubscription(client *kurrent.Client) {
 	// #region update-persistent-subscription
-	options := esdb.PersistentStreamSubscriptionOptions{
-		Settings: &esdb.PersistentSubscriptionSettings{
+	options := kurrent.PersistentStreamSubscriptionOptions{
+		Settings: &kurrent.PersistentSubscriptionSettings{
 			ResolveLinkTos:       true,
 			CheckpointLowerBound: 20,
 		},
@@ -119,9 +119,9 @@ func updatePersistentSubscription(client *esdb.Client) {
 	// #endregion update-persistent-subscription
 }
 
-func deletePersistentSubscription(client *esdb.Client) {
+func deletePersistentSubscription(client *kurrent.Client) {
 	// #region delete-persistent-subscription
-	err := client.DeletePersistentSubscription(context.Background(), "test-stream", "subscription-group", esdb.DeletePersistentSubscriptionOptions{})
+	err := client.DeletePersistentSubscription(context.Background(), "test-stream", "subscription-group", kurrent.DeletePersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -129,9 +129,9 @@ func deletePersistentSubscription(client *esdb.Client) {
 	// #endregion delete-persistent-subscription
 }
 
-func deletePersistentSubscriptionToAll(client *esdb.Client) {
+func deletePersistentSubscriptionToAll(client *kurrent.Client) {
 	// #region delete-persistent-subscription-all
-	err := client.DeletePersistentSubscriptionToAll(context.Background(), "test-stream", esdb.DeletePersistentSubscriptionOptions{})
+	err := client.DeletePersistentSubscriptionToAll(context.Background(), "test-stream", kurrent.DeletePersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -139,9 +139,9 @@ func deletePersistentSubscriptionToAll(client *esdb.Client) {
 	// #endregion delete-persistent-subscription-all
 }
 
-func getPersistentSubscriptionToStreamInfo(client *esdb.Client) {
+func getPersistentSubscriptionToStreamInfo(client *kurrent.Client) {
 	// #region get-persistent-subscription-to-stream-info
-	info, err := client.GetPersistentSubscriptionInfo(context.Background(), "test-stream", "subscription-group", esdb.GetPersistentSubscriptionOptions{})
+	info, err := client.GetPersistentSubscriptionInfo(context.Background(), "test-stream", "subscription-group", kurrent.GetPersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -151,9 +151,9 @@ func getPersistentSubscriptionToStreamInfo(client *esdb.Client) {
 	// #endregion get-persistent-subscription-to-stream-info
 }
 
-func getPersistentSubscriptionToAllInfo(client *esdb.Client) {
+func getPersistentSubscriptionToAllInfo(client *kurrent.Client) {
 	// #region get-persistent-subscription-to-all-info
-	info, err := client.GetPersistentSubscriptionInfoToAll(context.Background(), "subscription-group", esdb.GetPersistentSubscriptionOptions{})
+	info, err := client.GetPersistentSubscriptionInfoToAll(context.Background(), "subscription-group", kurrent.GetPersistentSubscriptionOptions{})
 
 	if err != nil {
 		panic(err)
@@ -163,9 +163,9 @@ func getPersistentSubscriptionToAllInfo(client *esdb.Client) {
 	// #endregion get-persistent-subscription-to-all-info
 }
 
-func replayParkedToStream(client *esdb.Client) {
+func replayParkedToStream(client *kurrent.Client) {
 	// #region replay-parked-of-persistent-subscription-to-stream
-	err := client.ReplayParkedMessages(context.Background(), "test-stream", "subscription-group", esdb.ReplayParkedMessagesOptions{
+	err := client.ReplayParkedMessages(context.Background(), "test-stream", "subscription-group", kurrent.ReplayParkedMessagesOptions{
 		StopAt: 10,
 	})
 
@@ -175,9 +175,9 @@ func replayParkedToStream(client *esdb.Client) {
 	// #endregion replay-parked-of-persistent-subscription-to-stream
 }
 
-func replayParkedToAll(client *esdb.Client) {
+func replayParkedToAll(client *kurrent.Client) {
 	// #region replay-parked-of-persistent-subscription-to-all
-	err := client.ReplayParkedMessagesToAll(context.Background(), "subscription-group", esdb.ReplayParkedMessagesOptions{
+	err := client.ReplayParkedMessagesToAll(context.Background(), "subscription-group", kurrent.ReplayParkedMessagesOptions{
 		StopAt: 10,
 	})
 
@@ -187,9 +187,9 @@ func replayParkedToAll(client *esdb.Client) {
 	// #endregion replay-parked-of-persistent-subscription-to-all
 }
 
-func listPersistentSubscriptionsToStream(client *esdb.Client) {
+func listPersistentSubscriptionsToStream(client *kurrent.Client) {
 	// #region list-persistent-subscriptions-to-stream
-	subs, err := client.ListPersistentSubscriptionsForStream(context.Background(), "test-stream", esdb.ListPersistentSubscriptionsOptions{})
+	subs, err := client.ListPersistentSubscriptionsForStream(context.Background(), "test-stream", kurrent.ListPersistentSubscriptionsOptions{})
 
 	if err != nil {
 		panic(err)
@@ -213,9 +213,9 @@ func listPersistentSubscriptionsToStream(client *esdb.Client) {
 	// #endregion list-persistent-subscriptions-to-stream
 }
 
-func listPersistentSubscriptionsToAll(client *esdb.Client) {
+func listPersistentSubscriptionsToAll(client *kurrent.Client) {
 	// #region list-persistent-subscriptions-to-all
-	subs, err := client.ListPersistentSubscriptionsToAll(context.Background(), esdb.ListPersistentSubscriptionsOptions{})
+	subs, err := client.ListPersistentSubscriptionsToAll(context.Background(), kurrent.ListPersistentSubscriptionsOptions{})
 
 	if err != nil {
 		panic(err)
@@ -239,9 +239,9 @@ func listPersistentSubscriptionsToAll(client *esdb.Client) {
 	// #endregion list-persistent-subscriptions-to-all
 }
 
-func restartPersistentSubscriptionSubsystem(client *esdb.Client) {
+func restartPersistentSubscriptionSubsystem(client *kurrent.Client) {
 	// #region restart-persistent-subscription-subsystem
-	err := client.RestartPersistentSubscriptionSubsystem(context.Background(), esdb.RestartPersistentSubscriptionSubsystemOptions{})
+	err := client.RestartPersistentSubscriptionSubsystem(context.Background(), kurrent.RestartPersistentSubscriptionSubsystemOptions{})
 
 	if err != nil {
 		panic(err)
