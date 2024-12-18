@@ -42,7 +42,7 @@ make test
 ## Communities
 
 - [Discuss](https://discuss.eventstore.com/)
-- [Discord (Event Store)](https://discord.gg/Phn9pmCw3t)
+- [Discord (Kurrent)](https://discord.gg/Phn9pmCw3t)
 
 ## Security
 
@@ -58,5 +58,5 @@ All contributions to the SDK are made via GitHub Pull Requests, and must be lice
 [docker]: https://www.docker.com/
 [docker compose]: https://www.docker.com/
 
-[es]: https://eventstore.com
+[es]: https://kurrent.io
 [make]: https://www.gnu.org/software/make/
