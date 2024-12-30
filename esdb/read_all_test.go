@@ -3,7 +3,7 @@ package esdb_test
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"os"
 	"testing"
 	"time"
@@ -73,7 +73,7 @@ func readAllEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 
 func readAllEventsForwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../resources/test/all-c1788-p1788.json")
+		eventsContent, err := os.ReadFile("../resources/test/all-c1788-p1788.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -183,7 +183,7 @@ func readAllEventsBackwardsFromZeroPosition(db *esdb.Client) TestCall {
 
 func readAllEventsBackwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../resources/test/all-back-c3386-p3386.json")
+		eventsContent, err := os.ReadFile("../resources/test/all-back-c3386-p3386.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -234,7 +234,7 @@ func readAllEventsBackwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 
 func readAllEventsWithCredentialOverride(db *esdb.Client) TestCall {
 	return func(t *testing.T) {
-		eventsContent, err := ioutil.ReadFile("../resources/test/all-back-c3386-p3386.json")
+		eventsContent, err := os.ReadFile("../resources/test/all-back-c3386-p3386.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent

@@ -3,7 +3,7 @@ package esdb
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,7 +12,6 @@ import (
 
 func (client *Client) httpListAllPersistentSubscriptions(options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
 	body, err := client.httpExecute("GET", "/subscriptions", options.Authenticated, nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +19,6 @@ func (client *Client) httpListAllPersistentSubscriptions(options ListPersistentS
 	var subs []persistentSubscriptionInfoHttpJson
 
 	err = json.Unmarshal(body, &subs)
-
 	if err != nil {
 		return nil, &Error{code: ErrorCodeParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
@@ -41,7 +39,6 @@ func (client *Client) httpListAllPersistentSubscriptions(options ListPersistentS
 
 func (client *Client) httpListPersistentSubscriptionsForStream(streamName string, options ListPersistentSubscriptionsOptions) ([]PersistentSubscriptionInfo, error) {
 	body, err := client.httpExecute("GET", fmt.Sprintf("/subscriptions/%s", url.PathEscape(streamName)), options.Authenticated, nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +46,6 @@ func (client *Client) httpListPersistentSubscriptionsForStream(streamName string
 	var subs []persistentSubscriptionInfoHttpJson
 
 	err = json.Unmarshal(body, &subs)
-
 	if err != nil {
 		return nil, &Error{code: ErrorCodeParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
@@ -70,7 +66,6 @@ func (client *Client) httpListPersistentSubscriptionsForStream(streamName string
 
 func (client *Client) httpGetPersistentSubscriptionInfo(streamName string, groupName string, options GetPersistentSubscriptionOptions) (*PersistentSubscriptionInfo, error) {
 	body, err := client.httpExecute("GET", fmt.Sprintf("/subscriptions/%s/%s/info", url.PathEscape(streamName), url.PathEscape(groupName)), options.Authenticated, nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +73,11 @@ func (client *Client) httpGetPersistentSubscriptionInfo(streamName string, group
 	var src persistentSubscriptionInfoHttpJson
 
 	err = json.Unmarshal(body, &src)
-
 	if err != nil {
 		return nil, &Error{code: ErrorCodeParsing, err: fmt.Errorf("error when parsing JSON payload: %w", err)}
 	}
 
 	info, err := fromHttpJsonInfo(src)
-
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +112,6 @@ func (client *Client) httpRestartSubsystem(options RestartPersistentSubscription
 
 func (client *Client) getBaseUrl() (string, error) {
 	handle, err := client.grpcClient.getConnectionHandle()
-
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +213,7 @@ func (client *Client) httpExecute(method string, path string, auth *Credentials,
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, &Error{code: ErrorCodeUnknown, err: err}
 	}
@@ -319,7 +311,6 @@ func fromHttpJsonInfo(src persistentSubscriptionInfoHttpJson) (*PersistentSubscr
 
 		if src.EventStreamId == "$all" {
 			from, err := ParseStreamPosition(src.Config.StartPosition)
-
 			if err != nil {
 				return nil, err
 			}
@@ -345,7 +336,6 @@ func fromHttpJsonInfo(src persistentSubscriptionInfoHttpJson) (*PersistentSubscr
 			if src.EventStreamId == "$all" {
 				if src.LastCheckpointedEventPosition != "" {
 					pos, err := parsePosition(src.LastCheckpointedEventPosition)
-
 					if err != nil {
 						return nil, err
 					}
@@ -355,7 +345,6 @@ func fromHttpJsonInfo(src persistentSubscriptionInfoHttpJson) (*PersistentSubscr
 
 				if src.LastKnownEventPosition != "" {
 					pos, err := parsePosition(src.LastKnownEventPosition)
-
 					if err != nil {
 						return nil, err
 					}
