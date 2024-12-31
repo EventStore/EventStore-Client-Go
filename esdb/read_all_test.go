@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"os"
 	"testing"
 	"time"
 
@@ -44,7 +43,6 @@ func readAllEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 			ResolveLinkTos: true,
 		}
 		stream, err := db.ReadAll(context, opts, numberOfEvents)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -52,7 +50,6 @@ func readAllEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 		defer stream.Close()
 
 		events, err := collectStreamEvents(stream)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -92,7 +89,6 @@ func readAllEventsForwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 		}
 
 		stream, err := db.ReadAll(context, opts, numberOfEvents)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -100,7 +96,6 @@ func readAllEventsForwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 		defer stream.Close()
 
 		events, err := collectStreamEvents(stream)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -142,7 +137,6 @@ func readAllEventsBackwardsFromZeroPosition(db *esdb.Client) TestCall {
 
 		// We read 30 more events in case the DB had pushed more config related events before the test begins.
 		stream, err := db.ReadAll(context, opts, numberOfEvents+30)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -150,7 +144,6 @@ func readAllEventsBackwardsFromZeroPosition(db *esdb.Client) TestCall {
 		defer stream.Close()
 
 		events, err := collectStreamEvents(stream)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -203,7 +196,6 @@ func readAllEventsBackwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 		}
 
 		stream, err := db.ReadAll(context, opts, numberOfEvents)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -211,7 +203,6 @@ func readAllEventsBackwardsFromNonZeroPosition(db *esdb.Client) TestCall {
 		defer stream.Close()
 
 		events, err := collectStreamEvents(stream)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -258,7 +249,6 @@ func readAllEventsWithCredentialOverride(db *esdb.Client) TestCall {
 		}
 
 		stream, err := db.ReadAll(context, opts, numberOfEvents)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
@@ -267,7 +257,6 @@ func readAllEventsWithCredentialOverride(db *esdb.Client) TestCall {
 
 		// collect all events to see if no error occurs
 		_, err = collectStreamEvents(stream)
-
 		if err != nil {
 			t.Fatalf("Unexpected failure %+v", err)
 		}
