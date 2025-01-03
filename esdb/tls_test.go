@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -63,7 +63,7 @@ func testTLSDefaultsWithCertificate(container *Container) TestCall {
 			t.Fatalf("Unexpected configuration error: %s", err.Error())
 		}
 
-		b, err := ioutil.ReadFile("../certs/node/node.crt")
+		b, err := os.ReadFile("../certs/node/node.crt")
 		if err != nil {
 			t.Fatalf("failed to read node certificate ../certs/node/node.crt: %s", err.Error())
 		}
@@ -161,7 +161,7 @@ func testTLSWithCertificate(container *Container) TestCall {
 			t.Fatalf("Unexpected configuration error: %s", err.Error())
 		}
 
-		b, err := ioutil.ReadFile("../certs/node/node.crt")
+		b, err := os.ReadFile("../certs/node/node.crt")
 		if err != nil {
 			t.Fatalf("failed to read node certificate ../certs/node/node.crt: %s", err.Error())
 		}
@@ -269,7 +269,7 @@ func testTLSWithInvalidCertificate(container *Container) TestCall {
 			t.Fatalf("Unexpected configuration error: %s", err.Error())
 		}
 
-		b, err := ioutil.ReadFile("../certs/untrusted-ca/ca.crt")
+		b, err := os.ReadFile("../certs/untrusted-ca/ca.crt")
 		if err != nil {
 			t.Fatalf("failed to read node certificate ../certs/untrusted-ca/ca.crt: %s", err.Error())
 		}

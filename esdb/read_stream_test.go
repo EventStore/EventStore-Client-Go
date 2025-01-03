@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"io"
-	"io/ioutil"
+	"os"
 	"math"
 	"testing"
 	"time"
@@ -58,7 +58,7 @@ func readStreamEventsForwardsFromZeroPosition(db *esdb.Client) TestCall {
 			t.Skip()
 		}
 
-		eventsContent, err := ioutil.ReadFile("../resources/test/dataset20M-1800-e0-e10.json")
+		eventsContent, err := os.ReadFile("../resources/test/dataset20M-1800-e0-e10.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
@@ -127,7 +127,7 @@ func readStreamEventsBackwardsFromEndPosition(db *esdb.Client) TestCall {
 			t.Skip()
 		}
 
-		eventsContent, err := ioutil.ReadFile("../resources/test/dataset20M-1800-e1999-e1990.json")
+		eventsContent, err := os.ReadFile("../resources/test/dataset20M-1800-e1999-e1990.json")
 		require.NoError(t, err)
 
 		var testEvents []TestEvent
