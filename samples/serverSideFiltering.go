@@ -196,7 +196,8 @@ func CheckpointCallbackWithInterval(db *esdb.Client) {
 		}
 
 		if event.CheckPointReached != nil {
-			fmt.Printf("checkpoint taken at %v", event.CheckPointReached.Prepare)
+			// Save commit position to a persistent store as a checkpoint
+			fmt.Printf("checkpoint taken at %v", event.CheckPointReached.Commit)
 		}
 
 		if event.SubscriptionDropped != nil {
