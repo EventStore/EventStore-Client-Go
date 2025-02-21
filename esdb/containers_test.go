@@ -42,8 +42,8 @@ type EventStoreDockerConfig struct {
 }
 
 const (
-	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "docker.eventstore.com/eventstore-utils/testdata"
-	DEFAULT_EVENTSTORE_DOCKER_TAG        = "latest"
+	DEFAULT_EVENTSTORE_DOCKER_REPOSITORY = "ghcr.io/eventstore/testdata"
+	DEFAULT_EVENTSTORE_DOCKER_TAG        = "25.0.0-rc.1-x64-8.0-jammy"
 	DEFAULT_EVENTSTORE_DOCKER_PORT       = "2113"
 )
 
@@ -134,13 +134,13 @@ func getContainerRequest() (*EventStoreDockerConfig, *testcontainers.ContainerRe
 			return nil, nil, err
 		}
 
-		env["EVENTSTORE_CERTIFICATE_FILE"] = "/etc/eventstore/certs/node/node.crt"
-		env["EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE"] = "/etc/eventstore/certs/node/node.key"
-		env["EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH"] = "/etc/eventstore/certs/ca"
+		env["EVENTSTORE_CERTIFICATE_FILE"] = "/etc/kurrentdb/certs/node/node.crt"
+		env["EVENTSTORE_CERTIFICATE_PRIVATE_KEY_FILE"] = "/etc/kurrentdb/certs/node/node.key"
+		env["EVENTSTORE_TRUSTED_ROOT_CERTIFICATES_PATH"] = "/etc/kurrentdb/certs/ca"
 
 		files = append(files, testcontainers.ContainerFile{
 			HostFilePath:      certsDir,
-			ContainerFilePath: "/etc/eventstore/certs",
+			ContainerFilePath: "/etc/kurrentdb/certs",
 			FileMode:          int64(0755),
 		})
 	}

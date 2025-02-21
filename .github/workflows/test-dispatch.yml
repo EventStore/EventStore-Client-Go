@@ -19,13 +19,3 @@ jobs:
     with:
       esdb_version: ${{ inputs.version }}
       go_version: ${{ needs.go-version.outputs.go_version }}
-
-  plugins-tests:
-    needs: go-version
-    name: Plugins Tests
-    uses: ./.github/workflows/plugins-tests.yml
-    with:
-      esdb_version: ${{ inputs.version }}
-      go_version: ${{ needs.go-version.outputs.go_version }}
-      esdb_repository: "docker.eventstore.com/eventstore-ee/eventstoredb-commercial"
-    secrets: inherit
